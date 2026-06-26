@@ -1641,10 +1641,11 @@ function dueDateLabel(due, status) {
   const dueD  = new Date(due + 'T00:00:00');
   const diff  = Math.round((dueD - today) / 86400000);
   if (status === 'done') return '';
-  if (diff < 0)  return { text: `${Math.abs(diff)}h terlambat`, cls: 'overdue' };
+  if (diff < 0)   return { text: `${Math.abs(diff)} hari terlambat`, cls: 'overdue' };
   if (diff === 0) return { text: 'Due hari ini', cls: 'today' };
   if (diff === 1) return { text: 'Due besok', cls: '' };
-  return { text: `Due ${diff}h lagi`, cls: '' };
+  if (diff <= 7)  return { text: `Due ${diff} hari lagi`, cls: '' };
+  return { text: `Due ${FMT(due)}`, cls: '' };
 }
 
 function updateFocus(){
@@ -1891,10 +1892,11 @@ function tlCardHTML(a, zone){
     const due   = new Date(a._due+'T00:00:00');
     const diff  = Math.round((due - today) / 86400000);
     const cls   = diff < 0 ? 'ov' : diff===0 ? 'a' : '';
-    const lbl   = diff < 0 ? `${Math.abs(diff)}h terlambat`
+    const lbl   = diff < 0 ? `${Math.abs(diff)} hari terlambat`
                 : diff===0 ? 'Hari ini'
                 : diff===1 ? 'Besok'
-                : `${diff}h lagi`;
+                : diff<=7  ? `${diff} hari lagi`
+                : FMT(a._due);
     dueHTML = `<div class="tdate ${cls}" style="font-size:10px">⏱ ${lbl}</div>`;
   }
 
