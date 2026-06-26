@@ -230,8 +230,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 .tl-btn:hover{border-color:var(--lime);color:var(--lime);}
 .tl-btn.done-btn{border-color:var(--lime);color:var(--lime);}
 .tl-btn.done-btn:hover{background:var(--lime);color:#000;}
+.tl-btn.edit:hover{border-color:var(--accent);color:var(--accent2);}
 .tl-btn.del:hover{border-color:var(--rose);color:var(--rose);}
 .tl-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.tl-cat{font-size:10px;color:var(--violet);background:var(--viold);padding:2px 7px;border-radius:20px;}
 
 /* ── TASKS VIEW ── */
 .view-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
@@ -952,10 +954,19 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
       <div class="tl-filters">
         <div class="chip active" onclick="setTlF('all',this)">Semua</div>
         <div class="chip" onclick="setTlF('active',this)">Aktif</div>
-        <div class="chip" onclick="setTlF('overdue',this)">Terlambat</div>
-        <div class="chip" onclick="setTlF('done',this)">Selesai</div>
+        <div class="chip" onclick="setTlF('overdue',this)">⚠ Terlambat</div>
+        <div class="chip" onclick="setTlF('done',this)">✓ Selesai</div>
+        <div class="chip" onclick="setTlF('task',this)">◈ Task</div>
+        <div class="chip" onclick="setTlF('delegation',this)">◎ Delegasi</div>
+        <div class="chip" onclick="setTlF('habit',this)">◉ Habit</div>
+        <div class="chip" onclick="setTlF('note',this)">◇ Catatan</div>
       </div>
-      <div id="tl-ov"></div><div id="tl-td"></div><div id="tl-up"></div><div id="tl-sd"></div><div id="tl-dn"></div>
+      <div id="tl-ov"></div>
+      <div id="tl-td"></div>
+      <div id="tl-up"></div>
+      <div id="tl-sd"></div>
+      <div id="tl-hb"></div>
+      <div id="tl-dn"></div>
     </div>
 
     <!-- TASKS -->
@@ -1718,39 +1729,193 @@ function renderDashboard(){
 }
 
 // ── TIMELINE ──────────────────────────────────
-window.setTlF = (f,el) => { tlF=f;document.querySelectorAll('.tl-filters .chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderTimeline(); };
+window.setTlF = (f,el) => {
+  tlF=f;
+  document.querySelectorAll('.tl-filters .chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderTimeline();
+};
 
 function renderTimeline(){
-  let acts=D.tasks;
-  if(tlF==='active')acts=acts.filter(a=>a.status!=='done');
-  else if(tlF==='overdue')acts=acts.filter(a=>isOv(a.due)&&a.status!=='done');
-  else if(tlF==='done')acts=acts.filter(a=>a.status==='done');
-  renderZone('tl-ov','⚠ TERLAMBAT',acts.filter(a=>isOv(a.due)&&a.status!=='done'),'overdue');
-  renderZone('tl-td','◉ HARI INI',acts.filter(a=>isToday(a.due)&&a.status!=='done'),'today');
-  renderZone('tl-up','→ MENDATANG',acts.filter(a=>isUp(a.due)&&a.status!=='done'),'upcoming');
-  renderZone('tl-sd','◌ SUATU HARI',acts.filter(a=>!a.due&&a.status!=='done'),'someday');
-  renderZone('tl-dn','✓ SELESAI',acts.filter(a=>a.status==='done'),'done');
+  // ── Merge all item types into unified timeline items ──
+  const prioOrder = { high:0, medium:1, low:2 };
+
+  function makeItems(arr, type) {
+    return arr.map(a => ({
+      ...a,
+      _type: type,
+      _done: type==='task' ? a.status==='done'
+           : type==='delegation' ? a.status==='done'
+           : type==='habit' ? false   // habits never "done" permanently
+           : false,                   // notes
+      _due: a.due || null,
+      _priority: a.priority || 'low',
+      _name: a.name || a.title || '—',
+      _status: a.status || '',
+      _category: a.category || a.tag || ''
+    }));
+  }
+
+  let all = [
+    ...makeItems(D.tasks,       'task'),
+    ...makeItems(D.delegations, 'delegation'),
+    ...makeItems(D.habits,      'habit'),
+    ...makeItems(D.notes,       'note')
+  ];
+
+  // ── Apply filter ──
+  if (tlF==='active')          all = all.filter(a => !a._done);
+  else if (tlF==='overdue')    all = all.filter(a => isOv(a._due) && !a._done);
+  else if (tlF==='done')       all = all.filter(a => a._done);
+  else if (tlF==='task')       all = all.filter(a => a._type==='task');
+  else if (tlF==='delegation') all = all.filter(a => a._type==='delegation');
+  else if (tlF==='habit')      all = all.filter(a => a._type==='habit');
+  else if (tlF==='note')       all = all.filter(a => a._type==='note');
+
+  // ── Sort function: priority then due date ──
+  function sortItems(items) {
+    return items.slice().sort((a, b) => {
+      const pa = prioOrder[a._priority] ?? 2;
+      const pb = prioOrder[b._priority] ?? 2;
+      if (pa !== pb) return pa - pb;
+      // same priority → earlier due date first; no due date goes last
+      if (!a._due && !b._due) return 0;
+      if (!a._due) return 1;
+      if (!b._due) return -1;
+      return a._due.localeCompare(b._due);
+    });
+  }
+
+  // ── Zone classification ──
+  const overdue  = sortItems(all.filter(a => isOv(a._due) && !a._done && a._type !== 'habit' && a._type !== 'note'));
+  const today    = sortItems(all.filter(a => isToday(a._due) && !a._done));
+  const upcoming = sortItems(all.filter(a => isUp(a._due) && !a._done));
+  const someday  = sortItems(all.filter(a => !a._due && !a._done && a._type !== 'habit'));
+  const habits   = D.habits.map(h => ({ ...h, _type:'habit', _name:h.name, _priority:'medium', _due:null, _done:false, _status:'', _category:'' }));
+  const doneItems= sortItems(all.filter(a => a._done));
+
+  renderZone('tl-ov',  '⚠ TERLAMBAT',  overdue,   'overdue');
+  renderZone('tl-td',  '◉ HARI INI',   today,     'today');
+  renderZone('tl-up',  '→ MENDATANG',  upcoming,  'upcoming');
+  renderZone('tl-sd',  '◌ TANPA TARGET', someday, 'someday');
+  renderZone('tl-hb',  '◉ HABITS',     habits,    'habit');
+  renderZone('tl-dn',  '✓ SELESAI',    doneItems, 'done');
 }
 
-function renderZone(id,label,items,type){
-  const el=document.getElementById(id);if(!el)return;
-  if(items.length===0&&type!=='today'){el.innerHTML='';return;}
-  el.innerHTML=`<div class="tl-zone"><div class="zone-hd"><div class="zone-line"></div><div class="zone-label">${label}</div><div class="zone-count">${items.length}</div><div class="zone-line"></div></div>
-  ${items.length===0?'<div class="empty"><div class="empty-sub">Tidak ada aktivitas</div></div>':items.map(a=>{
-    const dc=a.status==='done'?'done-dot':type==='overdue'?'ov-dot':type==='today'?'active':'';
-    const bc=a.status==='done'?'done-b':type==='overdue'?'ov-b':type==='today'?'active-b':'';
-    return`<div class="tl-card"><div class="tl-spine"><div class="tl-dot ${dc}"></div><div class="tl-vline"></div></div>
-      <div class="tl-body ${bc}">
-        <div class="tl-top"><div class="tl-name ${a.status==='done'?'done-n':''}">${a.name}</div>
-          <div class="tl-acts">
-            ${a.status!=='done'?`<button class="tl-btn done-btn" onclick="doMarkDone('${a.id}')">✓</button>`:''}
-            <button class="tl-btn" onclick="doCycleTask('${a.id}')">⟳</button>
-            <button class="tl-btn del" onclick="doDelTask('${a.id}')">✕</button>
-          </div>
-        </div>
-        <div class="tl-meta"><div class="pill ${a.status}">${sLbl(a.status)}</div><div class="pill ${a.priority}">${a.priority}</div>${a.due?`<div class="tdate ${isOv(a.due)&&a.status!=='done'?'ov':''}">⏱ ${FMT(a.due)}</div>`:''}</div>
-      </div></div>`;}).join('')}</div>`;
+function renderZone(id, label, items, type){
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (items.length===0 && type!=='today' && type!=='habit'){el.innerHTML='';return;}
+  const typeIcon = { task:'◈', delegation:'◎', habit:'◉', note:'◇' };
+  const typeLabel = { task:'Task', delegation:'Delegasi', habit:'Habit', note:'Catatan' };
+  const prioOrder = { high:0, medium:1, low:2 };
+
+  el.innerHTML = `<div class="tl-zone">
+    <div class="zone-hd">
+      <div class="zone-line"></div>
+      <div class="zone-label">${label}</div>
+      <div class="zone-count">${items.length}</div>
+      <div class="zone-line"></div>
+    </div>
+    ${items.length===0
+      ? '<div class="empty"><div class="empty-sub">Tidak ada item</div></div>'
+      : items.map(a => tlCardHTML(a, type)).join('')
+    }
+  </div>`;
 }
+
+function tlCardHTML(a, zone){
+  const typeIcon  = { task:'◈', delegation:'◎', habit:'◉', note:'◇' };
+  const typeLbl   = { task:'Task', delegation:'Delegasi', habit:'Habit', note:'Catatan' };
+  const typeColor = { task:'var(--accent)', delegation:'var(--amber)', habit:'var(--lime)', note:'var(--violet)' };
+
+  const isDone = a._done;
+  const dotCls = isDone ? 'done-dot' : zone==='overdue' ? 'ov-dot' : zone==='today' ? 'active' : '';
+  const bodyCls= isDone ? 'done-b'   : zone==='overdue' ? 'ov-b'   : zone==='today' ? 'active-b' : '';
+
+  // Due date label
+  let dueHTML = '';
+  if (a._due) {
+    const today = new Date(TS()+'T00:00:00');
+    const due   = new Date(a._due+'T00:00:00');
+    const diff  = Math.round((due - today) / 86400000);
+    const cls   = diff < 0 ? 'ov' : diff===0 ? 'a' : '';
+    const lbl   = diff < 0 ? `${Math.abs(diff)}h terlambat`
+                : diff===0 ? 'Hari ini'
+                : diff===1 ? 'Besok'
+                : `${diff}h lagi`;
+    dueHTML = `<div class="tdate ${cls}" style="font-size:10px">⏱ ${lbl}</div>`;
+  }
+
+  // Priority pill (only for task & delegation)
+  const showPrio = a._type==='task' || a._type==='delegation';
+  const prioCls  = { high:'high', medium:'medium', low:'low' }[a._priority] || '';
+
+  // Actions based on type
+  let actions = '';
+  if (a._type==='task') {
+    actions = `
+      ${!isDone ? `<button class="tl-btn done-btn" onclick="doMarkDone('${a.id}')" title="Selesai">✓</button>` : ''}
+      <button class="tl-btn" onclick="doCycleTask('${a.id}')" title="Ganti status">⟳</button>
+      <button class="tl-btn edit" onclick="openEditTask('${a.id}')" title="Edit">✎</button>
+      <button class="tl-btn del" onclick="doDelTask('${a.id}')" title="Hapus">✕</button>`;
+  } else if (a._type==='delegation') {
+    actions = `
+      <button class="tl-btn" onclick="doCycleDel('${a.id}')" title="Ganti status">⟳</button>
+      <button class="tl-btn edit" onclick="openEditDeleg('${a.id}')" title="Edit">✎</button>
+      <button class="tl-btn del" onclick="doDelDel('${a.id}')" title="Hapus">✕</button>`;
+  } else if (a._type==='habit') {
+    const logs = D.habitLogs[a.id] || {};
+    const todayDone = logs[TS()];
+    actions = `<button class="tl-btn ${todayDone?'done-btn':''}" onclick="doToggleHabit('${a.id}','${TS()}',${!!todayDone})" title="${todayDone?'Batal':'Centang hari ini'}">${todayDone?'✓ Done':'○ Belum'}</button>
+      <button class="tl-btn edit" onclick="openEditHabit('${a.id}')" title="Edit">✎</button>`;
+  } else if (a._type==='note') {
+    actions = `<button class="tl-btn edit" onclick="openNote('${a.id}')" title="Buka catatan">✎ Buka</button>
+      <button class="tl-btn del" onclick="doDelIdea('${a.id}')" title="Hapus">✕</button>`;
+  }
+
+  // Habit: show today's streak inline
+  let extraInfo = '';
+  if (a._type==='habit') {
+    const streak = calcStreak(a.id);
+    const logs   = D.habitLogs[a.id] || {};
+    const done7  = getLast7().filter(d => logs[d]).length;
+    extraInfo = `<span style="font-size:10px;color:var(--amber)">🔥 ${streak} streak</span>
+      <span style="font-size:10px;color:var(--fog)">${done7}/7 minggu ini</span>`;
+  }
+
+  // Note: show tag
+  if (a._type==='note') {
+    extraInfo = `<span class="tag p" style="font-size:9px">${a.tag||'catatan'}</span>`;
+  }
+
+  // Delegation: show person
+  if (a._type==='delegation' && a.person) {
+    extraInfo = `<span style="font-size:10px;color:var(--fog)">👤 ${a.person}</span>`;
+  }
+
+  return `<div class="tl-card">
+    <div class="tl-spine">
+      <div class="tl-dot ${dotCls}" style="border-color:${typeColor[a._type]||'var(--line2)'};${isDone?'':''}"></div>
+      <div class="tl-vline"></div>
+    </div>
+    <div class="tl-body ${bodyCls}">
+      <div class="tl-top">
+        <div class="tl-name ${isDone?'done-n':''}">${a._name}</div>
+        <div class="tl-acts">${actions}</div>
+      </div>
+      <div class="tl-meta">
+        <span style="font-size:9px;padding:1px 6px;border-radius:10px;background:var(--bg4);color:${typeColor[a._type]};font-weight:600">${typeIcon[a._type]} ${typeLbl[a._type]}</span>
+        ${showPrio && a._priority ? `<div class="pill ${prioCls}">${a._priority}</div>` : ''}
+        ${a._status && a._type!=='habit' ? `<div class="pill ${a._status}">${sLbl(a._status)}</div>` : ''}
+        ${dueHTML}
+        ${a._category ? `<div class="tl-cat">${a._category}</div>` : ''}
+        ${extraInfo}
+      </div>
+    </div>
+  </div>`;
+}
+
 
 // ── TASKS ─────────────────────────────────────
 window.setTF = (f,el) => { taskF=f;document.querySelectorAll('#task-filters .chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderTasks(); };
