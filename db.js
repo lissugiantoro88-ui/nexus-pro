@@ -113,13 +113,17 @@ export function listenReviews(uid, callback) {
   });
 }
 
-// ── RETRO ─────────────────────────────────────
-export async function saveRetro(uid, key, value) {
-  const r = ref(uid, "settings", "retro");
-  return setDoc(r, { [key]: value }, { merge: true });
+// ── RETRO DOCS (multiple retros with history) ────
+export async function saveRetroDoc(uid, id, data) {
+  const r = ref(uid, "retros", id);
+  return setDoc(r, data, { merge: true });
 }
-export function listenRetro(uid, callback) {
-  return onSnapshot(ref(uid, "settings", "retro"), snap => {
-    callback(snap.exists() ? snap.data() : {});
+export function listenRetros(uid, callback) {
+  return onSnapshot(col(uid, "retros"), snap => {
+    const retros = {};
+    snap.docs.forEach(d => { retros[d.id] = d.data(); });
+    callback(retros);
   });
 }
+
+
