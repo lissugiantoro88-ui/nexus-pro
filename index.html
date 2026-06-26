@@ -494,7 +494,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
     <div class="nav-item" onclick="nav('tasks',this)"><span class="nav-ico">◈</span><span class="nav-name">Tasks</span><span class="nav-badge" id="nb-tasks">0</span></div>
     <div class="nav-item" onclick="nav('habits',this)"><span class="nav-ico">◉</span><span class="nav-name">Habits</span><span class="nav-badge g" id="nb-habits">0</span></div>
     <div class="nav-item" onclick="nav('delegation',this)"><span class="nav-ico">◎</span><span class="nav-name">Delegasi</span><span class="nav-badge y" id="nb-deleg">0</span></div>
-    <div class="nav-item" onclick="nav('ideas',this)"><span class="nav-ico">◇</span><span class="nav-name">Ideas & Notes</span></div>
+    <div class="nav-item" onclick="nav('ideas',this)"><span class="nav-ico">◇</span><span class="nav-name">Ideas & Notes</span><span class="nav-badge" style="background:var(--violet)" id="nb-ideas">0</span></div>
     <div class="nav-group-label" style="margin-top:6px">Review</div>
     <div class="nav-item" onclick="nav('review',this)"><span class="nav-ico">↻</span><span class="nav-name">Review Loop</span></div>
     <div class="nav-item" onclick="nav('retro',this)"><span class="nav-ico">◆</span><span class="nav-name">Retrospektif</span></div>
@@ -1033,6 +1033,7 @@ function updateBadges(){
   document.getElementById('nb-tasks').textContent=D.tasks.filter(t=>t.status!=='done').length;
   document.getElementById('nb-habits').textContent=D.habits.length;
   document.getElementById('nb-deleg').textContent=D.delegations.filter(d=>d.status!=='done').length;
+  document.getElementById('nb-ideas').textContent=D.notes.length;
 }
 
 function updateFocus(){
