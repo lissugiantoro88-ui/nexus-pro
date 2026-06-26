@@ -33,6 +33,9 @@ export function listenTasks(uid, callback) {
 export async function addHabit(uid, data) {
   return addDoc(col(uid, "habits"), { ...data, createdAt: serverTimestamp() });
 }
+export async function updateHabit(uid, id, data) {
+  return updateDoc(ref(uid, "habits", id), data);
+}
 export async function deleteHabit(uid, id) {
   return deleteDoc(ref(uid, "habits", id));
 }
@@ -120,3 +123,6 @@ export function listenRetro(uid, callback) {
     callback(snap.exists() ? snap.data() : {});
   });
 }
+
+export { db };
+export const ref = (uid, name, id) => doc(db, "users", uid, name, id);
