@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS PRO</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg:#09090f; --bg2:#0f1018; --bg3:#171720; --bg4:#1e1e2a; --bg5:#252535;
+  --line:#272736; --line2:#333348; --fog:#5c5c78; --mist:#8888a8;
+  --snow:#ddddf0; --white:#f0f0ff;
+  --accent:#7c6fff; --accent2:#9d94ff; --ag:rgba(124,111,255,.13); --ag2:rgba(124,111,255,.06);
+  --lime:#a8ff57; --limed:rgba(168,255,87,.10);
+  --teal:#2dffd4; --teald:rgba(45,255,212,.08);
+  --rose:#ff5e88; --rosed:rgba(255,94,136,.10);
+  --amber:#ffb830; --amberd:rgba(255,184,48,.10);
+  --violet:#b87cff; --viold:rgba(184,124,255,.10);
+  --r:8px; --rs:5px; --sw:220px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);height:100vh;overflow:hidden;display:flex;font-size:13px;}
+
+/* ── AUTH SCREEN ── */
+#auth-screen{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;z-index:200;
+}
+.auth-card{
+  background:var(--bg2);border:1px solid var(--line2);
+  border-radius:16px;width:380px;padding:32px;
+}
+.auth-logo{font-size:22px;font-weight:700;letter-spacing:4px;color:var(--white);margin-bottom:4px;}
+.auth-sub{font-size:11px;color:var(--fog);letter-spacing:2px;font-family:'JetBrains Mono',monospace;margin-bottom:28px;}
+.auth-tabs{display:flex;gap:0;background:var(--bg3);border-radius:var(--rs);padding:2px;margin-bottom:22px;}
+.auth-tab{flex:1;padding:7px;text-align:center;border-radius:4px;font-size:12px;font-weight:500;cursor:pointer;color:var(--fog);border:none;background:transparent;font-family:'Inter',sans-serif;transition:all .15s;}
+.auth-tab.active{background:var(--bg2);color:var(--accent2);box-shadow:0 1px 3px rgba(0,0,0,.4);}
+.auth-field{margin-bottom:12px;}
+.auth-label{font-size:10px;color:var(--fog);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;font-family:'JetBrains Mono',monospace;}
+.auth-input{width:100%;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:10px 13px;color:var(--snow);font-size:13px;font-family:'Inter',sans-serif;outline:none;transition:border-color .15s;}
+.auth-input:focus{border-color:var(--accent);}
+.auth-btn{width:100%;padding:11px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;margin-top:6px;transition:all .15s;}
+.auth-btn:hover{background:var(--accent2);}
+.auth-err{font-size:12px;color:var(--rose);margin-top:8px;text-align:center;min-height:18px;}
+#auth-name-field{display:none;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sw);background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;flex-shrink:0;z-index:10;}
+.sb-logo{padding:16px 16px 12px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;}
+.logo-mark{font-size:16px;font-weight:700;letter-spacing:4px;color:var(--white);}
+.logo-sub{font-size:9px;color:var(--fog);letter-spacing:1.5px;margin-top:2px;font-family:'JetBrains Mono',monospace;}
+.logout-btn{padding:4px 8px;border-radius:var(--rs);border:1px solid var(--line2);background:transparent;color:var(--fog);font-size:10px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+.logout-btn:hover{border-color:var(--rose);color:var(--rose);}
+.sb-user{padding:10px 14px;border-bottom:1px solid var(--line);}
+.sb-user-name{font-size:13px;font-weight:500;color:var(--snow);}
+.sb-user-email{font-size:10px;color:var(--fog);font-family:'JetBrains Mono',monospace;margin-top:1px;}
+.sb-nav{flex:1;overflow-y:auto;padding:8px;}
+.nav-group-label{font-size:9px;letter-spacing:2px;color:var(--fog);padding:8px 8px 4px;text-transform:uppercase;}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--rs);cursor:pointer;color:var(--mist);transition:all .15s;margin-bottom:1px;border:1px solid transparent;}
+.nav-item:hover{background:var(--bg3);color:var(--snow);}
+.nav-item.active{background:var(--ag);color:var(--accent2);border-color:rgba(124,111,255,.2);}
+.nav-item.active.lime-nav{background:var(--limed);color:var(--lime);border-color:rgba(168,255,87,.2);}
+.nav-ico{font-size:14px;width:18px;text-align:center;}
+.nav-name{font-size:12px;font-weight:500;flex:1;}
+.nav-badge{font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;min-width:18px;text-align:center;background:var(--accent);color:#fff;}
+.nav-badge.g{background:var(--lime);color:#000;}
+.nav-badge.y{background:var(--amber);color:#000;}
+.nav-badge.r{background:var(--rose);color:#fff;}
+.sb-focus{border-top:1px solid var(--line);padding:12px;}
+.focus-label{font-size:9px;letter-spacing:2px;color:var(--fog);text-transform:uppercase;margin-bottom:8px;font-family:'JetBrains Mono',monospace;}
+.focus-ring-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.focus-ring svg{transform:rotate(-90deg);}
+.ring-bg{fill:none;stroke:var(--line);stroke-width:5;}
+.ring-fill{fill:none;stroke:var(--lime);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .6s;}
+.ring-pct{font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--lime);line-height:1;}
+.ring-sub{font-size:10px;color:var(--fog);margin-top:2px;}
+.pulse-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:10px;}
+.pulse-cell{background:var(--bg3);border-radius:var(--rs);padding:6px;text-align:center;}
+.pulse-val{font-size:16px;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1;}
+.pulse-val.l{color:var(--lime);} .pulse-val.r{color:var(--rose);} .pulse-val.a{color:var(--amber);}
+.pulse-lbl{font-size:8px;color:var(--fog);margin-top:2px;letter-spacing:.5px;}
+.top-focus-card{background:var(--limed);border:1px solid rgba(168,255,87,.15);border-radius:var(--rs);padding:9px;}
+.tfc-badge{font-size:8px;letter-spacing:1.5px;color:var(--lime);margin-bottom:4px;font-family:'JetBrains Mono',monospace;}
+.tfc-name{font-size:12px;font-weight:500;color:var(--white);line-height:1.4;}
+.tfc-due{font-size:10px;color:var(--fog);margin-top:4px;font-family:'JetBrains Mono',monospace;}
+.tfc-btn{margin-top:7px;width:100%;background:var(--lime);border:none;color:#000;font-size:11px;font-weight:700;padding:5px;border-radius:var(--rs);cursor:pointer;font-family:'Inter',sans-serif;transition:opacity .15s;}
+.tfc-btn:hover{opacity:.85;}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{height:50px;background:var(--bg2);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px;gap:10px;flex-shrink:0;}
+.tb-title{font-size:14px;font-weight:600;color:var(--white);}
+.tb-sub{font-size:10px;color:var(--fog);font-family:'JetBrains Mono',monospace;}
+.tb-space{flex:1;}
+.tb-btn{display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:var(--rs);border:1px solid var(--line2);background:var(--bg3);color:var(--mist);cursor:pointer;font-size:11px;font-family:'Inter',sans-serif;transition:all .15s;}
+.tb-btn:hover{border-color:var(--accent);color:var(--accent2);}
+.tb-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+.tb-btn.primary:hover{background:var(--accent2);}
+.content{flex:1;overflow-y:auto;padding:18px;}
+.view{display:none;}
+.view.active{display:block;}
+
+/* ── STATS BAR ── */
+.stat-bar-row{display:grid;grid-template-columns:repeat(4,1fr);background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:14px;}
+.stat-cell{padding:14px 18px;border-right:1px solid var(--line);}
+.stat-cell:last-child{border-right:none;}
+.stat-val{font-size:30px;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1;}
+.stat-val.l{color:var(--lime);} .stat-val.a{color:var(--amber);} .stat-val.r{color:var(--rose);} .stat-val.t{color:var(--teal);}
+.stat-lbl{font-size:9px;color:var(--fog);margin-top:3px;text-transform:uppercase;letter-spacing:1px;}
+.stat-bar{height:2px;background:var(--bg3);border-radius:1px;margin-top:8px;overflow:hidden;}
+.stat-bar-fill{height:100%;border-radius:1px;transition:width .5s;}
+
+/* ── CARDS ── */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;}
+.card-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 8px;border-bottom:1px solid var(--line);}
+.card-title{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:1px;}
+.cdot{width:5px;height:5px;border-radius:50%;background:var(--accent);}
+.card-link{font-size:10px;color:var(--accent);cursor:pointer;opacity:.7;}
+.card-link:hover{opacity:1;}
+.card-bd{padding:10px 14px;}
+
+/* ── TASK ITEMS ── */
+.ti{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);}
+.ti:last-child{border-bottom:none;}
+.ti-check{width:15px;height:15px;border-radius:3px;border:1.5px solid var(--line2);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;}
+.ti-check.done{background:var(--lime);border-color:var(--lime);}
+.ti-check.done::after{content:'✓';color:#000;font-size:9px;font-weight:700;}
+.ti-name{flex:1;font-size:12px;color:var(--snow);}
+.ti-name.done{text-decoration:line-through;color:var(--fog);}
+.pdot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.pdot.high{background:var(--rose);} .pdot.medium{background:var(--amber);} .pdot.low{background:var(--lime);}
+.tdate{font-size:10px;color:var(--fog);font-family:'JetBrains Mono',monospace;}
+.tdate.ov{color:var(--rose);}
+
+/* ── TAGS / PILLS ── */
+.tag{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;}
+.tag.g{background:rgba(168,255,87,.1);color:var(--lime);} .tag.y{background:var(--amberd);color:var(--amber);}
+.tag.r{background:var(--rosed);color:var(--rose);} .tag.b{background:var(--teald);color:var(--teal);}
+.tag.p{background:var(--viold);color:var(--violet);}
+.pill{font-size:9px;font-weight:600;padding:2px 7px;border-radius:20px;font-family:'JetBrains Mono',monospace;}
+.pill.todo{background:var(--bg4);color:var(--fog);}
+.pill.inprogress{background:var(--teald);color:var(--teal);border:1px solid rgba(45,255,212,.2);}
+.pill.review{background:var(--amberd);color:var(--amber);border:1px solid rgba(255,184,48,.2);}
+.pill.done{background:var(--limed);color:var(--lime);border:1px solid rgba(168,255,87,.2);}
+.pill.high{background:var(--rosed);color:var(--rose);} .pill.medium{background:var(--amberd);color:var(--amber);} .pill.low{background:var(--limed);color:var(--lime);}
+
+/* ── TIMELINE ── */
+.tl-filters{display:flex;gap:5px;margin-bottom:16px;}
+.chip{padding:4px 10px;border-radius:20px;border:1px solid var(--line);background:transparent;color:var(--fog);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+.chip:hover,.chip.active{border-color:var(--lime);color:var(--lime);background:var(--limed);}
+.tl-zone{margin-bottom:22px;}
+.zone-hd{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.zone-line{flex:1;height:1px;background:var(--line);}
+.zone-label{font-size:9px;letter-spacing:2.5px;color:var(--fog);text-transform:uppercase;font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.zone-count{font-size:10px;color:var(--fog);font-family:'JetBrains Mono',monospace;background:var(--line);padding:1px 7px;border-radius:10px;}
+.tl-card{display:flex;gap:12px;margin-bottom:5px;}
+.tl-spine{display:flex;flex-direction:column;align-items:center;width:18px;flex-shrink:0;padding-top:3px;}
+.tl-dot{width:9px;height:9px;border-radius:50%;border:2px solid var(--line2);background:var(--bg);flex-shrink:0;transition:all .15s;}
+.tl-card:hover .tl-dot{border-color:var(--lime);background:var(--lime);}
+.tl-dot.active{border-color:var(--lime);background:var(--lime);box-shadow:0 0 6px rgba(168,255,87,.5);}
+.tl-dot.done-dot{border-color:var(--fog);background:var(--fog);}
+.tl-dot.ov-dot{border-color:var(--rose);background:var(--rose);}
+.tl-vline{flex:1;width:1px;background:var(--line);min-height:8px;}
+.tl-body{flex:1;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:10px 13px;transition:all .15s;margin-bottom:5px;}
+.tl-card:hover .tl-body{border-color:var(--line2);background:var(--bg3);}
+.tl-body.active-b{border-left:2px solid var(--lime);}
+.tl-body.ov-b{border-left:2px solid var(--rose);}
+.tl-body.done-b{opacity:.5;}
+.tl-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:5px;}
+.tl-name{flex:1;font-size:13px;font-weight:500;color:var(--white);line-height:1.4;}
+.tl-name.done-n{text-decoration:line-through;color:var(--fog);}
+.tl-acts{display:flex;gap:4px;opacity:0;transition:opacity .15s;}
+.tl-card:hover .tl-acts{opacity:1;}
+.tl-btn{padding:3px 8px;border-radius:3px;border:1px solid var(--line2);background:transparent;color:var(--fog);font-size:10px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+.tl-btn:hover{border-color:var(--lime);color:var(--lime);}
+.tl-btn.done-btn{border-color:var(--lime);color:var(--lime);}
+.tl-btn.done-btn:hover{background:var(--lime);color:#000;}
+.tl-btn.del:hover{border-color:var(--rose);color:var(--rose);}
+.tl-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+
+/* ── TASKS VIEW ── */
+.view-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.view-title{font-size:18px;font-weight:700;color:var(--white);}
+.view-sub{font-size:11px;color:var(--fog);margin-top:2px;font-family:'JetBrains Mono',monospace;}
+.filter-bar{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap;}
+.vtoggle{display:flex;gap:2px;background:var(--bg3);border-radius:var(--rs);padding:2px;}
+.vtbtn{padding:5px 10px;border-radius:4px;font-size:11px;cursor:pointer;color:var(--fog);transition:all .15s;border:none;background:none;font-family:'Inter',sans-serif;}
+.vtbtn.active{background:var(--bg2);color:var(--snow);box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.task-full-list .ti{padding:9px 13px;background:var(--bg2);border:1px solid var(--line);border-radius:var(--rs);margin-bottom:4px;}
+.kanban-board{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:start;}
+.kcol{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;}
+.kcol-hd{padding:9px 12px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;}
+.kcol-hd.todo{color:var(--mist);} .kcol-hd.inprogress{color:var(--teal);} .kcol-hd.review{color:var(--amber);} .kcol-hd.done{color:var(--lime);}
+.kcount{font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--bg3);padding:1px 5px;border-radius:8px;}
+.kcards{padding:7px;}
+.kcard{background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:9px;margin-bottom:5px;cursor:pointer;transition:all .15s;border-left:2px solid transparent;}
+.kcard:hover{background:var(--bg4);}
+.kcard.high{border-left-color:var(--rose);} .kcard.medium{border-left-color:var(--amber);} .kcard.low{border-left-color:var(--lime);}
+.kcard-name{font-size:12px;font-weight:500;color:var(--snow);}
+.kcard-ft{display:flex;align-items:center;justify-content:space-between;margin-top:6px;}
+
+/* ── HABITS ── */
+.habit-ghd{display:flex;align-items:center;padding:0 0 8px;border-bottom:1px solid var(--line);margin-bottom:6px;}
+.habit-ghd-name{width:150px;font-size:10px;color:var(--fog);text-transform:uppercase;letter-spacing:1px;}
+.habit-ghd-days{display:flex;gap:3px;flex:1;}
+.hgday{width:24px;text-align:center;font-size:9px;color:var(--fog);font-family:'JetBrains Mono',monospace;}
+.habit-row{display:flex;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);}
+.habit-row:last-child{border-bottom:none;}
+.habit-row-name{width:150px;font-size:13px;color:var(--snow);}
+.habit-row-dots{display:flex;gap:3px;flex:1;align-items:center;}
+.hgdot{width:24px;height:24px;border-radius:3px;background:var(--bg3);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;transition:all .15s;border:1px solid transparent;}
+.hgdot:hover{border-color:var(--accent);}
+.hgdot.done{background:rgba(168,255,87,.12);color:var(--lime);border-color:rgba(168,255,87,.3);}
+.hgdot.today-c{border-color:var(--accent);}
+.hrow-streak{width:55px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--amber);}
+
+/* ── DELEGATION ── */
+.dtable{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;}
+.dtable-hd{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;padding:9px 14px;border-bottom:1px solid var(--line);font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px;font-weight:600;}
+.dtable-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;padding:11px 14px;border-bottom:1px solid var(--line);align-items:center;transition:background .15s;cursor:pointer;}
+.dtable-row:last-child{border-bottom:none;}
+.dtable-row:hover{background:var(--bg3);}
+.spill{font-size:9px;font-weight:600;padding:2px 7px;border-radius:20px;}
+.spill.todo{background:var(--bg3);color:var(--fog);} .spill.inprogress{background:var(--teald);color:var(--teal);}
+.spill.done{background:var(--limed);color:var(--lime);} .spill.overdue{background:var(--rosed);color:var(--rose);}
+.avatar{width:24px;height:24px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;}
+
+/* ── NOTES ── */
+.notes-layout{display:grid;grid-template-columns:230px 1fr;gap:12px;height:calc(100vh - 128px);}
+.notes-list{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);overflow-y:auto;}
+.notes-list-hd{padding:10px 13px;border-bottom:1px solid var(--line);font-size:10px;font-weight:600;color:var(--fog);text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;justify-content:space-between;}
+.note-li{padding:9px 13px;border-bottom:1px solid var(--line);cursor:pointer;transition:all .15s;}
+.note-li:hover,.note-li.active{background:var(--ag2);}
+.note-li:last-child{border-bottom:none;}
+.note-li-title{font-size:12px;font-weight:500;color:var(--snow);}
+.note-li-prev{font-size:10px;color:var(--fog);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.note-li-date{font-size:9px;color:var(--fog);margin-top:3px;font-family:'JetBrains Mono',monospace;}
+.note-editor{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);display:flex;flex-direction:column;overflow:hidden;}
+.note-ed-hd{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;}
+.note-title-in{flex:1;background:none;border:none;outline:none;font-size:16px;font-weight:600;color:var(--white);font-family:'Inter',sans-serif;}
+.note-body-in{flex:1;padding:16px;background:none;border:none;outline:none;font-size:13px;line-height:1.7;color:var(--mist);font-family:'Inter',sans-serif;resize:none;}
+.note-ed-ft{padding:8px 16px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;}
+
+/* ── REVIEW ── */
+.review-layout{display:grid;grid-template-columns:200px 1fr;gap:12px;height:calc(100vh - 128px);}
+.review-nav{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:10px;overflow-y:auto;}
+.rnav-label{font-size:9px;letter-spacing:2px;color:var(--fog);padding:6px 6px 4px;text-transform:uppercase;}
+.rnav-item{display:flex;align-items:center;gap:7px;padding:7px 9px;border-radius:var(--rs);cursor:pointer;color:var(--mist);font-size:12px;transition:all .15s;margin-bottom:1px;}
+.rnav-item:hover{background:var(--bg3);color:var(--snow);}
+.rnav-item.active{background:var(--ag);color:var(--accent2);}
+.review-content{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);overflow-y:auto;padding:18px;}
+.cycle-bar{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:18px;}
+.cycle-step{flex:1;padding:12px 14px;text-align:center;position:relative;cursor:pointer;}
+.cycle-step::after{content:'›';position:absolute;right:-7px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--line2);z-index:1;}
+.cycle-step:last-child::after{display:none;}
+.cycle-step.cs-active{background:var(--ag);}
+.cycle-step.cs-done{background:var(--bg3);}
+.cs-num{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--fog);margin-bottom:3px;}
+.cs-name{font-size:11px;font-weight:600;color:var(--mist);}
+.cycle-step.cs-active .cs-name,.cycle-step.cs-active .cs-num{color:var(--accent2);}
+.rcard{background:var(--bg3);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px;}
+.rcard:last-child{margin-bottom:0;}
+.rcard-title{font-size:10px;color:var(--fog);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;font-family:'JetBrains Mono',monospace;}
+.review-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.rc-item{display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-bottom:1px solid var(--line);}
+.rc-item:last-child{border-bottom:none;}
+.rc-check{width:16px;height:16px;border-radius:3px;border:1.5px solid var(--line2);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-top:1px;transition:all .15s;}
+.rc-check.done{background:var(--lime);border-color:var(--lime);}
+.rc-check.done::after{content:'✓';color:#000;font-size:10px;font-weight:700;}
+.rc-q{font-size:12px;font-weight:500;color:var(--snow);margin-bottom:4px;}
+.rc-ta{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:var(--rs);padding:7px 9px;font-size:12px;color:var(--mist);font-family:'Inter',sans-serif;resize:none;min-height:50px;outline:none;transition:border-color .15s;display:none;}
+.rc-ta:focus{border-color:var(--accent);}
+.rc-check.done~div .rc-ta{display:block;}
+
+/* ── RETRO ── */
+.retro-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.retro-card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px;}
+.retro-card-title{font-size:10px;color:var(--fog);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;font-family:'JetBrains Mono',monospace;}
+
+/* ── EVAL ── */
+.eval-hero{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:20px;display:flex;gap:24px;align-items:center;margin-bottom:14px;}
+.score-num{font-size:52px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--lime);line-height:1;}
+.score-lbl{font-size:9px;color:var(--fog);margin-top:3px;letter-spacing:2px;text-transform:uppercase;}
+.eval-stats{flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.es{background:var(--bg3);border-radius:var(--rs);padding:11px;}
+.es-val{font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1;}
+.es-val.l{color:var(--lime);} .es-val.r{color:var(--rose);} .es-val.a{color:var(--amber);} .es-val.t{color:var(--teal);}
+.es-lbl{font-size:9px;color:var(--fog);margin-top:3px;}
+.eval-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.ecard{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px;}
+.ecard-title{font-size:10px;color:var(--fog);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;font-family:'JetBrains Mono',monospace;}
+.ei{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);font-size:12px;}
+.ei:last-child{border-bottom:none;}
+.ei-lbl{color:var(--mist);}
+.ei-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;}
+.prow{padding:6px 0;border-bottom:1px solid var(--line);}
+.prow:last-child{border-bottom:none;}
+.prow-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;}
+.prow-name{color:var(--mist);}
+.prow-pct{font-family:'JetBrains Mono',monospace;color:var(--lime);}
+.pbar{height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.pbar-fill{height:100%;background:var(--lime);border-radius:2px;transition:width .5s;}
+.pbar-fill.r{background:var(--rose);} .pbar-fill.a{background:var(--amber);}
+.bar-chart{display:flex;gap:5px;align-items:flex-end;height:70px;}
+.bcol{flex:1;display:flex;flex-direction:column;gap:2px;align-items:center;height:100%;justify-content:flex-end;}
+.blbl{font-size:8px;color:var(--fog);font-family:'JetBrains Mono',monospace;}
+
+/* ── SHARED FIELDS ── */
+.fld-in,.fld-sel,.fld-ta{width:100%;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:8px 11px;color:var(--snow);font-size:12px;font-family:'Inter',sans-serif;outline:none;transition:border-color .15s;}
+.fld-in:focus,.fld-sel:focus,.fld-ta:focus{border-color:var(--accent);}
+.fld-sel option{background:var(--bg3);}
+.fld-ta{resize:vertical;min-height:70px;}
+
+/* ── MODAL ── */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-ov.open{opacity:1;pointer-events:all;}
+.modal{background:var(--bg2);border:1px solid var(--line2);border-radius:12px;width:480px;max-width:95vw;padding:22px;transform:translateY(10px);transition:transform .2s;}
+.modal-ov.open .modal{transform:translateY(0);}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.modal-title{font-size:15px;font-weight:600;color:var(--white);}
+.modal-x{width:26px;height:26px;border-radius:5px;border:1px solid var(--line);background:transparent;color:var(--fog);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;transition:all .15s;}
+.modal-x:hover{border-color:var(--rose);color:var(--rose);}
+.mtype-tabs{display:flex;gap:3px;background:var(--bg3);border-radius:var(--rs);padding:2px;margin-bottom:16px;}
+.mtt{flex:1;padding:6px;text-align:center;border-radius:4px;font-size:11px;font-weight:500;cursor:pointer;color:var(--fog);transition:all .15s;border:none;background:transparent;font-family:'Inter',sans-serif;}
+.mtt.active{background:var(--bg2);color:var(--accent2);box-shadow:0 1px 3px rgba(0,0,0,.4);}
+.mfld{display:none;}
+.mfld.active{display:block;}
+.fld{margin-bottom:12px;}
+.fld-lbl{font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;font-family:'JetBrains Mono',monospace;}
+.fld-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.modal-acts{display:flex;gap:6px;justify-content:flex-end;margin-top:16px;}
+.mbtn{padding:8px 16px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+.mbtn.cancel{background:transparent;border:1px solid var(--line2);color:var(--fog);}
+.mbtn.cancel:hover{color:var(--snow);}
+.mbtn.save{background:var(--accent);border:1px solid var(--accent);color:#fff;font-weight:700;}
+.mbtn.save:hover{background:var(--accent2);}
+
+/* ── TOAST / LOADING ── */
+.toast{position:fixed;bottom:18px;right:18px;background:var(--bg3);border:1px solid var(--line2);border-radius:var(--rs);padding:9px 14px;font-size:12px;color:var(--snow);z-index:200;transform:translateY(60px);opacity:0;transition:all .25s;display:flex;align-items:center;gap:7px;}
+.toast.show{transform:translateY(0);opacity:1;}
+.tdot{width:5px;height:5px;border-radius:50%;background:var(--lime);}
+.loading-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:300;flex-direction:column;gap:12px;}
+.loading-logo{font-size:24px;font-weight:700;letter-spacing:5px;color:var(--white);}
+.loading-bar{width:160px;height:2px;background:var(--line);border-radius:1px;overflow:hidden;}
+.loading-fill{height:100%;background:var(--lime);width:0%;animation:load 1.5s ease forwards;}
+@keyframes load{to{width:100%;}}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--line2);border-radius:2px;}
+.empty{text-align:center;padding:28px 16px;color:var(--fog);}
+.empty-ico{font-size:24px;margin-bottom:6px;}
+.empty-ttl{font-size:13px;font-weight:500;color:var(--mist);}
+.empty-sub{font-size:11px;margin-top:2px;}
+.hidden{display:none!important;}
+.hmi{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);}
+.hmi:last-child{border-bottom:none;}
+.hmi-name{flex:1;font-size:12px;color:var(--snow);}
+.hmi-dots{display:flex;gap:2px;}
+.hdot{width:7px;height:7px;border-radius:2px;background:var(--bg4);cursor:pointer;transition:all .15s;}
+.hdot.done{background:var(--lime);}
+.hdot.today-d{border:1px solid var(--accent);}
+.hstreak{font-size:10px;color:var(--amber);font-family:'JetBrains Mono',monospace;}
+.dmi{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);}
+.dmi:last-child{border-bottom:none;}
+.dmi-info{flex:1;}
+.dmi-task{font-size:12px;color:var(--snow);font-weight:500;}
+.dmi-who{font-size:10px;color:var(--fog);}
+.imi{padding:7px 9px;background:var(--bg3);border-radius:var(--rs);margin-bottom:5px;cursor:pointer;border-left:2px solid transparent;transition:all .15s;}
+.imi:hover{border-left-color:var(--accent);}
+.imi:last-child{margin-bottom:0;}
+.imi-title{font-size:12px;font-weight:500;color:var(--snow);}
+.imi-prev{font-size:10px;color:var(--fog);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loading">
+  <div class="loading-logo">NEXUS PRO</div>
+  <div class="loading-bar"><div class="loading-fill"></div></div>
+</div>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen" style="display:none">
+  <div class="auth-card">
+    <div class="auth-logo">NEXUS PRO</div>
+    <div class="auth-sub">COMMAND CENTER</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="setAuthMode('login',this)">Masuk</button>
+      <button class="auth-tab" onclick="setAuthMode('register',this)">Daftar</button>
+    </div>
+    <div id="auth-name-field">
+      <div class="auth-label">Nama</div>
+      <input class="auth-input" id="auth-name" placeholder="Nama lengkap Anda" style="margin-bottom:12px">
+    </div>
+    <div class="auth-label">Email</div>
+    <input class="auth-input" id="auth-email" type="email" placeholder="email@anda.com" style="margin-bottom:12px">
+    <div class="auth-label">Password</div>
+    <input class="auth-input" id="auth-password" type="password" placeholder="Minimal 6 karakter" style="margin-bottom:4px">
+    <div class="auth-err" id="auth-err"></div>
+    <button class="auth-btn" id="auth-submit-btn" onclick="submitAuth()">Masuk</button>
+  </div>
+</div>
+
+<!-- APP (hidden until auth) -->
+<div id="app" style="display:none;flex:1;overflow:hidden;display:none">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sb-logo">
+    <div>
+      <div class="logo-mark">NEXUS</div>
+      <div class="logo-sub">PRO</div>
+    </div>
+    <button class="logout-btn" onclick="doLogout()">Keluar</button>
+  </div>
+  <div class="sb-user">
+    <div class="sb-user-name" id="sb-username">—</div>
+    <div class="sb-user-email" id="sb-useremail">—</div>
+  </div>
+  <div class="sb-nav">
+    <div class="nav-group-label">Overview</div>
+    <div class="nav-item active" onclick="nav('dashboard',this)"><span class="nav-ico">⬡</span><span class="nav-name">Dashboard</span></div>
+    <div class="nav-item" onclick="nav('timeline',this)"><span class="nav-ico">⟳</span><span class="nav-name">Timeline</span></div>
+    <div class="nav-group-label" style="margin-top:6px">Aktivitas</div>
+    <div class="nav-item" onclick="nav('tasks',this)"><span class="nav-ico">◈</span><span class="nav-name">Tasks</span><span class="nav-badge" id="nb-tasks">0</span></div>
+    <div class="nav-item" onclick="nav('habits',this)"><span class="nav-ico">◉</span><span class="nav-name">Habits</span><span class="nav-badge g" id="nb-habits">0</span></div>
+    <div class="nav-item" onclick="nav('delegation',this)"><span class="nav-ico">◎</span><span class="nav-name">Delegasi</span><span class="nav-badge y" id="nb-deleg">0</span></div>
+    <div class="nav-item" onclick="nav('ideas',this)"><span class="nav-ico">◇</span><span class="nav-name">Ideas & Notes</span></div>
+    <div class="nav-group-label" style="margin-top:6px">Review</div>
+    <div class="nav-item" onclick="nav('review',this)"><span class="nav-ico">↻</span><span class="nav-name">Review Loop</span></div>
+    <div class="nav-item" onclick="nav('retro',this)"><span class="nav-ico">◆</span><span class="nav-name">Retrospektif</span></div>
+    <div class="nav-item" onclick="nav('eval',this)"><span class="nav-ico">▦</span><span class="nav-name">Evaluasi</span></div>
+  </div>
+  <div class="sb-focus">
+    <div class="focus-label">Focus & Pulse</div>
+    <div class="focus-ring-row">
+      <div class="focus-ring">
+        <svg width="52" height="52" viewBox="0 0 52 52">
+          <circle class="ring-bg" cx="26" cy="26" r="20"/>
+          <circle class="ring-fill" cx="26" cy="26" r="20" stroke-dasharray="125.66" stroke-dashoffset="125.66" id="sb-ring"/>
+        </svg>
+      </div>
+      <div>
+        <div class="ring-pct" id="sb-pct">0%</div>
+        <div class="ring-sub" id="sb-rsub">0 / 0 selesai</div>
+      </div>
+    </div>
+    <div class="pulse-row">
+      <div class="pulse-cell"><div class="pulse-val l" id="pulse-a">0</div><div class="pulse-lbl">AKTIF</div></div>
+      <div class="pulse-cell"><div class="pulse-val r" id="pulse-l">0</div><div class="pulse-lbl">LATE</div></div>
+      <div class="pulse-cell"><div class="pulse-val a" id="pulse-s">0</div><div class="pulse-lbl">SOON</div></div>
+    </div>
+    <div id="sb-top-focus"></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title" id="tb-title">Dashboard</div>
+      <div class="tb-sub" id="tb-sub">Overview semua aktivitas</div>
+    </div>
+    <div class="tb-space"></div>
+    <button class="tb-btn primary" onclick="openModal()">+ Tambah</button>
+  </div>
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="view active" id="v-dashboard">
+      <div class="stat-bar-row">
+        <div class="stat-cell"><div class="stat-val l" id="st-done">0</div><div class="stat-lbl">Selesai</div><div class="stat-bar"><div class="stat-bar-fill" style="background:var(--lime);width:0%" id="stb-done"></div></div></div>
+        <div class="stat-cell"><div class="stat-val a" id="st-prog">0</div><div class="stat-lbl">In Progress</div><div class="stat-bar"><div class="stat-bar-fill" style="background:var(--amber);width:0%" id="stb-prog"></div></div></div>
+        <div class="stat-cell"><div class="stat-val r" id="st-over">0</div><div class="stat-lbl">Terlambat</div><div class="stat-bar"><div class="stat-bar-fill" style="background:var(--rose);width:0%" id="stb-over"></div></div></div>
+        <div class="stat-cell"><div class="stat-val t" id="st-deleg">0</div><div class="stat-lbl">Didelegasikan</div><div class="stat-bar"><div class="stat-bar-fill" style="background:var(--teal);width:0%" id="stb-deleg"></div></div></div>
+      </div>
+      <div class="dash-grid">
+        <div class="card" style="grid-column:1/3"><div class="card-hd"><div class="card-title"><div class="cdot"></div>Task Aktif</div><div class="card-link" onclick="nav('tasks',null)">Semua →</div></div><div class="card-bd" id="dash-tasks"></div></div>
+        <div class="card"><div class="card-hd"><div class="card-title"><div class="cdot" style="background:var(--lime)"></div>Habits</div><div class="card-link" onclick="nav('habits',null)">Detail →</div></div><div class="card-bd" id="dash-habits"></div></div>
+        <div class="card" style="grid-column:1/3"><div class="card-hd"><div class="card-title"><div class="cdot" style="background:var(--amber)"></div>Delegasi Aktif</div><div class="card-link" onclick="nav('delegation',null)">Semua →</div></div><div class="card-bd" id="dash-deleg"></div></div>
+        <div class="card"><div class="card-hd"><div class="card-title"><div class="cdot" style="background:var(--violet)"></div>Ideas Terbaru</div><div class="card-link" onclick="nav('ideas',null)">Semua →</div></div><div class="card-bd" id="dash-ideas"></div></div>
+      </div>
+    </div>
+
+    <!-- TIMELINE -->
+    <div class="view" id="v-timeline">
+      <div class="view-hd"><div class="view-title">Timeline</div></div>
+      <div class="tl-filters">
+        <div class="chip active" onclick="setTlF('all',this)">Semua</div>
+        <div class="chip" onclick="setTlF('active',this)">Aktif</div>
+        <div class="chip" onclick="setTlF('overdue',this)">Terlambat</div>
+        <div class="chip" onclick="setTlF('done',this)">Selesai</div>
+      </div>
+      <div id="tl-ov"></div><div id="tl-td"></div><div id="tl-up"></div><div id="tl-sd"></div><div id="tl-dn"></div>
+    </div>
+
+    <!-- TASKS -->
+    <div class="view" id="v-tasks">
+      <div class="view-hd">
+        <div><div class="view-title">Tasks</div><div class="view-sub" id="tasks-sub"></div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="vtoggle"><button class="vtbtn active" onclick="setTV('list',this)">List</button><button class="vtbtn" onclick="setTV('kanban',this)">Kanban</button></div>
+        </div>
+      </div>
+      <div class="filter-bar" id="task-filters">
+        <div class="chip active" onclick="setTF('all',this)">Semua</div>
+        <div class="chip" onclick="setTF('todo',this)">To Do</div>
+        <div class="chip" onclick="setTF('inprogress',this)">In Progress</div>
+        <div class="chip" onclick="setTF('done',this)">Selesai</div>
+        <div class="chip" onclick="setTF('high',this)">🔴 High</div>
+        <div class="chip" onclick="setTF('medium',this)">🟡 Medium</div>
+        <div class="chip" onclick="setTF('low',this)">🟢 Low</div>
+      </div>
+      <div id="tasks-list-view"><div class="task-full-list" id="tasks-list"></div></div>
+      <div id="tasks-kanban-view" class="hidden">
+        <div class="kanban-board">
+          <div class="kcol"><div class="kcol-hd todo">To Do<span class="kcount" id="kc-todo">0</span></div><div class="kcards" id="k-todo"></div></div>
+          <div class="kcol"><div class="kcol-hd inprogress">In Progress<span class="kcount" id="kc-ip">0</span></div><div class="kcards" id="k-ip"></div></div>
+          <div class="kcol"><div class="kcol-hd review">Review<span class="kcount" id="kc-rv">0</span></div><div class="kcards" id="k-rv"></div></div>
+          <div class="kcol"><div class="kcol-hd done">Done<span class="kcount" id="kc-dn">0</span></div><div class="kcards" id="k-dn"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HABITS -->
+    <div class="view" id="v-habits">
+      <div class="view-hd"><div><div class="view-title">Habit Tracker</div><div class="view-sub">7 hari terakhir</div></div></div>
+      <div class="card" style="overflow:visible"><div class="card-bd" style="overflow-x:auto">
+        <div class="habit-ghd"><div class="habit-ghd-name">Habit</div><div class="habit-ghd-days" id="habit-day-labels"></div><div style="width:55px;text-align:right;font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Streak</div></div>
+        <div id="habits-grid"></div>
+      </div></div>
+    </div>
+
+    <!-- DELEGATION -->
+    <div class="view" id="v-delegation">
+      <div class="view-hd"><div><div class="view-title">Delegasi</div><div class="view-sub" id="deleg-sub"></div></div></div>
+      <div class="dtable">
+        <div class="dtable-hd"><div>Task</div><div>Person</div><div>Status</div><div>Due</div><div>Prioritas</div></div>
+        <div id="deleg-rows"></div>
+      </div>
+    </div>
+
+    <!-- IDEAS -->
+    <div class="view" id="v-ideas">
+      <div class="view-hd"><div><div class="view-title">Ideas & Notes</div></div></div>
+      <div class="notes-layout">
+        <div class="notes-list">
+          <div class="notes-list-hd"><span>Catatan</span><span style="color:var(--accent);cursor:pointer" onclick="newNote()">+ Baru</span></div>
+          <div id="notes-list-items"></div>
+        </div>
+        <div class="note-editor">
+          <div class="note-ed-hd">
+            <input class="note-title-in" id="note-title" placeholder="Judul catatan..." oninput="onNoteInput()">
+            <select class="fld-sel" id="note-tag" style="width:auto;padding:4px 8px;font-size:11px" onchange="onNoteInput()">
+              <option value="">— Tag —</option>
+              <option value="ide">💡 Ide</option>
+              <option value="catatan">📝 Catatan</option>
+              <option value="referensi">📌 Referensi</option>
+              <option value="rencana">🗓 Rencana</option>
+            </select>
+            <button class="mbtn cancel" onclick="deleteCurrentNote()" style="font-size:11px;padding:5px 9px;color:var(--rose);border-color:var(--rose)">Hapus</button>
+          </div>
+          <textarea class="note-body-in" id="note-body" placeholder="Tulis ide atau catatan di sini..." oninput="onNoteInput()"></textarea>
+          <div class="note-ed-ft"><span style="font-size:10px;color:var(--fog)" id="note-saved">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REVIEW -->
+    <div class="view" id="v-review">
+      <div class="view-hd"><div><div class="view-title">Review Loop</div><div class="view-sub">Plan → Do → Review → Evaluate</div></div></div>
+      <div class="review-layout">
+        <div class="review-nav">
+          <div class="rnav-label">Harian</div>
+          <div class="rnav-item active" onclick="setRP('morning',this)"><span>🌅</span>Rencana Pagi</div>
+          <div class="rnav-item" onclick="setRP('evening',this)"><span>🌙</span>Review Malam</div>
+          <div class="rnav-label" style="margin-top:10px">Mingguan</div>
+          <div class="rnav-item" onclick="setRP('weekly',this)"><span>📊</span>Weekly Review</div>
+          <div class="rnav-label" style="margin-top:10px">Backlog</div>
+          <div class="rnav-item" onclick="setRP('backlog',this)"><span>📋</span>Backlog</div>
+        </div>
+        <div class="review-content" id="review-panel"></div>
+      </div>
+    </div>
+
+    <!-- RETRO -->
+    <div class="view" id="v-retro">
+      <div class="view-hd"><div><div class="view-title">Retrospektif</div><div class="view-sub">Keep · Improve · Stop · Start</div></div></div>
+      <div class="retro-grid">
+        <div class="retro-card"><div class="retro-card-title">✓ Keep — Apa yang berjalan baik?</div><textarea class="fld-ta" style="min-height:130px" placeholder="Hal yang perlu dipertahankan..." id="retro-keep" oninput="onRetroInput('keep',this.value)"></textarea></div>
+        <div class="retro-card"><div class="retro-card-title">↑ Improve — Apa yang perlu ditingkatkan?</div><textarea class="fld-ta" style="min-height:130px" placeholder="Hal yang bisa lebih baik..." id="retro-improve" oninput="onRetroInput('improve',this.value)"></textarea></div>
+        <div class="retro-card"><div class="retro-card-title">✕ Stop — Apa yang harus dihentikan?</div><textarea class="fld-ta" style="min-height:130px" placeholder="Kebiasaan atau aktivitas yang buang waktu..." id="retro-stop" oninput="onRetroInput('stop',this.value)"></textarea></div>
+        <div class="retro-card"><div class="retro-card-title">+ Start — Apa yang perlu dicoba?</div><textarea class="fld-ta" style="min-height:130px" placeholder="Hal baru yang ingin dicoba..." id="retro-start" oninput="onRetroInput('start',this.value)"></textarea></div>
+      </div>
+      <div class="retro-card" style="margin-top:12px"><div class="retro-card-title">Insight Utama</div><textarea class="fld-ta" placeholder="Satu kalimat pembelajaran terpenting..." id="retro-insight" oninput="onRetroInput('insight',this.value)"></textarea></div>
+    </div>
+
+    <!-- EVAL -->
+    <div class="view" id="v-eval">
+      <div class="eval-hero">
+        <div><div class="score-num" id="ev-score">0</div><div class="score-lbl">Completion Score</div></div>
+        <div class="eval-stats">
+          <div class="es"><div class="es-val l" id="ev-done">0</div><div class="es-lbl">Selesai</div></div>
+          <div class="es"><div class="es-val r" id="ev-over">0</div><div class="es-lbl">Terlambat</div></div>
+          <div class="es"><div class="es-val a" id="ev-prog">0</div><div class="es-lbl">In Progress</div></div>
+          <div class="es"><div class="es-val t" id="ev-tot">0</div><div class="es-lbl">Total</div></div>
+        </div>
+      </div>
+      <div class="eval-row">
+        <div class="ecard"><div class="ecard-title">Completion per Prioritas</div><div id="ev-prio"></div></div>
+        <div class="ecard"><div class="ecard-title">Status Breakdown</div><div id="ev-status"></div></div>
+        <div class="ecard"><div class="ecard-title">Top Kategori</div><div id="ev-cats"></div></div>
+      </div>
+      <div class="eval-row" style="margin-top:12px">
+        <div class="ecard" style="grid-column:1/3"><div class="ecard-title">Aktivitas 7 Hari Terakhir</div><div class="bar-chart" id="ev-bars"></div><div style="display:flex;gap:5px;margin-top:5px" id="ev-bar-labels"></div></div>
+        <div class="ecard"><div class="ecard-title">Delegasi</div><div id="ev-deleg"></div></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- MODAL -->
+<div class="modal-ov" id="modal-ov" onclick="closeModalOut(event)">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-title">Tambah Item</div><button class="modal-x" onclick="closeModal()">✕</button></div>
+    <div class="mtype-tabs">
+      <button class="mtt active" onclick="setMT('task',this)">Task</button>
+      <button class="mtt" onclick="setMT('habit',this)">Habit</button>
+      <button class="mtt" onclick="setMT('delegation',this)">Delegasi</button>
+      <button class="mtt" onclick="setMT('idea',this)">Ide/Catatan</button>
+    </div>
+    <div class="mfld active" id="mf-task">
+      <div class="fld"><div class="fld-lbl">Nama Task</div><input class="fld-in" id="t-name" placeholder="Apa yang perlu dikerjakan?"></div>
+      <div class="fld-row">
+        <div class="fld"><div class="fld-lbl">Status</div><select class="fld-sel" id="t-status"><option value="todo">To Do</option><option value="inprogress">In Progress</option><option value="review">Review</option><option value="done">Done</option></select></div>
+        <div class="fld"><div class="fld-lbl">Prioritas</div><select class="fld-sel" id="t-prio"><option value="high">🔴 High</option><option value="medium">🟡 Medium</option><option value="low">🟢 Low</option></select></div>
+      </div>
+      <div class="fld-row">
+        <div class="fld"><div class="fld-lbl">Due Date</div><input class="fld-in" id="t-due" type="date"></div>
+        <div class="fld"><div class="fld-lbl">Kategori</div><input class="fld-in" id="t-cat" placeholder="e.g. Pekerjaan, Pribadi"></div>
+      </div>
+      <div class="fld"><div class="fld-lbl">Catatan</div><textarea class="fld-ta" id="t-notes" placeholder="Detail tambahan..."></textarea></div>
+    </div>
+    <div class="mfld" id="mf-habit">
+      <div class="fld"><div class="fld-lbl">Nama Habit</div><input class="fld-in" id="h-name" placeholder="e.g. Olahraga 30 menit, Baca buku"></div>
+      <div class="fld-row">
+        <div class="fld"><div class="fld-lbl">Frekuensi</div><select class="fld-sel" id="h-freq"><option value="daily">Setiap Hari</option><option value="weekdays">Hari Kerja</option></select></div>
+        <div class="fld"><div class="fld-lbl">Target/minggu</div><input class="fld-in" id="h-target" type="number" value="7" min="1" max="7"></div>
+      </div>
+    </div>
+    <div class="mfld" id="mf-delegation">
+      <div class="fld"><div class="fld-lbl">Nama Task</div><input class="fld-in" id="d-name" placeholder="Task yang didelegasikan..."></div>
+      <div class="fld-row">
+        <div class="fld"><div class="fld-lbl">Dikerjakan Oleh</div><input class="fld-in" id="d-person" placeholder="Nama / posisi"></div>
+        <div class="fld"><div class="fld-lbl">Due Date</div><input class="fld-in" id="d-due" type="date"></div>
+      </div>
+      <div class="fld-row">
+        <div class="fld"><div class="fld-lbl">Status</div><select class="fld-sel" id="d-status"><option value="todo">Belum Mulai</option><option value="inprogress">In Progress</option><option value="done">Selesai</option></select></div>
+        <div class="fld"><div class="fld-lbl">Prioritas</div><select class="fld-sel" id="d-prio"><option value="high">🔴 High</option><option value="medium">🟡 Medium</option><option value="low">🟢 Low</option></select></div>
+      </div>
+      <div class="fld"><div class="fld-lbl">Catatan</div><textarea class="fld-ta" id="d-notes" placeholder="Instruksi atau konteks..."></textarea></div>
+    </div>
+    <div class="mfld" id="mf-idea">
+      <div class="fld"><div class="fld-lbl">Judul</div><input class="fld-in" id="i-title" placeholder="Nama ide atau catatan..."></div>
+      <div class="fld"><div class="fld-lbl">Tag</div><select class="fld-sel" id="i-tag"><option value="ide">💡 Ide</option><option value="catatan">📝 Catatan</option><option value="referensi">📌 Referensi</option><option value="rencana">🗓 Rencana</option></select></div>
+      <div class="fld"><div class="fld-lbl">Isi</div><textarea class="fld-ta" id="i-body" placeholder="Tulis ide kamu..." style="min-height:100px"></textarea></div>
+    </div>
+    <div class="modal-acts"><button class="mbtn cancel" onclick="closeModal()">Batal</button><button class="mbtn save" onclick="saveItem()">Simpan</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><div class="tdot" id="tdot"></div><span id="tmsg">Tersimpan</span></div>
+
+<script type="module">
+import { login, register, logout, onAuth } from "./auth.js";
+import {
+  addTask, updateTask, deleteTask, listenTasks,
+  addHabit, deleteHabit, listenHabits,
+  toggleHabitLog, listenHabitLogs,
+  addDelegation, updateDelegation, deleteDelegation, listenDelegations,
+  addNote, updateNote, deleteNote as dbDeleteNote, listenNotes,
+  saveReview, listenReviews,
+  saveRetro as dbSaveRetro, listenRetro
+} from "./db.js";
+
+// ── STATE ─────────────────────────────────────
+let uid = null;
+let D = { tasks:[], habits:[], habitLogs:{}, delegations:[], notes:[], reviews:{}, retro:{} };
+let unsubs = [];
+let curView = 'dashboard';
+let taskF = 'all', taskV = 'list', tlF = 'all';
+let curNoteId = null;
+let noteSaveTimer = null;
+let curRP = 'morning';
+let authMode = 'login';
+
+// ── HELPERS ───────────────────────────────────
+const TS = () => new Date().toISOString().split('T')[0];
+const FMT = d => { if(!d) return '—'; return new Date(d+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short'}); };
+const isOv = d => d && new Date(d+'T00:00:00') < new Date(new Date().toDateString());
+const isSoon = d => { if(!d) return false; const diff = new Date(d+'T00:00:00') - new Date(new Date().toDateString()); return diff>=0 && diff<=2*86400000; };
+const isToday = d => d === TS();
+const isUp = d => d && new Date(d+'T00:00:00') > new Date(new Date().toDateString()) && !isToday(d);
+const emptyHTML = (ico,ttl,sub='') => `<div class="empty"><div class="empty-ico">${ico}</div><div class="empty-ttl">${ttl}</div>${sub?`<div class="empty-sub">${sub}</div>`:''}</div>`;
+const sLbl = s => ({todo:'To Do',inprogress:'In Progress',review:'Review',done:'Done'}[s]||s);
+const sTag = s => ({todo:'',inprogress:'b',review:'y',done:'g'}[s]||'');
+const getLast7 = () => Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return d.toISOString().split('T')[0];});
+
+// ── AUTH ──────────────────────────────────────
+window.setAuthMode = (mode, el) => {
+  authMode = mode;
+  document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('auth-name-field').style.display = mode==='register' ? 'block' : 'none';
+  document.getElementById('auth-submit-btn').textContent = mode==='register' ? 'Daftar' : 'Masuk';
+  document.getElementById('auth-err').textContent = '';
+};
+
+window.submitAuth = async () => {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl = document.getElementById('auth-err');
+  errEl.textContent = '';
+  if(!email||!password){errEl.textContent='Email dan password wajib diisi';return;}
+  try {
+    if(authMode==='register'){
+      const name = document.getElementById('auth-name').value.trim();
+      if(!name){errEl.textContent='Nama wajib diisi';return;}
+      await register(name, email, password);
+    } else {
+      await login(email, password);
+    }
+  } catch(e) {
+    const msgs = {
+      'auth/user-not-found':'Email tidak ditemukan',
+      'auth/wrong-password':'Password salah',
+      'auth/email-already-in-use':'Email sudah terdaftar',
+      'auth/weak-password':'Password minimal 6 karakter',
+      'auth/invalid-email':'Format email tidak valid',
+      'auth/invalid-credential':'Email atau password salah'
+    };
+    errEl.textContent = msgs[e.code] || e.message;
+  }
+};
+
+window.doLogout = async () => {
+  unsubs.forEach(u=>u());
+  unsubs=[];
+  D={tasks:[],habits:[],habitLogs:{},delegations:[],notes:[],reviews:{},retro:{}};
+  await logout();
+};
+
+// ── INIT AUTH STATE ───────────────────────────
+onAuth(user => {
+  document.getElementById('loading').style.display='none';
+  if(user){
+    uid=user.uid;
+    document.getElementById('auth-screen').style.display='none';
+    const app=document.getElementById('app');
+    app.style.display='flex';
+    document.getElementById('sb-username').textContent=user.displayName||'User';
+    document.getElementById('sb-useremail').textContent=user.email;
+    document.getElementById('t-due').value=TS();
+    document.getElementById('d-due').value=TS();
+    startListeners();
+  } else {
+    uid=null;
+    document.getElementById('app').style.display='none';
+    document.getElementById('auth-screen').style.display='flex';
+  }
+});
+
+// ── REAL-TIME LISTENERS ───────────────────────
+function startListeners(){
+  unsubs.push(listenTasks(uid, tasks=>{D.tasks=tasks;renderAll();}));
+  unsubs.push(listenHabits(uid, habits=>{D.habits=habits;renderAll();}));
+  unsubs.push(listenHabitLogs(uid, logs=>{D.habitLogs=logs;renderAll();}));
+  unsubs.push(listenDelegations(uid, delgs=>{D.delegations=delgs;renderAll();}));
+  unsubs.push(listenNotes(uid, notes=>{D.notes=notes;renderNotes();}));
+  unsubs.push(listenReviews(uid, reviews=>{D.reviews=reviews;}));
+  unsubs.push(listenRetro(uid, retro=>{
+    D.retro=retro;
+    ['keep','improve','stop','start','insight'].forEach(k=>{
+      const el=document.getElementById('retro-'+k);
+      if(el&&document.activeElement!==el)el.value=retro[k]||'';
+    });
+  }));
+}
+
+// ── NAV ───────────────────────────────────────
+const viewMeta = {
+  dashboard:{title:'Dashboard',sub:'Overview semua aktivitas'},
+  timeline:{title:'Timeline',sub:'Semua aktivitas dalam urutan waktu'},
+  tasks:{title:'Tasks',sub:'Semua task & pekerjaan'},
+  habits:{title:'Habit Tracker',sub:'Monitor kebiasaan harian'},
+  delegation:{title:'Delegasi',sub:'Task yang dikerjakan orang lain'},
+  ideas:{title:'Ideas & Notes',sub:'Ide & catatan pribadi'},
+  review:{title:'Review Loop',sub:'Plan → Do → Review → Evaluate'},
+  retro:{title:'Retrospektif',sub:'Keep · Improve · Stop · Start'},
+  eval:{title:'Evaluasi',sub:'Performa & progress mingguan'}
+};
+
+window.nav = (v,el) => {
+  curView=v;
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  document.getElementById('v-'+v).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active','lime-nav'));
+  if(el){el.classList.add('active');if(['timeline','review','retro'].includes(v))el.classList.add('lime-nav');}
+  const m=viewMeta[v]||{title:v,sub:''};
+  document.getElementById('tb-title').textContent=m.title;
+  document.getElementById('tb-sub').textContent=m.sub;
+  if(v==='review')setRP('morning',document.querySelector('.rnav-item'));
+  renderAll();
+};
+
+// ── MODAL ─────────────────────────────────────
+let mType='task';
+window.openModal = () => {
+  const def={tasks:'task',habits:'habit',delegation:'delegation',ideas:'idea'};
+  const t=def[curView]||'task';
+  const btn=document.querySelector(`.mtt[onclick*="'${t}'"]`);
+  setMT(t,btn);
+  document.getElementById('modal-ov').classList.add('open');
+};
+window.closeModal = () => {
+  document.getElementById('modal-ov').classList.remove('open');
+  ['t-name','t-cat','t-notes','h-name','d-name','d-person','d-notes','i-title','i-body']
+    .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+};
+window.closeModalOut = e => { if(e.target===document.getElementById('modal-ov'))closeModal(); };
+window.setMT = (t,el) => {
+  mType=t;
+  document.querySelectorAll('.mtt').forEach(b=>b.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.querySelectorAll('.mfld').forEach(f=>f.classList.remove('active'));
+  document.getElementById('mf-'+t).classList.add('active');
+};
+window.saveItem = async () => {
+  if(!uid)return;
+  if(mType==='task'){
+    const name=document.getElementById('t-name').value.trim();
+    if(!name)return toast('Nama task wajib diisi',true);
+    await addTask(uid,{name,status:document.getElementById('t-status').value,priority:document.getElementById('t-prio').value,due:document.getElementById('t-due').value,category:document.getElementById('t-cat').value.trim(),notes:document.getElementById('t-notes').value.trim(),created:TS()});
+  } else if(mType==='habit'){
+    const name=document.getElementById('h-name').value.trim();
+    if(!name)return toast('Nama habit wajib diisi',true);
+    await addHabit(uid,{name,freq:document.getElementById('h-freq').value,target:parseInt(document.getElementById('h-target').value)||7,created:TS()});
+  } else if(mType==='delegation'){
+    const name=document.getElementById('d-name').value.trim();
+    if(!name)return toast('Nama task wajib diisi',true);
+    await addDelegation(uid,{name,person:document.getElementById('d-person').value.trim(),due:document.getElementById('d-due').value,status:document.getElementById('d-status').value,priority:document.getElementById('d-prio').value,notes:document.getElementById('d-notes').value.trim(),created:TS()});
+  } else {
+    const title=document.getElementById('i-title').value.trim();
+    if(!title)return toast('Judul wajib diisi',true);
+    const n=await addNote(uid,{title,tag:document.getElementById('i-tag').value,body:document.getElementById('i-body').value.trim(),created:TS(),updated:TS()});
+    curNoteId=n.id;
+  }
+  closeModal();toast('Tersimpan ✓');
+};
+
+// ── RENDER ALL ────────────────────────────────
+function renderAll(){
+  updateFocus();
+  renderDashboard();
+  renderTimeline();
+  renderTasks();
+  renderHabits();
+  renderDelegation();
+  updateBadges();
+  renderEval();
+}
+
+function updateBadges(){
+  document.getElementById('nb-tasks').textContent=D.tasks.filter(t=>t.status!=='done').length;
+  document.getElementById('nb-habits').textContent=D.habits.length;
+  document.getElementById('nb-deleg').textContent=D.delegations.filter(d=>d.status!=='done').length;
+}
+
+function updateFocus(){
+  const acts=D.tasks;
+  const done=acts.filter(a=>a.status==='done').length;
+  const total=acts.length;
+  const pct=total>0?Math.round(done/total*100):0;
+  document.getElementById('sb-pct').textContent=pct+'%';
+  document.getElementById('sb-rsub').textContent=`${done} / ${total} selesai`;
+  document.getElementById('pulse-a').textContent=acts.filter(a=>a.status!=='done').length;
+  document.getElementById('pulse-l').textContent=acts.filter(a=>a.status!=='done'&&isOv(a.due)).length;
+  document.getElementById('pulse-s').textContent=acts.filter(a=>a.status!=='done'&&isSoon(a.due)&&!isOv(a.due)).length;
+  const circ=2*Math.PI*20;
+  document.getElementById('sb-ring').setAttribute('stroke-dashoffset',circ-(pct/100)*circ);
+  const hp=acts.find(a=>a.priority==='high'&&a.status!=='done');
+  const el=document.getElementById('sb-top-focus');
+  el.innerHTML=hp?`<div class="top-focus-card"><div class="tfc-badge">▲ HIGH PRIORITY</div><div class="tfc-name">${hp.name}</div><div class="tfc-due">${hp.due?'⏱ '+FMT(hp.due):'Tanpa due date'}</div><button class="tfc-btn" onclick="doMarkDone('${hp.id}')">✓ Tandai Selesai</button></div>`
+    :'<div style="font-size:11px;color:var(--fog);text-align:center;padding:6px 0">Tidak ada high priority aktif</div>';
+}
+
+// ── DASHBOARD ─────────────────────────────────
+function renderDashboard(){
+  const t=D.tasks;
+  const done=t.filter(x=>x.status==='done').length;
+  const prog=t.filter(x=>x.status==='inprogress').length;
+  const over=t.filter(x=>x.status!=='done'&&isOv(x.due)).length;
+  const dl=D.delegations.filter(d=>d.status!=='done').length;
+  const tot=t.length||1;
+  document.getElementById('st-done').textContent=done;
+  document.getElementById('st-prog').textContent=prog;
+  document.getElementById('st-over').textContent=over;
+  document.getElementById('st-deleg').textContent=dl;
+  document.getElementById('stb-done').style.width=Math.round(done/tot*100)+'%';
+  document.getElementById('stb-prog').style.width=Math.round(prog/tot*100)+'%';
+  document.getElementById('stb-over').style.width=over>0?'100%':'0%';
+  document.getElementById('stb-deleg').style.width=Math.round(dl/(D.delegations.length||1)*100)+'%';
+
+  const at=t.filter(x=>x.status!=='done').slice(0,5);
+  document.getElementById('dash-tasks').innerHTML=at.length===0?emptyHTML('◈','Tidak ada task aktif','Klik + Tambah untuk mulai')
+    :at.map(x=>`<div class="ti"><div class="ti-check ${x.status==='done'?'done':''}" onclick="doMarkDone('${x.id}')"></div><div class="ti-name">${x.name}</div><div class="pdot ${x.priority}"></div><div class="tdate ${isOv(x.due)&&x.status!=='done'?'ov':''}">${FMT(x.due)}</div><div class="tag ${sTag(x.status)}">${sLbl(x.status)}</div></div>`).join('');
+
+  document.getElementById('dash-habits').innerHTML=D.habits.length===0?emptyHTML('◉','Belum ada habit')
+    :D.habits.slice(0,4).map(h=>{const logs=D.habitLogs[h.id]||{};const streak=calcStreak(h.id);
+      return`<div class="hmi"><div class="hmi-name">${h.name}</div><div class="hmi-dots">${getLast7().map(d=>`<div class="hdot ${logs[d]?'done':''} ${d===TS()&&!logs[d]?'today-d':''}" onclick="doToggleHabit('${h.id}','${d}',${!!logs[d]})"></div>`).join('')}</div><div class="hstreak">🔥${streak}</div></div>`;}).join('');
+
+  const ad=D.delegations.filter(d=>d.status!=='done').slice(0,4);
+  document.getElementById('dash-deleg').innerHTML=ad.length===0?emptyHTML('◎','Tidak ada delegasi aktif')
+    :ad.map(d=>`<div class="dmi"><div class="avatar">${d.person?d.person[0].toUpperCase():'?'}</div><div class="dmi-info"><div class="dmi-task">${d.name}</div><div class="dmi-who">${d.person||'—'}</div></div><div class="tag ${d.status==='inprogress'?'b':'y'}">${sLbl(d.status)}</div><div class="tdate ${isOv(d.due)?'ov':''}">${FMT(d.due)}</div></div>`).join('');
+
+  document.getElementById('dash-ideas').innerHTML=D.notes.length===0?emptyHTML('◇','Belum ada ide tersimpan')
+    :[...D.notes].reverse().slice(0,3).map(n=>`<div class="imi" onclick="openNote('${n.id}')"><div class="imi-title">${n.title}</div><div class="imi-prev">${n.body||'Tidak ada isi'}</div></div>`).join('');
+}
+
+// ── TIMELINE ──────────────────────────────────
+window.setTlF = (f,el) => { tlF=f;document.querySelectorAll('.tl-filters .chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderTimeline(); };
+
+function renderTimeline(){
+  let acts=D.tasks;
+  if(tlF==='active')acts=acts.filter(a=>a.status!=='done');
+  else if(tlF==='overdue')acts=acts.filter(a=>isOv(a.due)&&a.status!=='done');
+  else if(tlF==='done')acts=acts.filter(a=>a.status==='done');
+  renderZone('tl-ov','⚠ TERLAMBAT',acts.filter(a=>isOv(a.due)&&a.status!=='done'),'overdue');
+  renderZone('tl-td','◉ HARI INI',acts.filter(a=>isToday(a.due)&&a.status!=='done'),'today');
+  renderZone('tl-up','→ MENDATANG',acts.filter(a=>isUp(a.due)&&a.status!=='done'),'upcoming');
+  renderZone('tl-sd','◌ SUATU HARI',acts.filter(a=>!a.due&&a.status!=='done'),'someday');
+  renderZone('tl-dn','✓ SELESAI',acts.filter(a=>a.status==='done'),'done');
+}
+
+function renderZone(id,label,items,type){
+  const el=document.getElementById(id);if(!el)return;
+  if(items.length===0&&type!=='today'){el.innerHTML='';return;}
+  el.innerHTML=`<div class="tl-zone"><div class="zone-hd"><div class="zone-line"></div><div class="zone-label">${label}</div><div class="zone-count">${items.length}</div><div class="zone-line"></div></div>
+  ${items.length===0?'<div class="empty"><div class="empty-sub">Tidak ada aktivitas</div></div>':items.map(a=>{
+    const dc=a.status==='done'?'done-dot':type==='overdue'?'ov-dot':type==='today'?'active':'';
+    const bc=a.status==='done'?'done-b':type==='overdue'?'ov-b':type==='today'?'active-b':'';
+    return`<div class="tl-card"><div class="tl-spine"><div class="tl-dot ${dc}"></div><div class="tl-vline"></div></div>
+      <div class="tl-body ${bc}">
+        <div class="tl-top"><div class="tl-name ${a.status==='done'?'done-n':''}">${a.name}</div>
+          <div class="tl-acts">
+            ${a.status!=='done'?`<button class="tl-btn done-btn" onclick="doMarkDone('${a.id}')">✓</button>`:''}
+            <button class="tl-btn" onclick="doCycleTask('${a.id}')">⟳</button>
+            <button class="tl-btn del" onclick="doDelTask('${a.id}')">✕</button>
+          </div>
+        </div>
+        <div class="tl-meta"><div class="pill ${a.status}">${sLbl(a.status)}</div><div class="pill ${a.priority}">${a.priority}</div>${a.due?`<div class="tdate ${isOv(a.due)&&a.status!=='done'?'ov':''}">⏱ ${FMT(a.due)}</div>`:''}</div>
+      </div></div>`;}).join('')}</div>`;
+}
+
+// ── TASKS ─────────────────────────────────────
+window.setTF = (f,el) => { taskF=f;document.querySelectorAll('#task-filters .chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderTasks(); };
+window.setTV = (v,el) => { taskV=v;document.querySelectorAll('.vtbtn').forEach(b=>b.classList.remove('active'));el.classList.add('active');document.getElementById('tasks-list-view').classList.toggle('hidden',v==='kanban');document.getElementById('tasks-kanban-view').classList.toggle('hidden',v==='list'); };
+
+function renderTasks(){
+  let tasks=D.tasks;
+  if(taskF==='todo')tasks=tasks.filter(t=>t.status==='todo');
+  else if(taskF==='inprogress')tasks=tasks.filter(t=>t.status==='inprogress');
+  else if(taskF==='done')tasks=tasks.filter(t=>t.status==='done');
+  else if(['high','medium','low'].includes(taskF))tasks=tasks.filter(t=>t.priority===taskF);
+  document.getElementById('tasks-sub').textContent=`${D.tasks.filter(t=>t.status!=='done').length} aktif · ${D.tasks.filter(t=>t.status==='done').length} selesai`;
+  document.getElementById('tasks-list').innerHTML=tasks.length===0?emptyHTML('◈','Tidak ada task')
+    :tasks.map(t=>`<div class="ti"><div class="ti-check ${t.status==='done'?'done':''}" onclick="doMarkDone('${t.id}')"></div><div style="flex:1"><div class="ti-name ${t.status==='done'?'done':''}">${t.name}</div>${t.notes?`<div style="font-size:10px;color:var(--fog);margin-top:1px">${t.notes}</div>`:''}</div><div class="pdot ${t.priority}"></div><div class="tdate ${isOv(t.due)&&t.status!=='done'?'ov':''}">${FMT(t.due)}</div><div class="tag ${sTag(t.status)}">${sLbl(t.status)}</div><span style="cursor:pointer;color:var(--fog);font-size:11px;padding:2px 6px" onclick="doCycleTask('${t.id}')">⟳</span><span style="cursor:pointer;color:var(--rose);font-size:11px;padding:2px 6px" onclick="doDelTask('${t.id}')">✕</span></div>`).join('');
+  ['todo','inprogress','review','done'].forEach((s,i)=>{
+    const ids=['todo','ip','rv','dn'];
+    const cards=D.tasks.filter(t=>t.status===s);
+    document.getElementById('kc-'+ids[i]).textContent=cards.length;
+    document.getElementById('k-'+ids[i]).innerHTML=cards.length===0?'<div style="padding:8px;color:var(--fog);font-size:11px;text-align:center">Kosong</div>'
+      :cards.map(t=>`<div class="kcard ${t.priority}"><div class="kcard-name">${t.name}</div><div class="kcard-ft"><div class="tdate">${FMT(t.due)}</div><div style="display:flex;gap:4px"><div class="pdot ${t.priority}"></div><span style="cursor:pointer;color:var(--fog);font-size:10px" onclick="doCycleTask('${t.id}')">⟳</span><span style="cursor:pointer;color:var(--rose);font-size:10px" onclick="doDelTask('${t.id}')">✕</span></div></div></div>`).join('');
+  });
+}
+
+// ── TASK ACTIONS ──────────────────────────────
+window.doMarkDone = async id => {
+  const t=D.tasks.find(t=>t.id===id);if(!t)return;
+  const ns=t.status==='done'?'todo':'done';
+  await updateTask(uid,id,{status:ns});
+  toast(ns==='done'?'Selesai ✓':'Dibuka kembali');
+};
+window.doCycleTask = async id => {
+  const t=D.tasks.find(t=>t.id===id);if(!t)return;
+  const o=['todo','inprogress','review','done'];
+  const ns=o[(o.indexOf(t.status)+1)%o.length];
+  await updateTask(uid,id,{status:ns});
+  toast('→ '+sLbl(ns));
+};
+window.doDelTask = async id => { await deleteTask(uid,id);toast('Task dihapus'); };
+
+// ── HABITS ────────────────────────────────────
+function calcStreak(hid){const logs=D.habitLogs[hid]||{};let s=0;const d=new Date();while(true){const str=d.toISOString().split('T')[0];if(logs[str]){s++;d.setDate(d.getDate()-1);}else break;}return s;}
+
+window.doToggleHabit = async (hid,date,current) => { await toggleHabitLog(uid,hid,date,current); };
+
+function renderHabits(){
+  const days=getLast7();const dN=['Mg','Sn','Sl','Rb','Km','Jm','Sb'];const today=TS();
+  const lbl=document.getElementById('habit-day-labels');
+  if(lbl)lbl.innerHTML=days.map(d=>`<div class="hgday" style="${d===today?'color:var(--accent)':''}">${dN[new Date(d+'T00:00:00').getDay()]}</div>`).join('');
+  const grid=document.getElementById('habits-grid');if(!grid)return;
+  grid.innerHTML=D.habits.length===0?emptyHTML('◉','Belum ada habit','Klik + Tambah untuk mulai')
+    :D.habits.map(h=>{const logs=D.habitLogs[h.id]||{};const streak=calcStreak(h.id);
+      return`<div class="habit-row"><div class="habit-row-name">${h.name}</div>
+        <div class="habit-row-dots">${days.map(d=>`<div class="hgdot ${logs[d]?'done':''} ${d===today?'today-c':''}" onclick="doToggleHabit('${h.id}','${d}',${!!logs[d]})" title="${d}">${logs[d]?'✓':''}</div>`).join('')}</div>
+        <div class="hrow-streak">🔥 ${streak}</div></div>`;}).join('');
+}
+
+// ── DELEGATION ────────────────────────────────
+function renderDelegation(){
+  const active=D.delegations.filter(d=>d.status!=='done').length;
+  const el=document.getElementById('deleg-sub');if(el)el.textContent=`${active} aktif · ${D.delegations.filter(d=>d.status==='done').length} selesai`;
+  const rows=document.getElementById('deleg-rows');if(!rows)return;
+  rows.innerHTML=D.delegations.length===0?`<div class="empty"><div class="empty-ico">◎</div><div class="empty-ttl">Belum ada delegasi</div></div>`
+    :D.delegations.map(d=>{const ov=isOv(d.due)&&d.status!=='done';
+      return`<div class="dtable-row"><div><div style="font-size:12px;font-weight:500;color:var(--snow)">${d.name}</div>${d.notes?`<div style="font-size:10px;color:var(--fog)">${d.notes}</div>`:''}</div>
+        <div style="display:flex;align-items:center;gap:7px"><div class="avatar" style="background:var(--teal);color:#000">${d.person?d.person[0].toUpperCase():'?'}</div><span style="font-size:12px;color:var(--mist)">${d.person||'—'}</span></div>
+        <div><div class="spill ${ov?'overdue':d.status}">${ov?'Terlambat':sLbl(d.status)}</div></div>
+        <div class="tdate ${ov?'ov':''}">${FMT(d.due)}</div>
+        <div style="display:flex;gap:6px;align-items:center"><div class="pdot ${d.priority}"></div><span style="cursor:pointer;color:var(--fog);font-size:11px" onclick="doCycleDel('${d.id}')">⟳</span><span style="cursor:pointer;color:var(--rose);font-size:11px" onclick="doDelDel('${d.id}')">✕</span></div>
+      </div>`;}).join('');
+}
+window.doCycleDel = async id => {
+  const d=D.delegations.find(d=>d.id===id);if(!d)return;
+  const o=['todo','inprogress','done'];
+  await updateDelegation(uid,id,{status:o[(o.indexOf(d.status)+1)%o.length]});
+  toast('Status diupdate');
+};
+window.doDelDel = async id => { await deleteDelegation(uid,id);toast('Delegasi dihapus'); };
+
+// ── NOTES ─────────────────────────────────────
+function renderNotes(){
+  const el=document.getElementById('notes-list-items');if(!el)return;
+  el.innerHTML=D.notes.length===0?'<div class="empty" style="padding:20px"><div class="empty-ttl">Belum ada catatan</div></div>'
+    :[...D.notes].reverse().map(n=>`<div class="note-li ${n.id===curNoteId?'active':''}" onclick="openNote('${n.id}')"><div class="note-li-title">${n.title}</div><div class="note-li-prev">${n.body||'Tidak ada isi'}</div><div class="note-li-date">${FMT(n.updated)}</div></div>`).join('');
+  if(curNoteId){const n=D.notes.find(n=>n.id===curNoteId);if(n){document.getElementById('note-title').value=n.title;document.getElementById('note-body').value=n.body||'';document.getElementById('note-tag').value=n.tag||'';document.getElementById('note-saved').textContent='Disimpan: '+FMT(n.updated);}}
+}
+window.openNote = id => { curNoteId=id;nav('ideas',null);renderNotes(); };
+window.newNote = async () => {
+  const n=await addNote(uid,{title:'Catatan Baru',body:'',tag:'catatan',created:TS(),updated:TS()});
+  curNoteId=n.id;
+};
+window.onNoteInput = () => {
+  if(!curNoteId)return;
+  document.getElementById('note-saved').textContent='Menyimpan...';
+  clearTimeout(noteSaveTimer);
+  noteSaveTimer=setTimeout(async()=>{
+    await updateNote(uid,curNoteId,{title:document.getElementById('note-title').value,body:document.getElementById('note-body').value,tag:document.getElementById('note-tag').value,updated:TS()});
+    document.getElementById('note-saved').textContent='Tersimpan ✓';
+  },800);
+};
+window.deleteCurrentNote = async () => {
+  if(!curNoteId)return;
+  await dbDeleteNote(uid,curNoteId);
+  curNoteId=D.notes.length>0?D.notes[D.notes.length-1].id:null;
+  toast('Catatan dihapus');
+};
+
+// ── REVIEW ────────────────────────────────────
+window.setRP = (p,el) => {
+  curRP=p;
+  document.querySelectorAll('.rnav-item').forEach(i=>i.classList.remove('active'));
+  if(el)el.classList.add('active');
+  const ci={morning:0,evening:2,weekly:3,backlog:1};
+  document.querySelectorAll('.cycle-step').forEach((s,i)=>{s.classList.remove('cs-active','cs-done');if(i<(ci[p]||0))s.classList.add('cs-done');if(i===(ci[p]||0))s.classList.add('cs-active');});
+  renderReviewPanel(p);
+};
+function getR(k){return(D.reviews[TS()]||{})[k]||'';}
+async function doSaveR(k,v){await saveReview(uid,TS(),k,v);}
+window.tgRCheck = async (k,el) => {
+  const done=!el.classList.contains('done');
+  el.classList.toggle('done',done);
+  await doSaveR(k+'-done',done?'1':'');
+  const ta=el.nextElementSibling&&el.nextElementSibling.querySelector('.rc-ta');
+  if(ta)ta.style.display=done?'block':'none';
+};
+function renderReviewPanel(p){
+  const el=document.getElementById('review-panel');if(!el)return;
+  const today=TS();const acts=D.tasks;
+  const cycleHTML=`<div class="cycle-bar"><div class="cycle-step cs-active"><div class="cs-num">01</div><div class="cs-name">PLAN</div></div><div class="cycle-step"><div class="cs-num">02</div><div class="cs-name">DO</div></div><div class="cycle-step"><div class="cs-num">03</div><div class="cs-name">REVIEW</div></div><div class="cycle-step"><div class="cs-num">04</div><div class="cs-name">EVALUATE</div></div></div>`;
+  let html=cycleHTML;
+  if(p==='morning'){
+    const tt=acts.filter(a=>a.due===today&&a.status!=='done');
+    const ha=acts.filter(a=>a.priority==='high'&&a.status!=='done');
+    html+=`<div class="review-grid">
+      <div class="rcard"><div class="rcard-title">Task Hari Ini (${tt.length})</div>${tt.length===0?emptyHTML('','Tidak ada task hari ini'):tt.map(a=>`<div class="rc-item" style="padding:6px 0"><div class="rc-check ${a.status==='done'?'done':''}" onclick="doMarkDone('${a.id}')"></div><div><div class="rc-q" style="font-size:12px">${a.name}</div></div></div>`).join('')}</div>
+      <div class="rcard"><div class="rcard-title">High Priority Aktif</div>${ha.length===0?emptyHTML('','Tidak ada high priority'):ha.slice(0,4).map(a=>`<div class="rc-item" style="padding:6px 0"><div class="rc-check" onclick="doMarkDone('${a.id}')"></div><div><div class="rc-q" style="font-size:12px">${a.name}</div><div style="font-size:10px;color:var(--fog)">${FMT(a.due)}</div></div></div>`).join('')}</div>
+    </div>
+    <div class="rcard"><div class="rcard-title">Intention Pagi</div><textarea class="rc-ta" style="display:block;width:100%;margin-top:6px" placeholder="Tulis 1–3 hal paling penting hari ini..." oninput="doSaveR('morning-intent',this.value)">${getR('morning-intent')}</textarea></div>`;
+  } else if(p==='evening'){
+    const qs=[{k:'ev1',q:'Apa yang berhasil diselesaikan hari ini?'},{k:'ev2',q:'Apa yang tidak sempat atau gagal? Kenapa?'},{k:'ev3',q:'Hambatan terbesar hari ini?'},{k:'ev4',q:'Apa yang perlu dipindah ke besok?'},{k:'ev5',q:'Satu insight penting hari ini?'}];
+    html+=`<div class="rcard"><div class="rcard-title">Review Malam — ${FMT(today)}</div>${qs.map(q=>`<div class="rc-item"><div class="rc-check ${getR(q.k+'-done')?'done':''}" onclick="tgRCheck('${q.k}',this)"></div><div style="flex:1"><div class="rc-q">${q.q}</div><textarea class="rc-ta" placeholder="Tulis jawabanmu..." oninput="doSaveR('${q.k}',this.value)" style="${getR(q.k+'-done')?'display:block':'display:none'}">${getR(q.k)}</textarea></div></div>`).join('')}</div>`;
+  } else if(p==='weekly'){
+    const d7=getLast7();const dN=['Mg','Sn','Sl','Rb','Km','Jm','Sb'];
+    const wD=d7.map(d=>({d,n:dN[new Date(d+'T00:00:00').getDay()],c:acts.filter(a=>a.created===d).length,done:acts.filter(a=>a.status==='done'&&a.created===d).length}));
+    const mxB=Math.max(...wD.map(w=>w.c),1);
+    const dn=acts.filter(a=>a.status==='done').length;const tot=acts.length;
+    html+=`<div class="review-grid">
+      <div class="rcard"><div class="rcard-title">Aktivitas 7 Hari</div><div class="bar-chart">${wD.map(w=>{const h=Math.round((w.c/mxB)*70);const hd=Math.round((w.done/mxB)*70);return`<div class="bcol"><div style="position:relative;width:100%;height:${Math.max(h,3)}px;background:var(--ag);border-radius:2px 2px 0 0"><div style="position:absolute;bottom:0;width:100%;height:${Math.max(hd,w.done>0?2:0)}px;background:var(--accent);border-radius:2px 2px 0 0"></div></div><div class="blbl">${w.n}</div></div>`;}).join('')}</div></div>
+      <div class="rcard"><div class="rcard-title">Ringkasan Minggu</div><div class="ei"><span class="ei-lbl">Selesai</span><span class="ei-val" style="color:var(--lime)">${dn}</span></div><div class="ei"><span class="ei-lbl">Aktif</span><span class="ei-val" style="color:var(--amber)">${tot-dn}</span></div><div class="ei"><span class="ei-lbl">Terlambat</span><span class="ei-val" style="color:var(--rose)">${acts.filter(a=>a.status!=='done'&&isOv(a.due)).length}</span></div><div class="ei"><span class="ei-lbl">Completion</span><span class="ei-val" style="color:var(--lime)">${tot>0?Math.round(dn/tot*100):0}%</span></div></div>
+    </div>
+    <div class="rcard"><div class="rcard-title">Refleksi Mingguan</div><textarea class="rc-ta" style="display:block;width:100%;min-height:90px" placeholder="Pencapaian terbesar? Apa yang perlu diperbaiki minggu depan?" oninput="doSaveR('weekly-reflect',this.value)">${getR('weekly-reflect')}</textarea></div>`;
+  } else if(p==='backlog'){
+    const bl=acts.filter(a=>a.status==='todo'&&!a.due);
+    html+=`<div class="rcard"><div class="rcard-title">Backlog — Task Tanpa Due Date (${bl.length})</div>${bl.length===0?emptyHTML('','Backlog kosong'):bl.map(a=>`<div class="rc-item"><div class="rc-check" onclick="doMarkDone('${a.id}')"></div><div style="flex:1"><div class="rc-q" style="font-size:12px">${a.name}</div></div><div class="pill ${a.priority}">${a.priority}</div><span style="cursor:pointer;color:var(--rose);font-size:11px;margin-left:8px" onclick="doDelTask('${a.id}')">✕</span></div>`).join('')}</div>`;
+  }
+  el.innerHTML=html;
+  const ci={morning:0,evening:2,weekly:3,backlog:1};
+  el.querySelectorAll('.cycle-step').forEach((s,i)=>{s.classList.remove('cs-active','cs-done');if(i<(ci[curRP]||0))s.classList.add('cs-done');if(i===(ci[curRP]||0))s.classList.add('cs-active');});
+}
+
+// ── RETRO ─────────────────────────────────────
+window.onRetroInput = async (k,v) => { await dbSaveRetro(uid,k,v); };
+
+// ── EVAL ──────────────────────────────────────
+function renderEval(){
+  const acts=D.tasks;
+  const done=acts.filter(a=>a.status==='done').length;
+  const total=acts.length;
+  const ov=acts.filter(a=>isOv(a.due)&&a.status!=='done').length;
+  const prog=acts.filter(a=>a.status==='inprogress').length;
+  const pct=total>0?Math.round(done/total*100):0;
+  ['ev-score','ev-done','ev-over','ev-prog','ev-tot'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=[pct,done,ov,prog,total][i];});
+  const prioEl=document.getElementById('ev-prio');
+  if(prioEl)prioEl.innerHTML=['high','medium','low'].map(p=>{const pt=acts.filter(a=>a.priority===p).length;const pd=acts.filter(a=>a.priority===p&&a.status==='done').length;const pp=pt>0?Math.round(pd/pt*100):0;const cl=p==='high'?'r':p==='medium'?'a':'';return`<div class="prow"><div class="prow-top"><span class="prow-name">${p}</span><span class="prow-pct">${pp}%</span></div><div class="pbar"><div class="pbar-fill ${cl}" style="width:${pp}%"></div></div></div>`;}).join('');
+  const statEl=document.getElementById('ev-status');
+  if(statEl)statEl.innerHTML=['todo','inprogress','review','done'].map(s=>{const cnt=acts.filter(a=>a.status===s).length;const colors={todo:'var(--fog)',inprogress:'var(--teal)',review:'var(--amber)',done:'var(--lime)'};return`<div class="ei"><span class="ei-lbl">${sLbl(s)}</span><span class="ei-val" style="color:${colors[s]}">${cnt}</span></div>`;}).join('');
+  const cats={};acts.forEach(a=>{const c=a.category||'Lainnya';cats[c]=(cats[c]||0)+1;});
+  const catEl=document.getElementById('ev-cats');if(catEl)catEl.innerHTML=Object.entries(cats).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([c,n])=>`<div class="ei"><span class="ei-lbl">${c}</span><span class="ei-val">${n}</span></div>`).join('')||emptyHTML('','Belum ada kategori');
+  const d7=getLast7();const dN=['Mg','Sn','Sl','Rb','Km','Jm','Sb'];
+  const wD=d7.map(d=>({d,n:dN[new Date(d+'T00:00:00').getDay()],c:acts.filter(a=>a.created===d).length,done:acts.filter(a=>a.status==='done'&&a.created===d).length}));
+  const mxB=Math.max(...wD.map(w=>w.c),1);
+  const bEl=document.getElementById('ev-bars');if(bEl)bEl.innerHTML=wD.map(w=>{const h=Math.round((w.c/mxB)*70);const hd=Math.round((w.done/mxB)*70);return`<div class="bcol"><div style="position:relative;width:100%;height:${Math.max(h,3)}px;background:var(--ag);border-radius:2px 2px 0 0"><div style="position:absolute;bottom:0;width:100%;height:${Math.max(hd,w.done>0?2:0)}px;background:var(--accent);border-radius:2px 2px 0 0"></div></div></div>`;}).join('');
+  const blEl=document.getElementById('ev-bar-labels');if(blEl)blEl.innerHTML=wD.map(w=>`<div style="flex:1;text-align:center;font-size:9px;color:var(--fog);font-family:'JetBrains Mono',monospace">${w.n}</div>`).join('');
+  const dt=D.delegations.length;const dd=D.delegations.filter(d=>d.status==='done').length;
+  const dEl=document.getElementById('ev-deleg');if(dEl)dEl.innerHTML=`<div class="ei"><span class="ei-lbl">Total</span><span class="ei-val">${dt}</span></div><div class="ei"><span class="ei-lbl">Selesai</span><span class="ei-val" style="color:var(--lime)">${dd}</span></div><div class="ei"><span class="ei-lbl">Terlambat</span><span class="ei-val" style="color:var(--rose)">${D.delegations.filter(d=>isOv(d.due)&&d.status!=='done').length}</span></div><div class="ei"><span class="ei-lbl">Aktif</span><span class="ei-val" style="color:var(--teal)">${dt-dd}</span></div>`;
+}
+
+// ── TOAST ─────────────────────────────────────
+window.doSaveR = doSaveR;
+function toast(msg,err){const t=document.getElementById('toast');document.getElementById('tmsg').textContent=msg;document.getElementById('tdot').style.background=err?'var(--rose)':'var(--lime)';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+window.toast=toast;
+</script>
+</body>
+</html>
