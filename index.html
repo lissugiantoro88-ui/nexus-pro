@@ -305,7 +305,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 .rnav-item.active{background:var(--ag);color:var(--accent2);}
 .review-content{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);overflow-y:auto;padding:18px;}
 .cycle-bar{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:18px;}
-.cycle-step{flex:1;padding:12px 14px;text-align:center;position:relative;cursor:pointer;}
+.cycle-step{flex:1;padding:12px 14px;text-align:center;position:relative;cursor:pointer;transition:background .15s;}
+.cycle-step:hover{background:var(--bg4);}
 .cycle-step::after{content:'›';position:absolute;right:-7px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--line2);z-index:1;}
 .cycle-step:last-child::after{display:none;}
 .cycle-step.cs-active{background:var(--ag);}
@@ -911,16 +912,24 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 
     <!-- REVIEW -->
     <div class="view" id="v-review">
-      <div class="view-hd"><div><div class="view-title">Review Loop</div><div class="view-sub">Plan → Do → Review → Evaluate</div></div></div>
+      <div class="view-hd">
+        <div><div class="view-title">Review Loop</div><div class="view-sub">Plan → Do → Review → Evaluate</div></div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:11px;color:var(--fog)" id="review-save-status">—</div>
+          <input type="date" class="fld-in" id="review-date-picker" style="width:140px;padding:5px 9px;font-size:11px" onchange="onReviewDateChange(this.value)">
+        </div>
+      </div>
       <div class="review-layout">
         <div class="review-nav">
           <div class="rnav-label">Harian</div>
-          <div class="rnav-item active" onclick="setRP('morning',this)"><span>🌅</span>Rencana Pagi</div>
-          <div class="rnav-item" onclick="setRP('evening',this)"><span>🌙</span>Review Malam</div>
+          <div class="rnav-item active" id="rn-morning" onclick="setRP('morning',this)"><span>🌅</span>Rencana Pagi</div>
+          <div class="rnav-item" id="rn-evening" onclick="setRP('evening',this)"><span>🌙</span>Review Malam</div>
           <div class="rnav-label" style="margin-top:10px">Mingguan</div>
-          <div class="rnav-item" onclick="setRP('weekly',this)"><span>📊</span>Weekly Review</div>
+          <div class="rnav-item" id="rn-weekly" onclick="setRP('weekly',this)"><span>📊</span>Weekly Review</div>
           <div class="rnav-label" style="margin-top:10px">Backlog</div>
-          <div class="rnav-item" onclick="setRP('backlog',this)"><span>📋</span>Backlog</div>
+          <div class="rnav-item" id="rn-backlog" onclick="setRP('backlog',this)"><span>📋</span>Backlog</div>
+          <div class="rnav-label" style="margin-top:16px">Riwayat</div>
+          <div id="review-history-list" style="max-height:200px;overflow-y:auto"></div>
         </div>
         <div class="review-content" id="review-panel"></div>
       </div>
@@ -928,14 +937,34 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 
     <!-- RETRO -->
     <div class="view" id="v-retro">
-      <div class="view-hd"><div><div class="view-title">Retrospektif</div><div class="view-sub">Keep · Improve · Stop · Start</div></div></div>
-      <div class="retro-grid">
-        <div class="retro-card"><div class="retro-card-title">✓ Keep — Apa yang berjalan baik?</div><textarea class="fld-ta" style="min-height:130px" placeholder="Hal yang perlu dipertahankan..." id="retro-keep" oninput="onRetroInput('keep',this.value)"></textarea></div>
-        <div class="retro-card"><div class="retro-card-title">↑ Improve — Apa yang perlu ditingkatkan?</div><textarea class="fld-ta" style="min-height:130px" placeholder="Hal yang bisa lebih baik..." id="retro-improve" oninput="onRetroInput('improve',this.value)"></textarea></div>
-        <div class="retro-card"><div class="retro-card-title">✕ Stop — Apa yang harus dihentikan?</div><textarea class="fld-ta" style="min-height:130px" placeholder="Kebiasaan atau aktivitas yang buang waktu..." id="retro-stop" oninput="onRetroInput('stop',this.value)"></textarea></div>
-        <div class="retro-card"><div class="retro-card-title">+ Start — Apa yang perlu dicoba?</div><textarea class="fld-ta" style="min-height:130px" placeholder="Hal baru yang ingin dicoba..." id="retro-start" oninput="onRetroInput('start',this.value)"></textarea></div>
+      <div class="view-hd">
+        <div>
+          <div class="view-title">Retrospektif</div>
+          <div class="view-sub">Keep · Improve · Stop · Start</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="font-size:11px;color:var(--fog)" id="retro-save-status">—</div>
+          <select class="fld-sel" id="retro-period-sel" style="width:auto;padding:5px 9px;font-size:11px" onchange="onRetroPeriodChange(this.value)">
+          </select>
+          <button class="mbtn save" style="padding:6px 14px;font-size:11px" onclick="createNewRetro()">+ Retrospektif Baru</button>
+        </div>
       </div>
-      <div class="retro-card" style="margin-top:12px"><div class="retro-card-title">Insight Utama</div><textarea class="fld-ta" placeholder="Satu kalimat pembelajaran terpenting..." id="retro-insight" oninput="onRetroInput('insight',this.value)"></textarea></div>
+      <div id="retro-content">
+        <div class="retro-grid">
+          <div class="retro-card"><div class="retro-card-title">✓ Keep — Apa yang berjalan baik?</div><textarea class="fld-ta" style="min-height:130px" placeholder="Hal yang perlu dipertahankan..." id="retro-keep" oninput="onRetroInput('keep',this.value)"></textarea></div>
+          <div class="retro-card"><div class="retro-card-title">↑ Improve — Apa yang perlu ditingkatkan?</div><textarea class="fld-ta" style="min-height:130px" placeholder="Hal yang bisa lebih baik..." id="retro-improve" oninput="onRetroInput('improve',this.value)"></textarea></div>
+          <div class="retro-card"><div class="retro-card-title">✕ Stop — Apa yang harus dihentikan?</div><textarea class="fld-ta" style="min-height:130px" placeholder="Kebiasaan atau aktivitas yang buang waktu..." id="retro-stop" oninput="onRetroInput('stop',this.value)"></textarea></div>
+          <div class="retro-card"><div class="retro-card-title">+ Start — Apa yang perlu dicoba?</div><textarea class="fld-ta" style="min-height:130px" placeholder="Hal baru yang ingin dicoba..." id="retro-start" oninput="onRetroInput('start',this.value)"></textarea></div>
+        </div>
+        <div class="retro-card" style="margin-top:12px">
+          <div class="retro-card-title">💡 Insight Utama Periode Ini</div>
+          <textarea class="fld-ta" placeholder="Satu kalimat pembelajaran terpenting dari periode ini..." id="retro-insight" oninput="onRetroInput('insight',this.value)"></textarea>
+        </div>
+        <div style="margin-top:10px;padding:10px 14px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:11px;color:var(--fog)" id="retro-last-saved">Belum tersimpan</span>
+          <button class="mbtn save" style="padding:6px 16px" onclick="forceSaveRetro()">💾 Simpan Sekarang</button>
+        </div>
+      </div>
     </div>
 
     <!-- EVAL -->
@@ -1107,13 +1136,12 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 import { login, register, logout, onAuth } from "./auth.js";
 import {
   addTask, updateTask, deleteTask, listenTasks,
-  addHabit, deleteHabit, listenHabits,
+  addHabit, updateHabit, deleteHabit, listenHabits,
   toggleHabitLog, listenHabitLogs,
   addDelegation, updateDelegation, deleteDelegation, listenDelegations,
   addNote, updateNote, deleteNote as dbDeleteNote, listenNotes,
   saveReview, listenReviews,
-  saveRetro as dbSaveRetro, listenRetro,
-  updateHabit
+  saveRetroDoc as dbSaveRetroDoc, listenRetros
 } from "./db.js";
 
 // ── STATE ─────────────────────────────────────
@@ -1217,14 +1245,24 @@ function startListeners(){
   unsubs.push(listenHabitLogs(uid, logs=>{D.habitLogs=logs;renderAll();}));
   unsubs.push(listenDelegations(uid, delgs=>{D.delegations=delgs;renderAll();}));
   unsubs.push(listenNotes(uid, notes=>{D.notes=notes;renderNotes();}));
-  unsubs.push(listenReviews(uid, reviews=>{D.reviews=reviews;}));
-  unsubs.push(listenRetro(uid, retro=>{
-    D.retro=retro;
-    ['keep','improve','stop','start','insight'].forEach(k=>{
-      const el=document.getElementById('retro-'+k);
-      if(el&&document.activeElement!==el)el.value=retro[k]||'';
-    });
+  unsubs.push(listenReviews(uid, reviews=>{
+    D.reviews=reviews;
+    renderReviewHistory();
+    // update save status if on review page
+    const ss=document.getElementById('review-save-status');
+    if(ss && curView==='review') {
+      const hasData=Object.keys(D.reviews[reviewDate]||{}).length>0;
+      ss.textContent = hasData?'✓ Data tersimpan di Firebase':'Belum ada isian';
+      ss.style.color = hasData?'var(--lime)':'var(--fog)';
+    }
   }));
+  unsubs.push(listenRetros(uid, retros=>{
+    D.retros=retros;
+    if(curView==='retro') loadRetros();
+  }));
+  // Init review date picker
+  reviewDate = TS();
+  initReviewDate();
 }
 
 // ── NAV ───────────────────────────────────────
@@ -1249,7 +1287,14 @@ window.nav = (v,el) => {
   const m=viewMeta[v]||{title:v,sub:''};
   document.getElementById('tb-title').textContent=m.title;
   document.getElementById('tb-sub').textContent=m.sub;
-  if(v==='review')setRP('morning',document.querySelector('.rnav-item'));
+  if(v==='review') {
+    reviewDate = TS();
+    initReviewDate();
+    setRP('morning', document.getElementById('rn-morning'));
+  }
+  if(v==='retro') {
+    loadRetros();
+  }
   renderAll();
 };
 
@@ -1521,28 +1566,81 @@ window.deleteCurrentNote = async () => {
   toast('Catatan dihapus');
 };
 
-// ── REVIEW ────────────────────────────────────
-window.setRP = (p,el) => {
-  curRP=p;
+// ── REVIEW LOOP ───────────────────────────────
+let reviewDate = TS(); // current date being viewed
+
+function initReviewDate() {
+  const dp = document.getElementById('review-date-picker');
+  if(dp) { dp.value = reviewDate; dp.max = TS(); }
+}
+
+window.onReviewDateChange = (date) => {
+  reviewDate = date;
+  renderReviewPanel(curRP);
+  renderReviewHistory();
+};
+
+function getR(k) { return (D.reviews[reviewDate]||{})[k]||''; }
+
+async function doSaveR(k, v) {
+  await saveReview(uid, reviewDate, k, v);
+  const el = document.getElementById('review-save-status');
+  if(el) {
+    el.textContent = '✓ Tersimpan ' + new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+    el.style.color = 'var(--lime)';
+  }
+}
+
+function renderReviewHistory() {
+  const el = document.getElementById('review-history-list');
+  if(!el) return;
+  const dates = Object.keys(D.reviews).sort((a,b)=>b.localeCompare(a)).slice(0,14);
+  if(dates.length === 0) { el.innerHTML = '<div style="font-size:10px;color:var(--fog);padding:4px 6px">Belum ada riwayat</div>'; return; }
+  el.innerHTML = dates.map(d => {
+    const isActive = d === reviewDate;
+    const hasContent = Object.keys(D.reviews[d]||{}).length > 0;
+    return `<div onclick="onReviewDateChange('${d}')" style="padding:5px 8px;border-radius:var(--rs);cursor:pointer;font-size:11px;margin-bottom:2px;
+      background:${isActive?'var(--ag)':'transparent'};color:${isActive?'var(--accent2)':'var(--mist)'};
+      display:flex;align-items:center;justify-content:space-between;transition:all .15s"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='${isActive?'var(--ag)':'transparent'}'">
+      <span>${formatDateLabel(d)}</span>
+      ${hasContent?'<span style="width:5px;height:5px;border-radius:50%;background:var(--lime);display:inline-block"></span>':''}
+    </div>`;
+  }).join('');
+}
+
+function formatDateLabel(d) {
+  const today = TS();
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+  const yStr = yesterday.toISOString().split('T')[0];
+  if(d === today) return 'Hari Ini';
+  if(d === yStr) return 'Kemarin';
+  return new Date(d+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short'});
+}
+
+window.setRP = (p, el) => {
+  curRP = p;
   document.querySelectorAll('.rnav-item').forEach(i=>i.classList.remove('active'));
-  if(el)el.classList.add('active');
-  const ci={morning:0,evening:2,weekly:3,backlog:1};
-  document.querySelectorAll('.cycle-step').forEach((s,i)=>{s.classList.remove('cs-active','cs-done');if(i<(ci[p]||0))s.classList.add('cs-done');if(i===(ci[p]||0))s.classList.add('cs-active');});
+  if(el) el.classList.add('active');
   renderReviewPanel(p);
 };
-function getR(k){return(D.reviews[TS()]||{})[k]||'';}
-async function doSaveR(k,v){await saveReview(uid,TS(),k,v);}
-window.tgRCheck = async (k,el) => {
-  const done=!el.classList.contains('done');
-  el.classList.toggle('done',done);
-  await doSaveR(k+'-done',done?'1':'');
-  const ta=el.nextElementSibling&&el.nextElementSibling.querySelector('.rc-ta');
-  if(ta)ta.style.display=done?'block':'none';
+
+window.tgRCheck = async (k, el) => {
+  const done = !el.classList.contains('done');
+  el.classList.toggle('done', done);
+  await doSaveR(k+'-done', done ? '1' : '');
+  const ta = el.nextElementSibling && el.nextElementSibling.querySelector('.rc-ta');
+  if(ta) ta.style.display = done ? 'block' : 'none';
 };
 function renderReviewPanel(p){
   const el=document.getElementById('review-panel');if(!el)return;
   const today=TS();const acts=D.tasks;
-  const cycleHTML=`<div class="cycle-bar"><div class="cycle-step cs-active"><div class="cs-num">01</div><div class="cs-name">PLAN</div></div><div class="cycle-step"><div class="cs-num">02</div><div class="cs-name">DO</div></div><div class="cycle-step"><div class="cs-num">03</div><div class="cs-name">REVIEW</div></div><div class="cycle-step"><div class="cs-num">04</div><div class="cs-name">EVALUATE</div></div></div>`;
+  const cycleHTML=`<div class="cycle-bar">
+    <div class="cycle-step cs-active" onclick="setRP('morning',document.getElementById('rn-morning'))" title="Rencana Pagi"><div class="cs-num">01</div><div class="cs-name">PLAN</div></div>
+    <div class="cycle-step" onclick="setRP('backlog',document.getElementById('rn-backlog'))" title="Backlog / In Progress"><div class="cs-num">02</div><div class="cs-name">DO</div></div>
+    <div class="cycle-step" onclick="setRP('evening',document.getElementById('rn-evening'))" title="Review Malam"><div class="cs-num">03</div><div class="cs-name">REVIEW</div></div>
+    <div class="cycle-step" onclick="setRP('weekly',document.getElementById('rn-weekly'))" title="Weekly Review"><div class="cs-num">04</div><div class="cs-name">EVALUATE</div></div>
+  </div>`;
   let html=cycleHTML;
   if(p==='morning'){
     const tt=acts.filter(a=>a.due===today&&a.status!=='done');
@@ -1572,10 +1670,117 @@ function renderReviewPanel(p){
   el.innerHTML=html;
   const ci={morning:0,evening:2,weekly:3,backlog:1};
   el.querySelectorAll('.cycle-step').forEach((s,i)=>{s.classList.remove('cs-active','cs-done');if(i<(ci[curRP]||0))s.classList.add('cs-done');if(i===(ci[curRP]||0))s.classList.add('cs-active');});
+
+  // Update save status label
+  const ss = document.getElementById('review-save-status');
+  const hasData = Object.keys(D.reviews[reviewDate]||{}).length > 0;
+  if(ss) {
+    if(reviewDate === TS()) {
+      ss.textContent = hasData ? '✓ Data hari ini tersimpan' : 'Belum ada isian hari ini';
+      ss.style.color = hasData ? 'var(--lime)' : 'var(--fog)';
+    } else {
+      ss.textContent = 'Melihat riwayat: ' + formatDateLabel(reviewDate);
+      ss.style.color = 'var(--amber)';
+    }
+  }
+
+  // Render history sidebar
+  renderReviewHistory();
 }
 
 // ── RETRO ─────────────────────────────────────
-window.onRetroInput = async (k,v) => { await dbSaveRetro(uid,k,v); };
+let currentRetroId = null;
+let retroSaveTimer = null;
+
+async function loadRetros() {
+  // Load all retro docs from Firebase
+  const retroDocs = D.retros || {};
+  const sel = document.getElementById('retro-period-sel');
+  if(!sel) return;
+  const ids = Object.keys(retroDocs).sort((a,b)=>b.localeCompare(a));
+  if(ids.length === 0) {
+    // Create first retro automatically
+    await createNewRetro();
+    return;
+  }
+  sel.innerHTML = ids.map(id => `<option value="${id}">${retroDocs[id]._label||formatRetroLabel(id)}</option>`).join('');
+  if(!currentRetroId || !retroDocs[currentRetroId]) currentRetroId = ids[0];
+  sel.value = currentRetroId;
+  fillRetroFields(retroDocs[currentRetroId]);
+}
+
+function formatRetroLabel(id) {
+  try { return new Date(id+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}); }
+  catch(e) { return id; }
+}
+
+function fillRetroFields(data) {
+  if(!data) data = {};
+  ['keep','improve','stop','start','insight'].forEach(k => {
+    const el = document.getElementById('retro-'+k);
+    if(el) el.value = data[k]||'';
+  });
+  const ls = document.getElementById('retro-last-saved');
+  if(ls) ls.textContent = data._savedAt ? 'Terakhir disimpan: ' + data._savedAt : 'Belum tersimpan';
+}
+
+window.onRetroPeriodChange = (id) => {
+  currentRetroId = id;
+  fillRetroFields((D.retros||{})[id]);
+};
+
+window.createNewRetro = async () => {
+  const id = TS();
+  const label = new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
+  const data = { _label: label, _savedAt: null, keep:'', improve:'', stop:'', start:'', insight:'' };
+  await dbSaveRetroDoc(uid, id, data);
+  currentRetroId = id;
+  if(!D.retros) D.retros = {};
+  D.retros[id] = data;
+  loadRetros();
+  toast('Retrospektif baru dibuat ✓');
+};
+
+window.onRetroInput = (k, v) => {
+  clearTimeout(retroSaveTimer);
+  const ls = document.getElementById('retro-last-saved');
+  const ss = document.getElementById('retro-save-status');
+  if(ls) ls.textContent = 'Menyimpan...';
+  retroSaveTimer = setTimeout(async () => {
+    if(!currentRetroId) await createNewRetro();
+    const timeStr = new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+    await dbSaveRetroDoc(uid, currentRetroId, { [k]: v, _savedAt: timeStr });
+    if(!D.retros) D.retros = {};
+    if(!D.retros[currentRetroId]) D.retros[currentRetroId] = {};
+    D.retros[currentRetroId][k] = v;
+    D.retros[currentRetroId]._savedAt = timeStr;
+    if(ls) ls.textContent = 'Terakhir disimpan: ' + timeStr;
+    if(ss) { ss.textContent = '✓ Tersimpan ' + timeStr; ss.style.color='var(--lime)'; }
+    // Update dropdown
+    const sel = document.getElementById('retro-period-sel');
+    if(sel) {
+      const opt = sel.querySelector(`option[value="${currentRetroId}"]`);
+      if(opt && D.retros[currentRetroId]._label) opt.textContent = D.retros[currentRetroId]._label;
+    }
+  }, 1000);
+};
+
+window.forceSaveRetro = async () => {
+  if(!currentRetroId) { await createNewRetro(); return; }
+  const fields = {};
+  ['keep','improve','stop','start','insight'].forEach(k => {
+    const el = document.getElementById('retro-'+k);
+    if(el) fields[k] = el.value;
+  });
+  const timeStr = new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+  fields._savedAt = timeStr;
+  await dbSaveRetroDoc(uid, currentRetroId, fields);
+  if(!D.retros) D.retros = {};
+  D.retros[currentRetroId] = { ...(D.retros[currentRetroId]||{}), ...fields };
+  const ls = document.getElementById('retro-last-saved');
+  if(ls) ls.textContent = 'Tersimpan: ' + timeStr;
+  toast('Retrospektif tersimpan ✓');
+};
 
 // ── EVAL ──────────────────────────────────────
 function renderEval(){
