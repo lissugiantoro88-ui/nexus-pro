@@ -125,5 +125,18 @@ export function listenRetros(uid, callback) {
     callback(retros);
   });
 }
-
-
+// ── REMINDERS ─────────────────────────────────
+export async function saveReminder(uid, id, data) {
+  const r = ref(uid, "reminders", id);
+  return setDoc(r, data, { merge: true });
+}
+export async function deleteReminder(uid, id) {
+  return deleteDoc(ref(uid, "reminders", id));
+}
+export function listenReminders(uid, callback) {
+  return onSnapshot(col(uid, "reminders"), snap => {
+    const reminders = {};
+    snap.docs.forEach(d => { reminders[d.id] = { id: d.id, ...d.data() }; });
+    callback(reminders);
+  });
+}
