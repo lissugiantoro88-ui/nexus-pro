@@ -1386,10 +1386,23 @@ let authMode = 'login';
 // ── HELPERS ───────────────────────────────────
 const TS = () => new Date().toISOString().split('T')[0];
 const FMT = d => { if(!d) return '—'; return new Date(d+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short'}); };
-const isOv = d => d && new Date(d+'T00:00:00') < new Date(new Date().toDateString());
-const isSoon = d => { if(!d) return false; const diff = new Date(d+'T00:00:00') - new Date(new Date().toDateString()); return diff>=0 && diff<=2*86400000; };
+// ── DATE HELPERS — timezone-safe (WIB/UTC+7 friendly) ──
+function localMidnight(dateStr) {
+  const [y,m,d] = dateStr.split('-').map(Number);
+  return new Date(y, m-1, d, 0, 0, 0, 0);
+}
+function todayMidnight() {
+  const n = new Date();
+  return new Date(n.getFullYear(), n.getMonth(), n.getDate(), 0, 0, 0, 0);
+}
+function daysDiff(dateStr) {
+  if (!dateStr) return null;
+  return Math.round((localMidnight(dateStr) - todayMidnight()) / 86400000);
+}
+const isOv    = d => d && daysDiff(d) < 0;
+const isSoon  = d => { if(!d) return false; const diff=daysDiff(d); return diff>=0 && diff<=2; };
 const isToday = d => d === TS();
-const isUp = d => d && new Date(d+'T00:00:00') > new Date(new Date().toDateString()) && !isToday(d);
+const isUp    = d => d && daysDiff(d) > 0;
 const emptyHTML = (ico,ttl,sub='') => `<div class="empty"><div class="empty-ico">${ico}</div><div class="empty-ttl">${ttl}</div>${sub?`<div class="empty-sub">${sub}</div>`:''}</div>`;
 const sLbl = s => ({todo:'To Do',inprogress:'In Progress',review:'Review',done:'Done'}[s]||s);
 const sTag = s => ({todo:'',inprogress:'b',review:'y',done:'g'}[s]||'');
@@ -1610,12 +1623,10 @@ function calcUrgencyScore(item) {
   score += prioScore[item.priority] || 0;
 
   if (item.due) {
-    const today = new Date(TS() + 'T00:00:00');
-    const due   = new Date(item.due + 'T00:00:00');
-    const diff  = Math.round((due - today) / 86400000); // hari
-    if (diff < 0)      score += 50; // sudah lewat — paling darurat
+    const diff = daysDiff(item.due);
+    if (diff < 0)       score += 50; // sudah lewat — paling darurat
     else if (diff === 0) score += 45; // hari ini
-    else if (diff === 1) score += 35;
+    else if (diff === 1) score += 35; // besok
     else if (diff <= 3)  score += 25;
     else if (diff <= 7)  score += 15;
     else                 score += 5;
@@ -1637,15 +1648,13 @@ function urgencyLabel(score) {
 
 function dueDateLabel(due, status) {
   if (!due) return '';
-  const today = new Date(TS() + 'T00:00:00');
-  const dueD  = new Date(due + 'T00:00:00');
-  const diff  = Math.round((dueD - today) / 86400000);
   if (status === 'done') return '';
+  const diff = daysDiff(due);
   if (diff < 0)   return { text: `${Math.abs(diff)} hari terlambat`, cls: 'overdue' };
   if (diff === 0) return { text: 'Due hari ini', cls: 'today' };
-  if (diff === 1) return { text: 'Due besok', cls: '' };
-  if (diff <= 7)  return { text: `Due ${diff} hari lagi`, cls: '' };
-  return { text: `Due ${FMT(due)}`, cls: '' };
+  if (diff === 1) return { text: 'Besok', cls: '' };
+  if (diff <= 7)  return { text: `${diff} hari lagi`, cls: '' };
+  return { text: FMT(due), cls: '' };
 }
 
 function updateFocus(){
@@ -1891,11 +1900,12 @@ function tlCardHTML(a, zone){
     const today = new Date(TS()+'T00:00:00');
     const due   = new Date(a._due+'T00:00:00');
     const diff  = Math.round((due - today) / 86400000);
-    const cls   = diff < 0 ? 'ov' : diff===0 ? 'a' : '';
-    const lbl   = diff < 0 ? `${Math.abs(diff)} hari terlambat`
-                : diff===0 ? 'Hari ini'
-                : diff===1 ? 'Besok'
-                : diff<=7  ? `${diff} hari lagi`
+    const tdiff = daysDiff(a._due);
+    const cls   = tdiff < 0 ? 'ov' : tdiff===0 ? 'a' : '';
+    const lbl   = tdiff < 0 ? `${Math.abs(tdiff)} hari terlambat`
+                : tdiff===0 ? 'Hari ini'
+                : tdiff===1 ? 'Besok'
+                : tdiff<=7  ? `${tdiff} hari lagi`
                 : FMT(a._due);
     dueHTML = `<div class="tdate ${cls}" style="font-size:10px">⏱ ${lbl}</div>`;
   }
