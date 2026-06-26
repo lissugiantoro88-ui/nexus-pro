@@ -123,6 +123,3 @@ export function listenRetro(uid, callback) {
     callback(snap.exists() ? snap.data() : {});
   });
 }
-
-export { db };
-export const ref = (uid, name, id) => doc(db, "users", uid, name, id);
