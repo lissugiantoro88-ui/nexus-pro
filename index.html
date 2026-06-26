@@ -1763,15 +1763,15 @@ function renderDashboard(){
   document.getElementById('stb-over').style.width=over>0?'100%':'0%';
   document.getElementById('stb-deleg').style.width=Math.round(dl/(D.delegations.length||1)*100)+'%';
 
-  const at=t.filter(x=>x.status!=='done').slice(0,5);
+  const at=[...t].reverse().filter(x=>x.status!=='done').slice(0,5);
   document.getElementById('dash-tasks').innerHTML=at.length===0?emptyHTML('◈','Tidak ada task aktif','Klik + Tambah untuk mulai')
     :at.map(x=>`<div class="ti"><div class="ti-check ${x.status==='done'?'done':''}" onclick="doMarkDone('${x.id}')"></div><div class="ti-name">${x.name}</div><div class="pdot ${x.priority}"></div><div class="tdate ${isOv(x.due)&&x.status!=='done'?'ov':''}">${FMT(x.due)}</div><div class="tag ${sTag(x.status)}">${sLbl(x.status)}</div></div>`).join('');
 
   document.getElementById('dash-habits').innerHTML=D.habits.length===0?emptyHTML('◉','Belum ada habit')
-    :D.habits.slice(0,4).map(h=>{const logs=D.habitLogs[h.id]||{};const streak=calcStreak(h.id);
+    :[...D.habits].reverse().slice(0,4).map(h=>{const logs=D.habitLogs[h.id]||{};const streak=calcStreak(h.id);
       return`<div class="hmi"><div class="hmi-name">${h.name}</div><div class="hmi-dots">${getLast7().map(d=>`<div class="hdot ${logs[d]?'done':''} ${d===TS()&&!logs[d]?'today-d':''}" onclick="doToggleHabit('${h.id}','${d}',${!!logs[d]})"></div>`).join('')}</div><div class="hstreak">🔥${streak}</div><div class="item-actions"><button class="act-btn edit" onclick="openEditHabit('${h.id}')" title="Edit" style="width:20px;height:20px;font-size:10px">✎</button><button class="act-btn del" onclick="doDelHabit('${h.id}')" title="Hapus" style="width:20px;height:20px;font-size:10px">✕</button></div></div>`;}).join('');
 
-  const ad=D.delegations.filter(d=>d.status!=='done').slice(0,4);
+  const ad=[...D.delegations].reverse().filter(d=>d.status!=='done').slice(0,4);
   document.getElementById('dash-deleg').innerHTML=ad.length===0?emptyHTML('◎','Tidak ada delegasi aktif')
     :ad.map(d=>`<div class="dmi"><div class="avatar">${d.person?d.person[0].toUpperCase():'?'}</div><div class="dmi-info"><div class="dmi-task">${d.name}</div><div class="dmi-who">${d.person||'—'}</div></div><div class="tag ${d.status==='inprogress'?'b':'y'}">${sLbl(d.status)}</div><div class="tdate ${isOv(d.due)?'ov':''}">${FMT(d.due)}</div></div>`).join('');
 
@@ -1792,7 +1792,7 @@ function renderTimeline(){
   const prioOrder = { high:0, medium:1, low:2 };
 
   function makeItems(arr, type) {
-    return arr.map(a => ({
+    return [...arr].reverse().map(a => ({
       ...a,
       _type: type,
       _done: type==='task' ? a.status==='done'
@@ -1973,7 +1973,7 @@ window.setTF = (f,el) => { taskF=f;document.querySelectorAll('#task-filters .chi
 window.setTV = (v,el) => { taskV=v;document.querySelectorAll('.vtbtn').forEach(b=>b.classList.remove('active'));el.classList.add('active');document.getElementById('tasks-list-view').classList.toggle('hidden',v==='kanban');document.getElementById('tasks-kanban-view').classList.toggle('hidden',v==='list'); };
 
 function renderTasks(){
-  let tasks=D.tasks;
+  let tasks=[...D.tasks].reverse(); // terbaru di atas
   if(taskF==='todo')tasks=tasks.filter(t=>t.status==='todo');
   else if(taskF==='inprogress')tasks=tasks.filter(t=>t.status==='inprogress');
   else if(taskF==='done')tasks=tasks.filter(t=>t.status==='done');
@@ -1984,7 +1984,7 @@ function renderTasks(){
 }${tr?`<div style="font-size:10px;color:var(--amber);margin-top:2px">⏰ ${tr}</div>`:''}</div><div class="pdot ${t.priority}"></div><div class="tdate ${isOv(t.due)&&t.status!=='done'?'ov':''}">${FMT(t.due)}</div><div class="tag ${sTag(t.status)}">${sLbl(t.status)}</div><div class="item-actions"><button class="act-btn" onclick="doCycleTask('${t.id}')" title="Ganti status">⟳</button><button class="act-btn edit" onclick="openEditTask('${t.id}')" title="Edit">✎</button><button class="act-btn ${hasReminder(t.id)?'bell-on':'bell-off'}" onclick="openReminderModal('${t.id}','task','${t.name.replace(/'/g,'')}','${t.due||''}')" title="${hasReminder(t.id)?'⏰ Ada reminder aktif — klik untuk edit':'Tambah reminder'}">🔔</button><button class="act-btn del" onclick="doDelTask('${t.id}')" title="Hapus">✕</button></div></div>`}).join('');
   ['todo','inprogress','review','done'].forEach((s,i)=>{
     const ids=['todo','ip','rv','dn'];
-    const cards=D.tasks.filter(t=>t.status===s);
+    const cards=[...D.tasks].reverse().filter(t=>t.status===s);
     document.getElementById('kc-'+ids[i]).textContent=cards.length;
     document.getElementById('k-'+ids[i]).innerHTML=cards.length===0?'<div style="padding:8px;color:var(--fog);font-size:11px;text-align:center">Kosong</div>'
       :cards.map(t=>`<div class="kcard ${t.priority}"><div class="kcard-name">${t.name}</div><div class="kcard-ft"><div class="tdate">${FMT(t.due)}</div><div class="item-actions"><button class="act-btn" onclick="doCycleTask('${t.id}')" title="Ganti status">⟳</button><button class="act-btn edit" onclick="openEditTask('${t.id}')" title="Edit">✎</button><button class="act-btn ${hasReminder(t.id)?'bell-on':'bell-off'}" onclick="openReminderModal('${t.id}','task','${t.name.replace(/'/g,'')}','${t.due||''}')" title="${hasReminder(t.id)?'⏰ Ada reminder aktif — klik untuk edit':'Tambah reminder'}">🔔</button><button class="act-btn del" onclick="doDelTask('${t.id}')" title="Hapus">✕</button></div></div></div>`).join('');
@@ -2018,7 +2018,7 @@ function renderHabits(){
   if(lbl)lbl.innerHTML=days.map(d=>`<div class="hgday" style="${d===today?'color:var(--accent)':''}">${dN[new Date(d+'T00:00:00').getDay()]}</div>`).join('');
   const grid=document.getElementById('habits-grid');if(!grid)return;
   grid.innerHTML=D.habits.length===0?emptyHTML('◉','Belum ada habit','Klik + Tambah untuk mulai')
-    :D.habits.map(h=>{const logs=D.habitLogs[h.id]||{};const streak=calcStreak(h.id);
+    :[...D.habits].reverse().map(h=>{const logs=D.habitLogs[h.id]||{};const streak=calcStreak(h.id);
       return`<div class="habit-row"><div class="habit-row-name">${h.name}</div>
         <div class="habit-row-dots">${days.map(d=>`<div class="hgdot ${logs[d]?'done':''} ${d===today?'today-c':''}" onclick="doToggleHabit('${h.id}','${d}',${!!logs[d]})" title="${d}">${logs[d]?'✓':''}</div>`).join('')}</div>
         <div class="hrow-streak">🔥 ${streak}</div>
@@ -2031,7 +2031,7 @@ function renderDelegation(){
   const el=document.getElementById('deleg-sub');if(el)el.textContent=`${active} aktif · ${D.delegations.filter(d=>d.status==='done').length} selesai`;
   const rows=document.getElementById('deleg-rows');if(!rows)return;
   rows.innerHTML=D.delegations.length===0?`<div class="empty"><div class="empty-ico">◎</div><div class="empty-ttl">Belum ada delegasi</div></div>`
-    :D.delegations.map(d=>{const ov=isOv(d.due)&&d.status!=='done';
+    :[...D.delegations].reverse().map(d=>{const ov=isOv(d.due)&&d.status!=='done';
       return`<div class="dtable-row"><div><div style="font-size:12px;font-weight:500;color:var(--snow)">${d.name}</div>${d.notes?`<div style="font-size:10px;color:var(--fog)">${d.notes}</div>`:''}</div>
         <div style="display:flex;align-items:center;gap:7px"><div class="avatar" style="background:var(--teal);color:#000">${d.person?d.person[0].toUpperCase():'?'}</div><span style="font-size:12px;color:var(--mist)">${d.person||'—'}</span></div>
         <div><div class="spill ${ov?'overdue':d.status}">${ov?'Terlambat':sLbl(d.status)}</div></div>
