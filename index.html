@@ -410,6 +410,70 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 .act-btn.edit:hover { border-color:var(--accent); color:var(--accent2); background:var(--ag); }
 .act-btn.del:hover { border-color:var(--rose); color:var(--rose); background:var(--rosed); }
 
+
+/* ── REMINDER MODAL ── */
+.reminder-modal {
+  background:var(--bg2);border:1px solid var(--line2);
+  border-radius:12px;width:520px;max-width:95vw;padding:22px;
+  transform:translateY(10px);transition:transform .2s;
+  max-height:85vh;overflow-y:auto;
+}
+.modal-ov.open .reminder-modal{transform:translateY(0);}
+.reminder-item{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:12px;background:var(--bg3);border-radius:var(--r);
+  border:1px solid var(--line);margin-bottom:8px;position:relative;
+}
+.reminder-item:last-child{margin-bottom:0;}
+.reminder-item-info{flex:1;}
+.reminder-item-name{font-size:13px;font-weight:500;color:var(--snow);}
+.reminder-item-detail{font-size:11px;color:var(--fog);margin-top:3px;font-family:'JetBrains Mono',monospace;}
+.reminder-toggle{
+  width:38px;height:22px;border-radius:11px;border:none;
+  background:var(--line2);cursor:pointer;position:relative;
+  transition:background .2s;flex-shrink:0;margin-top:2px;
+}
+.reminder-toggle.on{background:var(--lime);}
+.reminder-toggle::after{
+  content:'';position:absolute;top:3px;left:3px;
+  width:16px;height:16px;border-radius:50%;background:#fff;
+  transition:left .2s;
+}
+.reminder-toggle.on::after{left:19px;}
+.reminder-del{
+  width:22px;height:22px;border-radius:4px;border:1px solid transparent;
+  background:transparent;color:var(--fog);cursor:pointer;font-size:12px;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;
+}
+.reminder-del:hover{border-color:var(--rose);color:var(--rose);background:var(--rosed);}
+.add-reminder-form{
+  background:var(--bg3);border:1px solid var(--line);
+  border-radius:var(--r);padding:14px;margin-top:10px;
+}
+.add-reminder-form .form-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;
+}
+.reminder-bell{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10px;padding:2px 7px;border-radius:20px;
+  background:var(--amberd);color:var(--amber);
+  border:1px solid rgba(255,184,48,.2);cursor:pointer;
+  font-family:'Inter',sans-serif;transition:all .15s;
+  white-space:nowrap;
+}
+.reminder-bell:hover{background:var(--amber);color:#000;}
+.reminder-bell.active{background:var(--amber);color:#000;}
+.notif-banner{
+  position:fixed;top:14px;left:50%;transform:translateX(-50%);
+  background:var(--bg2);border:1px solid var(--amber);
+  border-radius:var(--r);padding:10px 16px;
+  display:flex;align-items:center;gap:10px;
+  z-index:500;box-shadow:0 4px 20px rgba(0,0,0,.3);
+  font-size:13px;color:var(--snow);white-space:nowrap;
+  animation:slideDown .3s ease;
+}
+@keyframes slideDown{from{top:-60px;opacity:0;}to{top:14px;opacity:1;}}
+
 /* ── TOAST / LOADING ── */
 .toast{position:fixed;bottom:18px;right:18px;background:var(--bg3);border:1px solid var(--line2);border-radius:var(--rs);padding:9px 14px;font-size:12px;color:var(--snow);z-index:200;transform:translateY(60px);opacity:0;transition:all .25s;display:flex;align-items:center;gap:7px;}
 .toast.show{transform:translateY(0);opacity:1;}
@@ -1130,6 +1194,80 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
   </div>
 </div>
 
+
+<!-- REMINDER MODAL -->
+<div class="modal-ov" id="reminder-modal-ov" onclick="closeReminderModalOut(event)">
+  <div class="reminder-modal">
+    <div class="modal-hd" style="margin-bottom:14px">
+      <div>
+        <div class="modal-title" id="reminder-modal-title">⏰ Reminder</div>
+        <div style="font-size:11px;color:var(--fog);margin-top:3px" id="reminder-modal-item-name"></div>
+      </div>
+      <button class="modal-x" onclick="closeReminderModal()">✕</button>
+    </div>
+
+    <!-- Existing reminders list -->
+    <div id="reminder-list-container">
+      <div style="font-size:10px;color:var(--fog);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-family:'JetBrains Mono',monospace">Reminder Aktif</div>
+      <div id="reminder-list"></div>
+    </div>
+
+    <!-- Add new reminder form -->
+    <div class="add-reminder-form" style="margin-top:12px">
+      <div style="font-size:10px;color:var(--fog);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;font-family:'JetBrains Mono',monospace">+ Tambah Reminder Baru</div>
+
+      <div class="form-row">
+        <div class="fld">
+          <div class="fld-lbl">Berapa hari sebelum due?</div>
+          <select class="fld-sel" id="r-days-before">
+            <option value="0">Pada hari H (due date)</option>
+            <option value="1">H-1 (sehari sebelum)</option>
+            <option value="2">H-2</option>
+            <option value="3">H-3</option>
+            <option value="5">H-5</option>
+            <option value="7">H-7 (seminggu sebelum)</option>
+            <option value="-1">Setiap hari (habit)</option>
+          </select>
+        </div>
+        <div class="fld">
+          <div class="fld-lbl">Jam notifikasi</div>
+          <input class="fld-in" type="time" id="r-time" value="08:00">
+        </div>
+      </div>
+
+      <div class="fld" style="margin-bottom:10px">
+        <div class="fld-lbl">Catatan reminder (opsional)</div>
+        <input class="fld-in" id="r-note" placeholder="e.g. Cek progress dengan tim...">
+      </div>
+
+      <div style="display:flex;gap:6px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mist);cursor:pointer">
+          <input type="checkbox" id="r-also-overdue" style="accent-color:var(--rose)">
+          Ingatkan juga jika sudah terlambat
+        </label>
+      </div>
+
+      <div class="modal-acts" style="margin-top:12px">
+        <button class="mbtn save" onclick="saveNewReminder()" style="width:100%">+ Tambah Reminder Ini</button>
+      </div>
+    </div>
+
+    <!-- Notification permission -->
+    <div id="notif-permission-banner" style="display:none;margin-top:10px;padding:10px 12px;background:var(--amberd);border-radius:var(--rs);border:1px solid rgba(255,184,48,.3)">
+      <div style="font-size:12px;color:var(--amber);font-weight:500;margin-bottom:6px">⚠️ Izin Notifikasi Diperlukan</div>
+      <div style="font-size:11px;color:var(--mist);margin-bottom:8px">Aktifkan notifikasi agar reminder bisa muncul meski aplikasi ditutup.</div>
+      <button class="mbtn save" onclick="requestNotifPermission()" style="font-size:11px;padding:6px 14px">Izinkan Notifikasi</button>
+    </div>
+  </div>
+</div>
+
+<!-- Notification banner (in-app) -->
+<div class="notif-banner" id="notif-banner" style="display:none">
+  <span>⏰</span>
+  <span id="notif-banner-text">Reminder</span>
+  <button onclick="document.getElementById('notif-banner').style.display='none'" style="background:none;border:none;color:var(--fog);cursor:pointer;font-size:16px;margin-left:8px">✕</button>
+</div>
+
 <div class="toast" id="toast"><div class="tdot" id="tdot"></div><span id="tmsg">Tersimpan</span></div>
 
 <script type="module">
@@ -1141,12 +1279,13 @@ import {
   addDelegation, updateDelegation, deleteDelegation, listenDelegations,
   addNote, updateNote, deleteNote as dbDeleteNote, listenNotes,
   saveReview, listenReviews,
-  saveRetroDoc as dbSaveRetroDoc, listenRetros
+  saveRetroDoc as dbSaveRetroDoc, listenRetros,
+  saveReminder, deleteReminder, listenReminders
 } from "./db.js";
 
 // ── STATE ─────────────────────────────────────
 let uid = null;
-let D = { tasks:[], habits:[], habitLogs:{}, delegations:[], notes:[], reviews:{}, retro:{} };
+let D = { tasks:[], habits:[], habitLogs:{}, delegations:[], notes:[], reviews:{}, retro:{}, retros:{}, reminders:{} };
 let unsubs = [];
 let curView = 'dashboard';
 let taskF = 'all', taskV = 'list', tlF = 'all';
@@ -1260,9 +1399,22 @@ function startListeners(){
     D.retros=retros;
     if(curView==='retro') loadRetros();
   }));
+  // Load retros on init
+  D.retros = {};
+  // Reminders listener
+  unsubs.push(listenReminders(uid, reminders => {
+    D.reminders = reminders;
+    syncRemindersToSW(reminders);
+    checkInAppReminders(reminders);
+    renderAll();
+  }));
+
   // Init review date picker
   reviewDate = TS();
   initReviewDate();
+
+  // Register service worker
+  registerSW();
 }
 
 // ── NAV ───────────────────────────────────────
@@ -1472,13 +1624,13 @@ function renderTasks(){
   else if(['high','medium','low'].includes(taskF))tasks=tasks.filter(t=>t.priority===taskF);
   document.getElementById('tasks-sub').textContent=`${D.tasks.filter(t=>t.status!=='done').length} aktif · ${D.tasks.filter(t=>t.status==='done').length} selesai`;
   document.getElementById('tasks-list').innerHTML=tasks.length===0?emptyHTML('◈','Tidak ada task')
-    :tasks.map(t=>`<div class="ti"><div class="ti-check ${t.status==='done'?'done':''}" onclick="doMarkDone('${t.id}')"></div><div style="flex:1"><div class="ti-name ${t.status==='done'?'done':''}">${t.name}</div>${t.notes?`<div style="font-size:10px;color:var(--fog);margin-top:1px">${t.notes}</div>`:''}</div><div class="pdot ${t.priority}"></div><div class="tdate ${isOv(t.due)&&t.status!=='done'?'ov':''}">${FMT(t.due)}</div><div class="tag ${sTag(t.status)}">${sLbl(t.status)}</div><div class="item-actions"><button class="act-btn" onclick="doCycleTask('${t.id}')" title="Ganti status">⟳</button><button class="act-btn edit" onclick="openEditTask('${t.id}')" title="Edit">✎</button><button class="act-btn del" onclick="doDelTask('${t.id}')" title="Hapus">✕</button></div></div>`).join('');
+    :tasks.map(t=>`<div class="ti"><div class="ti-check ${t.status==='done'?'done':''}" onclick="doMarkDone('${t.id}')"></div><div style="flex:1"><div class="ti-name ${t.status==='done'?'done':''}">${t.name}</div>${t.notes?`<div style="font-size:10px;color:var(--fog);margin-top:1px">${t.notes}</div>`:''}</div><div class="pdot ${t.priority}"></div><div class="tdate ${isOv(t.due)&&t.status!=='done'?'ov':''}">${FMT(t.due)}</div><div class="tag ${sTag(t.status)}">${sLbl(t.status)}</div><div class="item-actions"><button class="act-btn" onclick="doCycleTask('${t.id}')" title="Ganti status">⟳</button><button class="act-btn edit" onclick="openEditTask('${t.id}')" title="Edit">✎</button><button class="act-btn ${hasReminder(t.id)?'edit':''}" onclick="openReminderModal('${t.id}','task','${t.name.replace(/'/g,'')}','${t.due||''}')" title="Reminder" style="${hasReminder(t.id)?'color:var(--amber)':''}">🔔</button><button class="act-btn del" onclick="doDelTask('${t.id}')" title="Hapus">✕</button></div></div>`).join('');
   ['todo','inprogress','review','done'].forEach((s,i)=>{
     const ids=['todo','ip','rv','dn'];
     const cards=D.tasks.filter(t=>t.status===s);
     document.getElementById('kc-'+ids[i]).textContent=cards.length;
     document.getElementById('k-'+ids[i]).innerHTML=cards.length===0?'<div style="padding:8px;color:var(--fog);font-size:11px;text-align:center">Kosong</div>'
-      :cards.map(t=>`<div class="kcard ${t.priority}"><div class="kcard-name">${t.name}</div><div class="kcard-ft"><div class="tdate">${FMT(t.due)}</div><div class="item-actions"><button class="act-btn" onclick="doCycleTask('${t.id}')" title="Ganti status">⟳</button><button class="act-btn edit" onclick="openEditTask('${t.id}')" title="Edit">✎</button><button class="act-btn del" onclick="doDelTask('${t.id}')" title="Hapus">✕</button></div></div></div>`).join('');
+      :cards.map(t=>`<div class="kcard ${t.priority}"><div class="kcard-name">${t.name}</div><div class="kcard-ft"><div class="tdate">${FMT(t.due)}</div><div class="item-actions"><button class="act-btn" onclick="doCycleTask('${t.id}')" title="Ganti status">⟳</button><button class="act-btn edit" onclick="openEditTask('${t.id}')" title="Edit">✎</button><button class="act-btn ${hasReminder(t.id)?'edit':''}" onclick="openReminderModal('${t.id}','task','${t.name.replace(/'/g,'')}','${t.due||''}')" title="Reminder" style="${hasReminder(t.id)?'color:var(--amber)':''}">🔔</button><button class="act-btn del" onclick="doDelTask('${t.id}')" title="Hapus">✕</button></div></div></div>`).join('');
   });
 }
 
@@ -1513,7 +1665,7 @@ function renderHabits(){
       return`<div class="habit-row"><div class="habit-row-name">${h.name}</div>
         <div class="habit-row-dots">${days.map(d=>`<div class="hgdot ${logs[d]?'done':''} ${d===today?'today-c':''}" onclick="doToggleHabit('${h.id}','${d}',${!!logs[d]})" title="${d}">${logs[d]?'✓':''}</div>`).join('')}</div>
         <div class="hrow-streak">🔥 ${streak}</div>
-        <div class="item-actions" style="margin-left:8px"><button class="act-btn edit" onclick="openEditHabit('${h.id}')" title="Edit">✎</button><button class="act-btn del" onclick="doDelHabit('${h.id}')" title="Hapus">✕</button></div></div>`;}).join('');
+        <div class="item-actions" style="margin-left:8px"><button class="act-btn edit" onclick="openEditHabit('${h.id}')" title="Edit">✎</button><button class="act-btn ${hasReminder(h.id)?'edit':''}" onclick="openReminderModal('${h.id}','habit','${h.name.replace(/'/g,'')}','')" title="Reminder" style="${hasReminder(h.id)?'color:var(--amber)':''}">🔔</button><button class="act-btn del" onclick="doDelHabit('${h.id}')" title="Hapus">✕</button></div></div>`;}).join('');
 }
 
 // ── DELEGATION ────────────────────────────────
@@ -1527,7 +1679,7 @@ function renderDelegation(){
         <div style="display:flex;align-items:center;gap:7px"><div class="avatar" style="background:var(--teal);color:#000">${d.person?d.person[0].toUpperCase():'?'}</div><span style="font-size:12px;color:var(--mist)">${d.person||'—'}</span></div>
         <div><div class="spill ${ov?'overdue':d.status}">${ov?'Terlambat':sLbl(d.status)}</div></div>
         <div class="tdate ${ov?'ov':''}">${FMT(d.due)}</div>
-        <div class="item-actions"><div class="pdot ${d.priority}" style="margin-right:2px"></div><button class="act-btn" onclick="doCycleDel('${d.id}')" title="Ganti status">⟳</button><button class="act-btn edit" onclick="openEditDeleg('${d.id}')" title="Edit">✎</button><button class="act-btn del" onclick="doDelDel('${d.id}')" title="Hapus">✕</button></div>
+        <div class="item-actions"><div class="pdot ${d.priority}" style="margin-right:2px"></div><button class="act-btn" onclick="doCycleDel('${d.id}')" title="Ganti status">⟳</button><button class="act-btn edit" onclick="openEditDeleg('${d.id}')" title="Edit">✎</button><button class="act-btn ${hasReminder(d.id)?'edit':''}" onclick="openReminderModal('${d.id}','delegation','${d.name.replace(/'/g,'')}','${d.due||''}')" title="Reminder" style="${hasReminder(d.id)?'color:var(--amber)':''}">🔔</button><button class="act-btn del" onclick="doDelDel('${d.id}')" title="Hapus">✕</button></div>
       </div>`;}).join('');
 }
 window.doCycleDel = async id => {
@@ -1940,6 +2092,220 @@ window.doDelIdea = async id => {
   await dbDeleteNote(uid, id);
   toast('Catatan dihapus');
 };
+
+// ── REMINDER SYSTEM ──────────────────────────
+let reminderModalItemId = null;
+let reminderModalItemType = null;
+let reminderModalItemName = null;
+let reminderModalItemDue = null;
+
+// Register Service Worker
+async function registerSW() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    console.log('SW registered');
+    // Check permission
+    checkNotifPermission();
+    // Try periodic sync
+    if ('periodicSync' in reg) {
+      try {
+        await reg.periodicSync.register('nexus-reminder-check', { minInterval: 60 * 60 * 1000 });
+      } catch(e) { /* periodic sync not supported */ }
+    }
+    // Listen for messages from SW
+    navigator.serviceWorker.addEventListener('message', e => {
+      if (e.data && e.data.type === 'NOTIFICATION_CLICK') {
+        nav('tasks', null);
+      }
+    });
+  } catch(e) { console.log('SW registration failed:', e); }
+}
+
+function checkNotifPermission() {
+  const banner = document.getElementById('notif-permission-banner');
+  if (!banner) return;
+  if (!('Notification' in window)) {
+    banner.style.display = 'block';
+    return;
+  }
+  banner.style.display = Notification.permission === 'granted' ? 'none' : 'block';
+}
+
+window.requestNotifPermission = async () => {
+  if (!('Notification' in window)) { toast('Browser tidak mendukung notifikasi', true); return; }
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    document.getElementById('notif-permission-banner').style.display = 'none';
+    toast('Notifikasi diaktifkan ✓');
+    // Show test notification
+    new Notification('NEXUS PRO ⏰', { body: 'Notifikasi berhasil diaktifkan! Reminder akan muncul sesuai jadwal.', icon: '/icon-192.png' });
+    // Sync existing reminders
+    syncRemindersToSW(D.reminders);
+  } else {
+    toast('Notifikasi diblokir — reminder tidak akan muncul', true);
+  }
+};
+
+function hasReminder(itemId) {
+  return Object.values(D.reminders || {}).some(r => r.itemId === itemId && r.enabled !== false);
+}
+
+// Sync reminders to Service Worker via IndexedDB
+async function syncRemindersToSW(reminders) {
+  if (!('indexedDB' in window)) return;
+  try {
+    const db = await openIDB();
+    const store = db.transaction('reminders', 'readwrite').objectStore('reminders');
+    // Clear old
+    store.clear();
+    // Add current
+    Object.values(reminders || {}).forEach(r => store.put(r));
+    // Trigger SW check
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'CHECK_REMINDERS', reminders: Object.values(reminders || {}) });
+    }
+  } catch(e) { console.log('IDB sync error:', e); }
+}
+
+// In-app reminder check (runs while app is open)
+function checkInAppReminders(reminders) {
+  const now = new Date();
+  const todayStr = TS();
+  Object.values(reminders || {}).forEach(r => {
+    if (!r.enabled && r.enabled !== undefined) return;
+    const [rH, rM] = (r.time || '08:00').split(':').map(Number);
+    const nowH = now.getHours(), nowM = now.getMinutes();
+    // Within 2-minute window
+    if (nowH !== rH || Math.abs(nowM - rM) > 2) return;
+    // Check due condition
+    let shouldFire = false;
+    if (r.itemType === 'habit') shouldFire = true;
+    else if (r.dueDate) {
+      const due = new Date(r.dueDate + 'T00:00:00');
+      const today = new Date(todayStr + 'T00:00:00');
+      const diff = Math.round((due - today) / 86400000);
+      const db = parseInt(r.daysBefore) || 0;
+      if (diff === db) shouldFire = true;
+      if (diff < 0 && r.fireIfOverdue) shouldFire = true;
+    }
+    if (!shouldFire) return;
+    const firedKey = `${r.id}_${todayStr}_${r.time}`;
+    if (sessionStorage.getItem('fired_' + firedKey)) return;
+    sessionStorage.setItem('fired_' + firedKey, '1');
+    showInAppBanner(r);
+    // Also show browser notification if permitted
+    if (Notification.permission === 'granted') {
+      new Notification(`⏰ ${r.itemName}`, { body: r.note || `Reminder untuk: ${r.itemName}`, icon: '/icon-192.png' });
+    }
+  });
+}
+
+function showInAppBanner(r) {
+  const b = document.getElementById('notif-banner');
+  const t = document.getElementById('notif-banner-text');
+  if (!b || !t) return;
+  t.textContent = `${r.itemName} — ${r.note || 'Jangan lupa!'}`;
+  b.style.display = 'flex';
+  setTimeout(() => { b.style.display = 'none'; }, 8000);
+}
+
+// Open Reminder Modal
+window.openReminderModal = (itemId, itemType, itemName, itemDue) => {
+  reminderModalItemId = itemId;
+  reminderModalItemType = itemType;
+  reminderModalItemName = itemName;
+  reminderModalItemDue = itemDue;
+  document.getElementById('reminder-modal-title').textContent = '⏰ Reminder — ' + {task:'Task',habit:'Habit',delegation:'Delegasi'}[itemType];
+  document.getElementById('reminder-modal-item-name').textContent = itemName;
+  // Set default days-before based on type
+  if (itemType === 'habit') {
+    document.getElementById('r-days-before').value = '-1';
+  }
+  renderReminderList(itemId);
+  checkNotifPermission();
+  document.getElementById('reminder-modal-ov').classList.add('open');
+};
+
+window.closeReminderModal = () => {
+  document.getElementById('reminder-modal-ov').classList.remove('open');
+};
+window.closeReminderModalOut = e => {
+  if (e.target === document.getElementById('reminder-modal-ov')) closeReminderModal();
+};
+
+function renderReminderList(itemId) {
+  const el = document.getElementById('reminder-list');
+  if (!el) return;
+  const itemReminders = Object.values(D.reminders || {}).filter(r => r.itemId === itemId);
+  if (itemReminders.length === 0) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--fog);text-align:center;padding:12px 0">Belum ada reminder untuk item ini</div>';
+    return;
+  }
+  el.innerHTML = itemReminders.map(r => {
+    const dbLabel = r.daysBefore == -1 ? 'Setiap hari' : r.daysBefore == 0 ? 'Pada hari H' : `H-${r.daysBefore}`;
+    const enabled = r.enabled !== false;
+    return `<div class="reminder-item">
+      <div class="reminder-item-info">
+        <div class="reminder-item-name">⏰ ${r.time || '08:00'} — ${dbLabel}</div>
+        <div class="reminder-item-detail">${r.note || 'Tidak ada catatan'} ${r.fireIfOverdue ? '· Aktif jika terlambat' : ''}</div>
+      </div>
+      <button class="reminder-toggle ${enabled ? 'on' : ''}" onclick="toggleReminderEnabled('${r.id}', ${enabled})" title="${enabled ? 'Matikan' : 'Aktifkan'}"></button>
+      <button class="reminder-del" onclick="doDeleteReminder('${r.id}')" title="Hapus">✕</button>
+    </div>`;
+  }).join('');
+}
+
+window.saveNewReminder = async () => {
+  if (!uid || !reminderModalItemId) return;
+  const daysBefore = document.getElementById('r-days-before').value;
+  const time = document.getElementById('r-time').value;
+  const note = document.getElementById('r-note').value.trim();
+  const fireIfOverdue = document.getElementById('r-also-overdue').checked;
+  const id = 'rem_' + Date.now().toString(36);
+  const data = {
+    id, itemId: reminderModalItemId,
+    itemType: reminderModalItemType,
+    itemName: reminderModalItemName,
+    dueDate: reminderModalItemDue || null,
+    daysBefore: parseInt(daysBefore),
+    time, note, fireIfOverdue,
+    enabled: true,
+    createdAt: TS()
+  };
+  await saveReminder(uid, id, data);
+  document.getElementById('r-note').value = '';
+  document.getElementById('r-also-overdue').checked = false;
+  toast('Reminder ditambahkan ✓');
+};
+
+window.toggleReminderEnabled = async (remId, currentEnabled) => {
+  await saveReminder(uid, remId, { enabled: !currentEnabled });
+  toast(!currentEnabled ? 'Reminder diaktifkan' : 'Reminder dimatikan');
+};
+
+window.doDeleteReminder = async (remId) => {
+  await deleteReminder(uid, remId);
+  toast('Reminder dihapus');
+};
+
+// Start in-app reminder interval check (every minute)
+setInterval(() => {
+  if (uid && D.reminders) checkInAppReminders(D.reminders);
+}, 60000);
+
+function openIDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open('nexus-reminders', 1);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('reminders')) db.createObjectStore('reminders', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('fired')) db.createObjectStore('fired', { keyPath: 'id' });
+    };
+    req.onsuccess = e => res(e.target.result);
+    req.onerror = rej;
+  });
+}
 
 // ── THEME TOGGLE ──────────────────────────────
 function applyTheme(mode) {
