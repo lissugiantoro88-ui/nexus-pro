@@ -65,6 +65,16 @@ html.light .review-nav, html.light .review-content { box-shadow: var(--shadow); 
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);height:100vh;overflow:hidden;display:flex;font-size:13px;}
 
+/* MOBILE BASE — must be early to override everything */
+@media(max-width:768px){
+  body{height:auto!important;min-height:100vh;overflow-y:auto!important;overflow-x:hidden!important;flex-direction:column!important;}
+  #app{flex-direction:column!important;height:auto!important;min-height:50vh;overflow:visible!important;}
+  .main{flex:unset!important;height:auto!important;overflow:visible!important;display:block!important;}
+  .content{flex:unset!important;height:auto!important;max-height:none!important;overflow:visible!important;}
+  .view{display:none!important;}
+  .view.active{display:block!important;height:auto!important;min-height:100px;overflow:visible!important;}
+}
+
 /* ── AUTH SCREEN ── */
 #auth-screen{
   position:fixed;inset:0;background:var(--bg);
@@ -713,7 +723,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 </div>
 
 <!-- APP (hidden until auth) -->
-<div id="app" style="display:none;flex:1;overflow:hidden;display:none">
+<div id="app" style="display:none;flex:1;">
 
 <!-- SIDEBAR -->
 <div class="sidebar">
@@ -1180,7 +1190,14 @@ onAuth(user => {
     uid=user.uid;
     document.getElementById('auth-screen').style.display='none';
     const app=document.getElementById('app');
-    app.style.display='flex';
+    // On mobile: use block so column layout works; on desktop: flex
+    app.style.display = window.innerWidth <= 768 ? 'block' : 'flex';
+    // Also handle resize
+    window.addEventListener('resize', () => {
+      if(app.style.display !== 'none') {
+        app.style.display = window.innerWidth <= 768 ? 'block' : 'flex';
+      }
+    });
     document.getElementById('sb-username').textContent=user.displayName||'User';
     document.getElementById('sb-useremail').textContent=user.email;
     document.getElementById('t-due').value=TS();
