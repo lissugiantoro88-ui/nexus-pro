@@ -1637,10 +1637,14 @@ function updateFocus(){
   document.getElementById('sb-pct').textContent  = pct + '%';
   document.getElementById('sb-rsub').textContent = `${done} / ${total} selesai`;
 
-  // Pulse
-  const active   = acts.filter(a => a.status !== 'done').length;
-  const late     = acts.filter(a => a.status !== 'done' && isOv(a.due)).length;
-  const soon     = acts.filter(a => a.status !== 'done' && isSoon(a.due) && !isOv(a.due)).length;
+  // Pulse — include both tasks and delegations
+  const allActive = [
+    ...acts.filter(a => a.status !== 'done'),
+    ...(D.delegations||[]).filter(d => d.status !== 'done')
+  ];
+  const active = allActive.length;
+  const late   = allActive.filter(a => isOv(a.due)).length;
+  const soon   = allActive.filter(a => isSoon(a.due) && !isOv(a.due)).length;
   document.getElementById('pulse-a').textContent = active;
   document.getElementById('pulse-l').textContent = late;
   document.getElementById('pulse-s').textContent = soon;
@@ -1661,31 +1665,56 @@ function updateFocus(){
   const el = document.getElementById('sb-focus-queue');
   if (!el) return;
 
-  const pending = acts
+  // ── Merge tasks + delegations ──
+  const taskItems = acts
     .filter(a => a.status !== 'done')
-    .map(a => ({ ...a, _score: calcUrgencyScore(a) }))
+    .map(a => ({ ...a, _type:'task', _name:a.name, _due:a.due, _score: calcUrgencyScore(a) }));
+
+  const delegItems = (D.delegations || [])
+    .filter(d => d.status !== 'done')
+    .map(d => ({ ...d, _type:'delegation', _name:d.name, _due:d.due, _score: calcUrgencyScore(d) }));
+
+  const pending = [...taskItems, ...delegItems]
     .sort((a, b) => b._score - a._score)
-    .slice(0, 8); // max 8 items
+    .slice(0, 10); // max 10 items
 
   if (pending.length === 0) {
     el.innerHTML = `<div style="text-align:center;padding:16px 0;color:var(--fog);font-size:12px">
       <div style="font-size:20px;margin-bottom:6px">✓</div>
-      Semua task selesai!
+      Semua task & delegasi selesai!
     </div>`;
     return;
   }
 
+  const typeIcon  = { task:'◈', delegation:'◎' };
+  const typeColor = { task:'var(--accent2)', delegation:'var(--amber)' };
+  const typeNav   = { task:'tasks', delegation:'delegation' };
+
   el.innerHTML = pending.map((a, idx) => {
-    const urg   = urgencyLabel(a._score);
-    const dueL  = dueDateLabel(a.due, a.status);
-    const isFirst = idx === 0;
-    return `<div class="fq-item urg-${urg.cls}" onclick="nav('tasks',null)" style="${isFirst?'border-color:var(--line2)':''}">
-      <div class="fq-check" onclick="event.stopPropagation();doMarkDone('${a.id}')" title="Tandai selesai"></div>
+    const urg    = urgencyLabel(a._score);
+    const dueL   = dueDateLabel(a._due, a.status);
+    const isFirst= idx === 0;
+    const tIcon  = typeIcon[a._type] || '◈';
+    const tColor = typeColor[a._type] || 'var(--accent2)';
+    const tNav   = typeNav[a._type] || 'tasks';
+
+    // Action button: task → mark done, delegation → cycle status
+    const actionBtn = a._type === 'task'
+      ? `<div class="fq-check" onclick="event.stopPropagation();doMarkDone('${a.id}')" title="Tandai selesai"></div>`
+      : `<div class="fq-check" onclick="event.stopPropagation();doCycleDel('${a.id}')" title="Update status" style="font-size:9px;color:var(--amber)">⟳</div>`;
+
+    return `<div class="fq-item urg-${urg.cls}" onclick="nav('${tNav}',null)" style="${isFirst?'border-color:var(--line2)':''}">
+      ${actionBtn}
       <div class="fq-item-body">
-        <div class="fq-item-name" style="${isFirst?'color:var(--white)':''}">${isFirst?'<span style="font-size:9px;color:var(--lime);font-family:JetBrains Mono,monospace;letter-spacing:1px;display:block;margin-bottom:2px">▶ FOKUS SEKARANG</span>':''}${a.name}</div>
+        <div class="fq-item-name" style="${isFirst?'color:var(--white)':''}">
+          ${isFirst?'<span style="font-size:9px;color:var(--lime);font-family:JetBrains Mono,monospace;letter-spacing:1px;display:block;margin-bottom:2px">▶ FOKUS SEKARANG</span>':''}
+          ${a._name}
+        </div>
         <div class="fq-item-meta">
+          <span style="font-size:9px;color:${tColor}">${tIcon} ${a._type==='task'?'Task':'Delegasi'}</span>
           <span class="fq-score ${urg.cls}">${urg.text}</span>
           ${a.status==='inprogress'?'<span class="fq-type-badge" style="background:var(--teald);color:var(--teal)">IN PROGRESS</span>':''}
+          ${a._type==='delegation'&&a.person?`<span class="fq-type-badge">👤 ${a.person}</span>`:''}
           ${a.category?`<span class="fq-type-badge">${a.category}</span>`:''}
           ${dueL?`<span class="fq-due ${dueL.cls}">${dueL.text}</span>`:''}
         </div>
