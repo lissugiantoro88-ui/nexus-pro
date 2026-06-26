@@ -380,6 +380,25 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 .mbtn.save{background:var(--accent);border:1px solid var(--accent);color:#fff;font-weight:700;}
 .mbtn.save:hover{background:var(--accent2);}
 
+
+/* ── ITEM ACTION BUTTONS ── */
+.item-actions { display:flex; gap:3px; align-items:center; margin-left:6px; }
+.act-btn {
+  width:24px; height:24px;
+  border-radius:4px;
+  border:1px solid transparent;
+  background:transparent;
+  cursor:pointer;
+  font-size:11px;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .15s;
+  color:var(--fog);
+  font-family:'Inter',sans-serif;
+}
+.act-btn:hover { background:var(--bg3); border-color:var(--line2); color:var(--snow); }
+.act-btn.edit:hover { border-color:var(--accent); color:var(--accent2); background:var(--ag); }
+.act-btn.del:hover { border-color:var(--rose); color:var(--rose); background:var(--rosed); }
+
 /* ── TOAST / LOADING ── */
 .toast{position:fixed;bottom:18px;right:18px;background:var(--bg3);border:1px solid var(--line2);border-radius:var(--rs);padding:9px 14px;font-size:12px;color:var(--snow);z-index:200;transform:translateY(60px);opacity:0;transition:all .25s;display:flex;align-items:center;gap:7px;}
 .toast.show{transform:translateY(0);opacity:1;}
@@ -721,6 +740,93 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
   </div>
 </div>
 
+
+<!-- EDIT MODAL -->
+<div class="modal-ov" id="edit-modal-ov" onclick="closeEditModalOut(event)">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title" id="edit-modal-title">Edit Item</div>
+      <button class="modal-x" onclick="closeEditModal()">✕</button>
+    </div>
+
+    <!-- Edit Task -->
+    <div id="edit-task-fields" style="display:none">
+      <div class="fld"><div class="fld-lbl">Nama Task</div><input class="fld-in" id="et-name" placeholder="Nama task..."></div>
+      <div class="fld-row">
+        <div class="fld"><div class="fld-lbl">Status</div>
+          <select class="fld-sel" id="et-status">
+            <option value="todo">To Do</option><option value="inprogress">In Progress</option>
+            <option value="review">Review</option><option value="done">Done</option>
+          </select>
+        </div>
+        <div class="fld"><div class="fld-lbl">Prioritas</div>
+          <select class="fld-sel" id="et-prio">
+            <option value="high">🔴 High</option><option value="medium">🟡 Medium</option><option value="low">🟢 Low</option>
+          </select>
+        </div>
+      </div>
+      <div class="fld-row">
+        <div class="fld"><div class="fld-lbl">Due Date</div><input class="fld-in" id="et-due" type="date"></div>
+        <div class="fld"><div class="fld-lbl">Kategori</div><input class="fld-in" id="et-cat" placeholder="e.g. Pekerjaan, Pribadi"></div>
+      </div>
+      <div class="fld"><div class="fld-lbl">Catatan</div><textarea class="fld-ta" id="et-notes" placeholder="Detail tambahan..."></textarea></div>
+    </div>
+
+    <!-- Edit Habit -->
+    <div id="edit-habit-fields" style="display:none">
+      <div class="fld"><div class="fld-lbl">Nama Habit</div><input class="fld-in" id="eh-name" placeholder="Nama habit..."></div>
+      <div class="fld-row">
+        <div class="fld"><div class="fld-lbl">Frekuensi</div>
+          <select class="fld-sel" id="eh-freq">
+            <option value="daily">Setiap Hari</option><option value="weekdays">Hari Kerja</option>
+          </select>
+        </div>
+        <div class="fld"><div class="fld-lbl">Target/minggu</div><input class="fld-in" id="eh-target" type="number" min="1" max="7"></div>
+      </div>
+    </div>
+
+    <!-- Edit Delegation -->
+    <div id="edit-deleg-fields" style="display:none">
+      <div class="fld"><div class="fld-lbl">Nama Task</div><input class="fld-in" id="ed-name" placeholder="Task yang didelegasikan..."></div>
+      <div class="fld-row">
+        <div class="fld"><div class="fld-lbl">Dikerjakan Oleh</div><input class="fld-in" id="ed-person" placeholder="Nama / posisi"></div>
+        <div class="fld"><div class="fld-lbl">Due Date</div><input class="fld-in" id="ed-due" type="date"></div>
+      </div>
+      <div class="fld-row">
+        <div class="fld"><div class="fld-lbl">Status</div>
+          <select class="fld-sel" id="ed-status">
+            <option value="todo">Belum Mulai</option><option value="inprogress">In Progress</option><option value="done">Selesai</option>
+          </select>
+        </div>
+        <div class="fld"><div class="fld-lbl">Prioritas</div>
+          <select class="fld-sel" id="ed-prio">
+            <option value="high">🔴 High</option><option value="medium">🟡 Medium</option><option value="low">🟢 Low</option>
+          </select>
+        </div>
+      </div>
+      <div class="fld"><div class="fld-lbl">Catatan</div><textarea class="fld-ta" id="ed-notes" placeholder="Instruksi atau konteks..."></textarea></div>
+    </div>
+
+    <!-- Edit Idea/Note -->
+    <div id="edit-idea-fields" style="display:none">
+      <div class="fld"><div class="fld-lbl">Judul</div><input class="fld-in" id="ei-title" placeholder="Judul catatan..."></div>
+      <div class="fld"><div class="fld-lbl">Tag</div>
+        <select class="fld-sel" id="ei-tag">
+          <option value="ide">💡 Ide</option><option value="catatan">📝 Catatan</option>
+          <option value="referensi">📌 Referensi</option><option value="rencana">🗓 Rencana</option>
+        </select>
+      </div>
+      <div class="fld"><div class="fld-lbl">Isi</div><textarea class="fld-ta" id="ei-body" placeholder="Tulis catatan..." style="min-height:100px"></textarea></div>
+    </div>
+
+    <div class="modal-acts">
+      <button class="mbtn" onclick="doDeleteEditItem()" style="border-color:var(--rose);color:var(--rose);margin-right:auto">🗑 Hapus</button>
+      <button class="mbtn cancel" onclick="closeEditModal()">Batal</button>
+      <button class="mbtn save" onclick="saveEditItem()">Simpan Perubahan</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"><div class="tdot" id="tdot"></div><span id="tmsg">Tersimpan</span></div>
 
 <script type="module">
@@ -732,7 +838,8 @@ import {
   addDelegation, updateDelegation, deleteDelegation, listenDelegations,
   addNote, updateNote, deleteNote as dbDeleteNote, listenNotes,
   saveReview, listenReviews,
-  saveRetro as dbSaveRetro, listenRetro
+  saveRetro as dbSaveRetro, listenRetro,
+  updateHabit
 } from "./db.js";
 
 // ── STATE ─────────────────────────────────────
@@ -969,14 +1076,14 @@ function renderDashboard(){
 
   document.getElementById('dash-habits').innerHTML=D.habits.length===0?emptyHTML('◉','Belum ada habit')
     :D.habits.slice(0,4).map(h=>{const logs=D.habitLogs[h.id]||{};const streak=calcStreak(h.id);
-      return`<div class="hmi"><div class="hmi-name">${h.name}</div><div class="hmi-dots">${getLast7().map(d=>`<div class="hdot ${logs[d]?'done':''} ${d===TS()&&!logs[d]?'today-d':''}" onclick="doToggleHabit('${h.id}','${d}',${!!logs[d]})"></div>`).join('')}</div><div class="hstreak">🔥${streak}</div></div>`;}).join('');
+      return`<div class="hmi"><div class="hmi-name">${h.name}</div><div class="hmi-dots">${getLast7().map(d=>`<div class="hdot ${logs[d]?'done':''} ${d===TS()&&!logs[d]?'today-d':''}" onclick="doToggleHabit('${h.id}','${d}',${!!logs[d]})"></div>`).join('')}</div><div class="hstreak">🔥${streak}</div><div class="item-actions"><button class="act-btn edit" onclick="openEditHabit('${h.id}')" title="Edit" style="width:20px;height:20px;font-size:10px">✎</button><button class="act-btn del" onclick="doDelHabit('${h.id}')" title="Hapus" style="width:20px;height:20px;font-size:10px">✕</button></div></div>`;}).join('');
 
   const ad=D.delegations.filter(d=>d.status!=='done').slice(0,4);
   document.getElementById('dash-deleg').innerHTML=ad.length===0?emptyHTML('◎','Tidak ada delegasi aktif')
     :ad.map(d=>`<div class="dmi"><div class="avatar">${d.person?d.person[0].toUpperCase():'?'}</div><div class="dmi-info"><div class="dmi-task">${d.name}</div><div class="dmi-who">${d.person||'—'}</div></div><div class="tag ${d.status==='inprogress'?'b':'y'}">${sLbl(d.status)}</div><div class="tdate ${isOv(d.due)?'ov':''}">${FMT(d.due)}</div></div>`).join('');
 
   document.getElementById('dash-ideas').innerHTML=D.notes.length===0?emptyHTML('◇','Belum ada ide tersimpan')
-    :[...D.notes].reverse().slice(0,3).map(n=>`<div class="imi" onclick="openNote('${n.id}')"><div class="imi-title">${n.title}</div><div class="imi-prev">${n.body||'Tidak ada isi'}</div></div>`).join('');
+    :[...D.notes].reverse().slice(0,3).map(n=>`<div class="imi"><div class="imi-title" onclick="openNote('${n.id}')" style="cursor:pointer">${n.title}</div><div class="imi-prev">${n.body||'Tidak ada isi'}</div><div class="item-actions" style="margin-top:5px"><button class="act-btn edit" onclick="openEditIdea('${n.id}')" style="width:20px;height:20px;font-size:10px" title="Edit">✎</button><button class="act-btn del" onclick="doDelIdea('${n.id}')" style="width:20px;height:20px;font-size:10px" title="Hapus">✕</button></div></div>`).join('');
 }
 
 // ── TIMELINE ──────────────────────────────────
@@ -1026,13 +1133,13 @@ function renderTasks(){
   else if(['high','medium','low'].includes(taskF))tasks=tasks.filter(t=>t.priority===taskF);
   document.getElementById('tasks-sub').textContent=`${D.tasks.filter(t=>t.status!=='done').length} aktif · ${D.tasks.filter(t=>t.status==='done').length} selesai`;
   document.getElementById('tasks-list').innerHTML=tasks.length===0?emptyHTML('◈','Tidak ada task')
-    :tasks.map(t=>`<div class="ti"><div class="ti-check ${t.status==='done'?'done':''}" onclick="doMarkDone('${t.id}')"></div><div style="flex:1"><div class="ti-name ${t.status==='done'?'done':''}">${t.name}</div>${t.notes?`<div style="font-size:10px;color:var(--fog);margin-top:1px">${t.notes}</div>`:''}</div><div class="pdot ${t.priority}"></div><div class="tdate ${isOv(t.due)&&t.status!=='done'?'ov':''}">${FMT(t.due)}</div><div class="tag ${sTag(t.status)}">${sLbl(t.status)}</div><span style="cursor:pointer;color:var(--fog);font-size:11px;padding:2px 6px" onclick="doCycleTask('${t.id}')">⟳</span><span style="cursor:pointer;color:var(--rose);font-size:11px;padding:2px 6px" onclick="doDelTask('${t.id}')">✕</span></div>`).join('');
+    :tasks.map(t=>`<div class="ti"><div class="ti-check ${t.status==='done'?'done':''}" onclick="doMarkDone('${t.id}')"></div><div style="flex:1"><div class="ti-name ${t.status==='done'?'done':''}">${t.name}</div>${t.notes?`<div style="font-size:10px;color:var(--fog);margin-top:1px">${t.notes}</div>`:''}</div><div class="pdot ${t.priority}"></div><div class="tdate ${isOv(t.due)&&t.status!=='done'?'ov':''}">${FMT(t.due)}</div><div class="tag ${sTag(t.status)}">${sLbl(t.status)}</div><div class="item-actions"><button class="act-btn" onclick="doCycleTask('${t.id}')" title="Ganti status">⟳</button><button class="act-btn edit" onclick="openEditTask('${t.id}')" title="Edit">✎</button><button class="act-btn del" onclick="doDelTask('${t.id}')" title="Hapus">✕</button></div></div>`).join('');
   ['todo','inprogress','review','done'].forEach((s,i)=>{
     const ids=['todo','ip','rv','dn'];
     const cards=D.tasks.filter(t=>t.status===s);
     document.getElementById('kc-'+ids[i]).textContent=cards.length;
     document.getElementById('k-'+ids[i]).innerHTML=cards.length===0?'<div style="padding:8px;color:var(--fog);font-size:11px;text-align:center">Kosong</div>'
-      :cards.map(t=>`<div class="kcard ${t.priority}"><div class="kcard-name">${t.name}</div><div class="kcard-ft"><div class="tdate">${FMT(t.due)}</div><div style="display:flex;gap:4px"><div class="pdot ${t.priority}"></div><span style="cursor:pointer;color:var(--fog);font-size:10px" onclick="doCycleTask('${t.id}')">⟳</span><span style="cursor:pointer;color:var(--rose);font-size:10px" onclick="doDelTask('${t.id}')">✕</span></div></div></div>`).join('');
+      :cards.map(t=>`<div class="kcard ${t.priority}"><div class="kcard-name">${t.name}</div><div class="kcard-ft"><div class="tdate">${FMT(t.due)}</div><div class="item-actions"><button class="act-btn" onclick="doCycleTask('${t.id}')" title="Ganti status">⟳</button><button class="act-btn edit" onclick="openEditTask('${t.id}')" title="Edit">✎</button><button class="act-btn del" onclick="doDelTask('${t.id}')" title="Hapus">✕</button></div></div></div>`).join('');
   });
 }
 
@@ -1066,7 +1173,8 @@ function renderHabits(){
     :D.habits.map(h=>{const logs=D.habitLogs[h.id]||{};const streak=calcStreak(h.id);
       return`<div class="habit-row"><div class="habit-row-name">${h.name}</div>
         <div class="habit-row-dots">${days.map(d=>`<div class="hgdot ${logs[d]?'done':''} ${d===today?'today-c':''}" onclick="doToggleHabit('${h.id}','${d}',${!!logs[d]})" title="${d}">${logs[d]?'✓':''}</div>`).join('')}</div>
-        <div class="hrow-streak">🔥 ${streak}</div></div>`;}).join('');
+        <div class="hrow-streak">🔥 ${streak}</div>
+        <div class="item-actions" style="margin-left:8px"><button class="act-btn edit" onclick="openEditHabit('${h.id}')" title="Edit">✎</button><button class="act-btn del" onclick="doDelHabit('${h.id}')" title="Hapus">✕</button></div></div>`;}).join('');
 }
 
 // ── DELEGATION ────────────────────────────────
@@ -1080,7 +1188,7 @@ function renderDelegation(){
         <div style="display:flex;align-items:center;gap:7px"><div class="avatar" style="background:var(--teal);color:#000">${d.person?d.person[0].toUpperCase():'?'}</div><span style="font-size:12px;color:var(--mist)">${d.person||'—'}</span></div>
         <div><div class="spill ${ov?'overdue':d.status}">${ov?'Terlambat':sLbl(d.status)}</div></div>
         <div class="tdate ${ov?'ov':''}">${FMT(d.due)}</div>
-        <div style="display:flex;gap:6px;align-items:center"><div class="pdot ${d.priority}"></div><span style="cursor:pointer;color:var(--fog);font-size:11px" onclick="doCycleDel('${d.id}')">⟳</span><span style="cursor:pointer;color:var(--rose);font-size:11px" onclick="doDelDel('${d.id}')">✕</span></div>
+        <div class="item-actions"><div class="pdot ${d.priority}" style="margin-right:2px"></div><button class="act-btn" onclick="doCycleDel('${d.id}')" title="Ganti status">⟳</button><button class="act-btn edit" onclick="openEditDeleg('${d.id}')" title="Edit">✎</button><button class="act-btn del" onclick="doDelDel('${d.id}')" title="Hapus">✕</button></div>
       </div>`;}).join('');
 }
 window.doCycleDel = async id => {
@@ -1203,6 +1311,136 @@ function renderEval(){
 window.doSaveR = doSaveR;
 function toast(msg,err){const t=document.getElementById('toast');document.getElementById('tmsg').textContent=msg;document.getElementById('tdot').style.background=err?'var(--rose)':'var(--lime)';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
 window.toast=toast;
+
+// ── EDIT MODAL ────────────────────────────────
+let editType = null;
+let editId = null;
+
+window.closeEditModal = () => {
+  document.getElementById('edit-modal-ov').classList.remove('open');
+  editType = null; editId = null;
+};
+window.closeEditModalOut = e => { if(e.target===document.getElementById('edit-modal-ov'))closeEditModal(); };
+
+function showEditModal(type, title) {
+  ['task','habit','deleg','idea'].forEach(t => {
+    document.getElementById('edit-'+t+'-fields').style.display = 'none';
+  });
+  document.getElementById('edit-'+type+'-fields').style.display = 'block';
+  document.getElementById('edit-modal-title').textContent = title;
+  document.getElementById('edit-modal-ov').classList.add('open');
+}
+
+window.openEditTask = id => {
+  const t = D.tasks.find(t=>t.id===id); if(!t) return;
+  editType='task'; editId=id;
+  document.getElementById('et-name').value = t.name||'';
+  document.getElementById('et-status').value = t.status||'todo';
+  document.getElementById('et-prio').value = t.priority||'medium';
+  document.getElementById('et-due').value = t.due||'';
+  document.getElementById('et-cat').value = t.category||'';
+  document.getElementById('et-notes').value = t.notes||'';
+  showEditModal('task', '✎ Edit Task');
+};
+
+window.openEditHabit = id => {
+  const h = D.habits.find(h=>h.id===id); if(!h) return;
+  editType='habit'; editId=id;
+  document.getElementById('eh-name').value = h.name||'';
+  document.getElementById('eh-freq').value = h.freq||'daily';
+  document.getElementById('eh-target').value = h.target||7;
+  showEditModal('habit', '✎ Edit Habit');
+};
+
+window.openEditDeleg = id => {
+  const d = D.delegations.find(d=>d.id===id); if(!d) return;
+  editType='deleg'; editId=id;
+  document.getElementById('ed-name').value = d.name||'';
+  document.getElementById('ed-person').value = d.person||'';
+  document.getElementById('ed-due').value = d.due||'';
+  document.getElementById('ed-status').value = d.status||'todo';
+  document.getElementById('ed-prio').value = d.priority||'medium';
+  document.getElementById('ed-notes').value = d.notes||'';
+  showEditModal('deleg', '✎ Edit Delegasi');
+};
+
+window.openEditIdea = id => {
+  const n = D.notes.find(n=>n.id===id); if(!n) return;
+  editType='idea'; editId=id;
+  document.getElementById('ei-title').value = n.title||'';
+  document.getElementById('ei-tag').value = n.tag||'catatan';
+  document.getElementById('ei-body').value = n.body||'';
+  showEditModal('idea', '✎ Edit Ide/Catatan');
+};
+
+window.saveEditItem = async () => {
+  if(!editId||!editType) return;
+  try {
+    if(editType==='task') {
+      const name=document.getElementById('et-name').value.trim();
+      if(!name) return toast('Nama task wajib diisi',true);
+      await updateTask(uid, editId, {
+        name, status:document.getElementById('et-status').value,
+        priority:document.getElementById('et-prio').value,
+        due:document.getElementById('et-due').value,
+        category:document.getElementById('et-cat').value.trim(),
+        notes:document.getElementById('et-notes').value.trim()
+      });
+    } else if(editType==='habit') {
+      const name=document.getElementById('eh-name').value.trim();
+      if(!name) return toast('Nama habit wajib diisi',true);
+      await updateHabit(uid, editId, {
+        name, freq:document.getElementById('eh-freq').value,
+        target:parseInt(document.getElementById('eh-target').value)||7
+      });
+    } else if(editType==='deleg') {
+      const name=document.getElementById('ed-name').value.trim();
+      if(!name) return toast('Nama task wajib diisi',true);
+      await updateDelegation(uid, editId, {
+        name, person:document.getElementById('ed-person').value.trim(),
+        due:document.getElementById('ed-due').value,
+        status:document.getElementById('ed-status').value,
+        priority:document.getElementById('ed-prio').value,
+        notes:document.getElementById('ed-notes').value.trim()
+      });
+    } else if(editType==='idea') {
+      const title=document.getElementById('ei-title').value.trim();
+      if(!title) return toast('Judul wajib diisi',true);
+      await updateNote(uid, editId, {
+        title, tag:document.getElementById('ei-tag').value,
+        body:document.getElementById('ei-body').value.trim(),
+        updated:TS()
+      });
+    }
+    closeEditModal();
+    toast('Perubahan disimpan ✓');
+  } catch(e) { toast('Gagal menyimpan: '+e.message, true); }
+};
+
+window.doDeleteEditItem = async () => {
+  if(!editId||!editType) return;
+  if(!confirm('Yakin ingin menghapus item ini?')) return;
+  try {
+    if(editType==='task') await deleteTask(uid, editId);
+    else if(editType==='habit') { await deleteHabit(uid, editId); }
+    else if(editType==='deleg') await deleteDelegation(uid, editId);
+    else if(editType==='idea') await dbDeleteNote(uid, editId);
+    closeEditModal();
+    toast('Item dihapus');
+  } catch(e) { toast('Gagal menghapus', true); }
+};
+
+window.doDelHabit = async id => {
+  if(!confirm('Hapus habit ini? Semua log akan ikut terhapus.')) return;
+  await deleteHabit(uid, id);
+  toast('Habit dihapus');
+};
+
+window.doDelIdea = async id => {
+  if(!confirm('Hapus catatan ini?')) return;
+  await dbDeleteNote(uid, id);
+  toast('Catatan dihapus');
+};
 
 // ── THEME TOGGLE ──────────────────────────────
 function applyTheme(mode) {
