@@ -392,6 +392,54 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 .mbtn.save:hover{background:var(--accent2);}
 
 
+
+/* ── FOCUS QUEUE ── */
+.fq-item {
+  display:flex;align-items:flex-start;gap:8px;
+  padding:8px 9px;border-radius:var(--rs);
+  margin-bottom:5px;cursor:pointer;
+  border:1px solid var(--line);
+  background:var(--bg3);
+  transition:all .15s;
+  position:relative;overflow:hidden;
+}
+.fq-item:last-child{margin-bottom:0;}
+.fq-item:hover{border-color:var(--line2);background:var(--bg4);}
+
+/* Urgency color bar on left */
+.fq-item::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+}
+.fq-item.urg-critical::before{background:var(--rose);}
+.fq-item.urg-high::before{background:var(--amber);}
+.fq-item.urg-medium::before{background:var(--accent);}
+.fq-item.urg-low::before{background:var(--fog);}
+
+.fq-item-body{flex:1;padding-left:2px;}
+.fq-item-name{font-size:12px;font-weight:500;color:var(--snow);line-height:1.3;margin-bottom:3px;}
+.fq-item-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.fq-score{
+  font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;
+  font-family:'JetBrains Mono',monospace;
+}
+.fq-score.critical{background:var(--rosed);color:var(--rose);}
+.fq-score.high{background:var(--amberd);color:var(--amber);}
+.fq-score.medium{background:var(--ag);color:var(--accent2);}
+.fq-score.low{background:var(--bg4);color:var(--fog);}
+.fq-due{font-size:10px;color:var(--fog);font-family:'JetBrains Mono',monospace;}
+.fq-due.overdue{color:var(--rose);}
+.fq-due.today{color:var(--amber);}
+.fq-check{
+  width:15px;height:15px;border-radius:3px;border:1.5px solid var(--line2);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .15s;margin-top:1px;
+}
+.fq-check:hover{border-color:var(--lime);background:var(--limed);}
+.fq-type-badge{
+  font-size:9px;padding:1px 5px;border-radius:8px;
+  background:var(--bg5);color:var(--fog);
+}
+
 /* ── ITEM ACTION BUTTONS ── */
 .item-actions { display:flex; gap:3px; align-items:center; margin-left:6px; }
 .act-btn {
@@ -821,25 +869,33 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
     <div class="nav-item" onclick="nav('eval',this)"><span class="nav-ico">▦</span><span class="nav-name">Evaluasi</span></div>
   </div>
   <div class="sb-focus">
-    <div class="focus-label">Focus & Pulse</div>
-    <div class="focus-ring-row">
+
+    <!-- Completion ring + today stats -->
+    <div class="focus-ring-row" style="margin-bottom:8px">
       <div class="focus-ring">
-        <svg width="52" height="52" viewBox="0 0 52 52">
+        <svg width="48" height="48" viewBox="0 0 52 52">
           <circle class="ring-bg" cx="26" cy="26" r="20"/>
           <circle class="ring-fill" cx="26" cy="26" r="20" stroke-dasharray="125.66" stroke-dashoffset="125.66" id="sb-ring"/>
         </svg>
       </div>
-      <div>
+      <div style="flex:1">
         <div class="ring-pct" id="sb-pct">0%</div>
         <div class="ring-sub" id="sb-rsub">0 / 0 selesai</div>
       </div>
     </div>
-    <div class="pulse-row">
+
+    <!-- Pulse stats -->
+    <div class="pulse-row" style="margin-bottom:10px">
       <div class="pulse-cell"><div class="pulse-val l" id="pulse-a">0</div><div class="pulse-lbl">AKTIF</div></div>
       <div class="pulse-cell"><div class="pulse-val r" id="pulse-l">0</div><div class="pulse-lbl">LATE</div></div>
       <div class="pulse-cell"><div class="pulse-val a" id="pulse-s">0</div><div class="pulse-lbl">SOON</div></div>
     </div>
-    <div id="sb-top-focus"></div>
+
+    <!-- FOCUS QUEUE: ranked by urgency score -->
+    <div style="font-size:9px;letter-spacing:2px;color:var(--fog);text-transform:uppercase;margin-bottom:6px;font-family:'JetBrains Mono',monospace">
+      Urgensi Tertinggi
+    </div>
+    <div id="sb-focus-queue" style="overflow-y:auto;max-height:220px"></div>
   </div>
 </div>
 
@@ -1514,35 +1570,119 @@ function updateBadges(){
   document.getElementById('nb-ideas').textContent=D.notes.length;
 }
 
-function updateFocus(){
-  const acts=D.tasks;
-  const done=acts.filter(a=>a.status==='done').length;
-  const total=acts.length;
-  const pct=total>0?Math.round(done/total*100):0;
-  document.getElementById('sb-pct').textContent=pct+'%';
-  document.getElementById('sb-rsub').textContent=`${done} / ${total} selesai`;
-  document.getElementById('pulse-a').textContent=acts.filter(a=>a.status!=='done').length;
-  document.getElementById('pulse-l').textContent=acts.filter(a=>a.status!=='done'&&isOv(a.due)).length;
-  document.getElementById('pulse-s').textContent=acts.filter(a=>a.status!=='done'&&isSoon(a.due)&&!isOv(a.due)).length;
-  const circ=2*Math.PI*20;
-  document.getElementById('sb-ring').setAttribute('stroke-dashoffset',circ-(pct/100)*circ);
-  const hp=acts.find(a=>a.priority==='high'&&a.status!=='done');
-  const el=document.getElementById('sb-top-focus');
-  // Update mobile pulse
-  const mobRing = document.getElementById('mob-ring');
-  if(mobRing) {
-    const circ2=2*Math.PI*20;
-    mobRing.setAttribute('stroke-dashoffset', circ2-(pct/100)*circ2);
-    const mp=document.getElementById('mob-pct'); if(mp) mp.textContent=pct+'%';
-    const mr=document.getElementById('mob-rsub'); if(mr) mr.textContent=`${done} / ${total} selesai`;
-    const ma=document.getElementById('mob-a'); if(ma) ma.textContent=acts.filter(a=>a.status!=='done').length;
-    const ml=document.getElementById('mob-l'); if(ml) ml.textContent=acts.filter(a=>a.status!=='done'&&isOv(a.due)).length;
-    const ms=document.getElementById('mob-s'); if(ms) ms.textContent=acts.filter(a=>a.status!=='done'&&isSoon(a.due)&&!isOv(a.due)).length;
+function calcUrgencyScore(item) {
+  // Score = kombinasi prioritas (0-40) + due date urgency (0-50) + status bonus (0-10)
+  let score = 0;
+  const prioScore = { high: 40, medium: 20, low: 5 };
+  score += prioScore[item.priority] || 0;
+
+  if (item.due) {
+    const today = new Date(TS() + 'T00:00:00');
+    const due   = new Date(item.due + 'T00:00:00');
+    const diff  = Math.round((due - today) / 86400000); // hari
+    if (diff < 0)      score += 50; // sudah lewat — paling darurat
+    else if (diff === 0) score += 45; // hari ini
+    else if (diff === 1) score += 35;
+    else if (diff <= 3)  score += 25;
+    else if (diff <= 7)  score += 15;
+    else                 score += 5;
+  } else {
+    score += 2; // tidak ada due date — urgency rendah
   }
 
-  el.innerHTML=hp?`<div class="top-focus-card"><div class="tfc-badge">▲ HIGH PRIORITY</div><div class="tfc-name">${hp.name}</div><div class="tfc-due">${hp.due?'⏱ '+FMT(hp.due):'Tanpa due date'}</div><button class="tfc-btn" onclick="doMarkDone('${hp.id}')">✓ Tandai Selesai</button></div>`
-    :'<div style="font-size:11px;color:var(--fog);text-align:center;padding:6px 0">Tidak ada high priority aktif</div>';
+  if (item.status === 'inprogress') score += 10; // sedang dikerjakan → lebih prioritas
+  if (item.status === 'review')     score += 5;
+  return score;
 }
+
+function urgencyLabel(score) {
+  if (score >= 80) return { cls: 'critical', text: 'KRITIS' };
+  if (score >= 55) return { cls: 'high',     text: 'TINGGI' };
+  if (score >= 30) return { cls: 'medium',   text: 'SEDANG' };
+  return               { cls: 'low',      text: 'RENDAH' };
+}
+
+function dueDateLabel(due, status) {
+  if (!due) return '';
+  const today = new Date(TS() + 'T00:00:00');
+  const dueD  = new Date(due + 'T00:00:00');
+  const diff  = Math.round((dueD - today) / 86400000);
+  if (status === 'done') return '';
+  if (diff < 0)  return { text: `${Math.abs(diff)}h terlambat`, cls: 'overdue' };
+  if (diff === 0) return { text: 'Due hari ini', cls: 'today' };
+  if (diff === 1) return { text: 'Due besok', cls: '' };
+  return { text: `Due ${diff}h lagi`, cls: '' };
+}
+
+function updateFocus(){
+  const acts = D.tasks;
+  const done  = acts.filter(a => a.status === 'done').length;
+  const total = acts.length;
+  const pct   = total > 0 ? Math.round(done / total * 100) : 0;
+
+  // Ring
+  const circ = 2 * Math.PI * 20;
+  document.getElementById('sb-ring').setAttribute('stroke-dashoffset', circ - (pct/100) * circ);
+  document.getElementById('sb-pct').textContent  = pct + '%';
+  document.getElementById('sb-rsub').textContent = `${done} / ${total} selesai`;
+
+  // Pulse
+  const active   = acts.filter(a => a.status !== 'done').length;
+  const late     = acts.filter(a => a.status !== 'done' && isOv(a.due)).length;
+  const soon     = acts.filter(a => a.status !== 'done' && isSoon(a.due) && !isOv(a.due)).length;
+  document.getElementById('pulse-a').textContent = active;
+  document.getElementById('pulse-l').textContent = late;
+  document.getElementById('pulse-s').textContent = soon;
+
+  // Mobile pulse sync
+  const mobRing = document.getElementById('mob-ring');
+  if(mobRing){
+    const circ2=2*Math.PI*20;
+    mobRing.setAttribute('stroke-dashoffset',circ2-(pct/100)*circ2);
+    const mp=document.getElementById('mob-pct'); if(mp)mp.textContent=pct+'%';
+    const mr=document.getElementById('mob-rsub'); if(mr)mr.textContent=`${done} / ${total} selesai`;
+    const ma=document.getElementById('mob-a'); if(ma)ma.textContent=active;
+    const ml=document.getElementById('mob-l'); if(ml)ml.textContent=late;
+    const ms=document.getElementById('mob-s'); if(ms)ms.textContent=soon;
+  }
+
+  // ── FOCUS QUEUE — ranked by urgency score ──
+  const el = document.getElementById('sb-focus-queue');
+  if (!el) return;
+
+  const pending = acts
+    .filter(a => a.status !== 'done')
+    .map(a => ({ ...a, _score: calcUrgencyScore(a) }))
+    .sort((a, b) => b._score - a._score)
+    .slice(0, 8); // max 8 items
+
+  if (pending.length === 0) {
+    el.innerHTML = `<div style="text-align:center;padding:16px 0;color:var(--fog);font-size:12px">
+      <div style="font-size:20px;margin-bottom:6px">✓</div>
+      Semua task selesai!
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = pending.map((a, idx) => {
+    const urg   = urgencyLabel(a._score);
+    const dueL  = dueDateLabel(a.due, a.status);
+    const isFirst = idx === 0;
+    return `<div class="fq-item urg-${urg.cls}" onclick="nav('tasks',null)" style="${isFirst?'border-color:var(--line2)':''}">
+      <div class="fq-check" onclick="event.stopPropagation();doMarkDone('${a.id}')" title="Tandai selesai"></div>
+      <div class="fq-item-body">
+        <div class="fq-item-name" style="${isFirst?'color:var(--white)':''}">${isFirst?'<span style="font-size:9px;color:var(--lime);font-family:JetBrains Mono,monospace;letter-spacing:1px;display:block;margin-bottom:2px">▶ FOKUS SEKARANG</span>':''}${a.name}</div>
+        <div class="fq-item-meta">
+          <span class="fq-score ${urg.cls}">${urg.text}</span>
+          ${a.status==='inprogress'?'<span class="fq-type-badge" style="background:var(--teald);color:var(--teal)">IN PROGRESS</span>':''}
+          ${a.category?`<span class="fq-type-badge">${a.category}</span>`:''}
+          ${dueL?`<span class="fq-due ${dueL.cls}">${dueL.text}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 
 // ── DASHBOARD ─────────────────────────────────
 function renderDashboard(){
