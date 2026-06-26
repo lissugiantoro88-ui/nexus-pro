@@ -64,7 +64,7 @@ async function checkAndFireReminders(reminders) {
   const todayStr = now.toISOString().split('T')[0];
 
   for (const r of reminders) {
-    if (!r.enabled) continue;
+    if (r.enabled === false) continue;
     // Check if today matches reminder condition
     const shouldFire = shouldFireToday(r, todayStr, now);
     if (!shouldFire) continue;
@@ -100,16 +100,20 @@ async function checkAndFireReminders(reminders) {
 }
 
 function shouldFireToday(r, todayStr, now) {
-  if (!r.dueDate && r.type === 'task') return false;
-  if (r.type === 'habit') return true; // habits fire every day
+  // Habits fire every day
+  if (r.itemType === 'habit' || parseInt(r.daysBefore) === -1) return true;
+
+  // No due date and not a habit — skip
+  if (!r.dueDate) return false;
 
   const due = new Date(r.dueDate + 'T00:00:00');
   const today = new Date(todayStr + 'T00:00:00');
   const diffDays = Math.round((due - today) / 86400000);
 
-  // Fire on specified days before due
-  if (r.daysBefore && r.daysBefore.includes(diffDays)) return true;
-  if (diffDays === 0) return true; // always fire on due date itself
+  // daysBefore is stored as a number (e.g. 0, 1, 3, 7)
+  const db = parseInt(r.daysBefore) || 0;
+  if (diffDays === db) return true;           // exact match
+  if (diffDays === 0) return true;            // always fire on due date
   if (diffDays < 0 && r.fireIfOverdue) return true; // overdue
   return false;
 }
