@@ -455,10 +455,32 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
   transition:all .15s;
   color:var(--fog);
   font-family:'Inter',sans-serif;
+  position:relative;
 }
 .act-btn:hover { background:var(--bg3); border-color:var(--line2); color:var(--snow); }
 .act-btn.edit:hover { border-color:var(--accent); color:var(--accent2); background:var(--ag); }
 .act-btn.del:hover { border-color:var(--rose); color:var(--rose); background:var(--rosed); }
+
+/* Bell button states */
+.act-btn.bell-off { color:var(--fog); }
+.act-btn.bell-on {
+  color:var(--amber);
+  background:var(--amberd);
+  border-color:rgba(255,184,48,.3);
+}
+.act-btn.bell-on:hover { background:var(--amber); color:#000; border-color:var(--amber); }
+.act-btn.bell-off:hover { border-color:var(--amber); color:var(--amber); }
+
+/* Bell active dot indicator */
+.act-btn.bell-on::after {
+  content:'';
+  position:absolute;
+  top:2px; right:2px;
+  width:5px; height:5px;
+  border-radius:50%;
+  background:var(--amber);
+  border:1px solid var(--bg2);
+}
 
 
 /* ── REMINDER MODAL ── */
@@ -1958,13 +1980,14 @@ function renderTasks(){
   else if(['high','medium','low'].includes(taskF))tasks=tasks.filter(t=>t.priority===taskF);
   document.getElementById('tasks-sub').textContent=`${D.tasks.filter(t=>t.status!=='done').length} aktif · ${D.tasks.filter(t=>t.status==='done').length} selesai`;
   document.getElementById('tasks-list').innerHTML=tasks.length===0?emptyHTML('◈','Tidak ada task')
-    :tasks.map(t=>`<div class="ti"><div class="ti-check ${t.status==='done'?'done':''}" onclick="doMarkDone('${t.id}')"></div><div style="flex:1"><div class="ti-name ${t.status==='done'?'done':''}">${t.name}</div>${t.notes?`<div style="font-size:10px;color:var(--fog);margin-top:1px">${t.notes}</div>`:''}</div><div class="pdot ${t.priority}"></div><div class="tdate ${isOv(t.due)&&t.status!=='done'?'ov':''}">${FMT(t.due)}</div><div class="tag ${sTag(t.status)}">${sLbl(t.status)}</div><div class="item-actions"><button class="act-btn" onclick="doCycleTask('${t.id}')" title="Ganti status">⟳</button><button class="act-btn edit" onclick="openEditTask('${t.id}')" title="Edit">✎</button><button class="act-btn ${hasReminder(t.id)?'edit':''}" onclick="openReminderModal('${t.id}','task','${t.name.replace(/'/g,'')}','${t.due||''}')" title="Reminder" style="${hasReminder(t.id)?'color:var(--amber)':''}">🔔</button><button class="act-btn del" onclick="doDelTask('${t.id}')" title="Hapus">✕</button></div></div>`).join('');
+    :tasks.map(t=>{const tr=getReminderSummary(t.id);return`<div class="ti"><div class="ti-check ${t.status==='done'?'done':''}" onclick="doMarkDone('${t.id}')"></div><div style="flex:1"><div class="ti-name ${t.status==='done'?'done':''}">${t.name}</div>${t.notes?`<div style="font-size:10px;color:var(--fog);margin-top:1px">${t.notes}</div>`:''
+}${tr?`<div style="font-size:10px;color:var(--amber);margin-top:2px">⏰ ${tr}</div>`:''}</div><div class="pdot ${t.priority}"></div><div class="tdate ${isOv(t.due)&&t.status!=='done'?'ov':''}">${FMT(t.due)}</div><div class="tag ${sTag(t.status)}">${sLbl(t.status)}</div><div class="item-actions"><button class="act-btn" onclick="doCycleTask('${t.id}')" title="Ganti status">⟳</button><button class="act-btn edit" onclick="openEditTask('${t.id}')" title="Edit">✎</button><button class="act-btn ${hasReminder(t.id)?'bell-on':'bell-off'}" onclick="openReminderModal('${t.id}','task','${t.name.replace(/'/g,'')}','${t.due||''}')" title="${hasReminder(t.id)?'⏰ Ada reminder aktif — klik untuk edit':'Tambah reminder'}">🔔</button><button class="act-btn del" onclick="doDelTask('${t.id}')" title="Hapus">✕</button></div></div>`}).join('');
   ['todo','inprogress','review','done'].forEach((s,i)=>{
     const ids=['todo','ip','rv','dn'];
     const cards=D.tasks.filter(t=>t.status===s);
     document.getElementById('kc-'+ids[i]).textContent=cards.length;
     document.getElementById('k-'+ids[i]).innerHTML=cards.length===0?'<div style="padding:8px;color:var(--fog);font-size:11px;text-align:center">Kosong</div>'
-      :cards.map(t=>`<div class="kcard ${t.priority}"><div class="kcard-name">${t.name}</div><div class="kcard-ft"><div class="tdate">${FMT(t.due)}</div><div class="item-actions"><button class="act-btn" onclick="doCycleTask('${t.id}')" title="Ganti status">⟳</button><button class="act-btn edit" onclick="openEditTask('${t.id}')" title="Edit">✎</button><button class="act-btn ${hasReminder(t.id)?'edit':''}" onclick="openReminderModal('${t.id}','task','${t.name.replace(/'/g,'')}','${t.due||''}')" title="Reminder" style="${hasReminder(t.id)?'color:var(--amber)':''}">🔔</button><button class="act-btn del" onclick="doDelTask('${t.id}')" title="Hapus">✕</button></div></div></div>`).join('');
+      :cards.map(t=>`<div class="kcard ${t.priority}"><div class="kcard-name">${t.name}</div><div class="kcard-ft"><div class="tdate">${FMT(t.due)}</div><div class="item-actions"><button class="act-btn" onclick="doCycleTask('${t.id}')" title="Ganti status">⟳</button><button class="act-btn edit" onclick="openEditTask('${t.id}')" title="Edit">✎</button><button class="act-btn ${hasReminder(t.id)?'bell-on':'bell-off'}" onclick="openReminderModal('${t.id}','task','${t.name.replace(/'/g,'')}','${t.due||''}')" title="${hasReminder(t.id)?'⏰ Ada reminder aktif — klik untuk edit':'Tambah reminder'}">🔔</button><button class="act-btn del" onclick="doDelTask('${t.id}')" title="Hapus">✕</button></div></div></div>`).join('');
   });
 }
 
@@ -1999,7 +2022,7 @@ function renderHabits(){
       return`<div class="habit-row"><div class="habit-row-name">${h.name}</div>
         <div class="habit-row-dots">${days.map(d=>`<div class="hgdot ${logs[d]?'done':''} ${d===today?'today-c':''}" onclick="doToggleHabit('${h.id}','${d}',${!!logs[d]})" title="${d}">${logs[d]?'✓':''}</div>`).join('')}</div>
         <div class="hrow-streak">🔥 ${streak}</div>
-        <div class="item-actions" style="margin-left:8px"><button class="act-btn edit" onclick="openEditHabit('${h.id}')" title="Edit">✎</button><button class="act-btn ${hasReminder(h.id)?'edit':''}" onclick="openReminderModal('${h.id}','habit','${h.name.replace(/'/g,'')}','')" title="Reminder" style="${hasReminder(h.id)?'color:var(--amber)':''}">🔔</button><button class="act-btn del" onclick="doDelHabit('${h.id}')" title="Hapus">✕</button></div></div>`;}).join('');
+        <div class="item-actions" style="margin-left:8px"><button class="act-btn edit" onclick="openEditHabit('${h.id}')" title="Edit">✎</button><button class="act-btn ${hasReminder(h.id)?'bell-on':'bell-off'}" onclick="openReminderModal('${h.id}','habit','${h.name.replace(/'/g,'')}','')" title="${hasReminder(h.id)?'⏰ Ada reminder aktif':'Tambah reminder'}">🔔</button><button class="act-btn del" onclick="doDelHabit('${h.id}')" title="Hapus">✕</button></div></div>`;}).join('');
 }
 
 // ── DELEGATION ────────────────────────────────
@@ -2013,7 +2036,7 @@ function renderDelegation(){
         <div style="display:flex;align-items:center;gap:7px"><div class="avatar" style="background:var(--teal);color:#000">${d.person?d.person[0].toUpperCase():'?'}</div><span style="font-size:12px;color:var(--mist)">${d.person||'—'}</span></div>
         <div><div class="spill ${ov?'overdue':d.status}">${ov?'Terlambat':sLbl(d.status)}</div></div>
         <div class="tdate ${ov?'ov':''}">${FMT(d.due)}</div>
-        <div class="item-actions"><div class="pdot ${d.priority}" style="margin-right:2px"></div><button class="act-btn" onclick="doCycleDel('${d.id}')" title="Ganti status">⟳</button><button class="act-btn edit" onclick="openEditDeleg('${d.id}')" title="Edit">✎</button><button class="act-btn ${hasReminder(d.id)?'edit':''}" onclick="openReminderModal('${d.id}','delegation','${d.name.replace(/'/g,'')}','${d.due||''}')" title="Reminder" style="${hasReminder(d.id)?'color:var(--amber)':''}">🔔</button><button class="act-btn del" onclick="doDelDel('${d.id}')" title="Hapus">✕</button></div>
+        <div class="item-actions"><div class="pdot ${d.priority}" style="margin-right:2px"></div><button class="act-btn" onclick="doCycleDel('${d.id}')" title="Ganti status">⟳</button><button class="act-btn edit" onclick="openEditDeleg('${d.id}')" title="Edit">✎</button><button class="act-btn ${hasReminder(d.id)?'bell-on':'bell-off'}" onclick="openReminderModal('${d.id}','delegation','${d.name.replace(/'/g,'')}','${d.due||''}')" title="${hasReminder(d.id)?'⏰ Ada reminder aktif':'Tambah reminder'}">🔔</button><button class="act-btn del" onclick="doDelDel('${d.id}')" title="Hapus">✕</button></div>
       </div>`;}).join('');
 }
 window.doCycleDel = async id => {
@@ -2483,6 +2506,20 @@ window.requestNotifPermission = async () => {
 
 function hasReminder(itemId) {
   return Object.values(D.reminders || {}).some(r => r.itemId === itemId && r.enabled !== false);
+}
+
+function getReminderSummary(itemId) {
+  const rems = Object.values(D.reminders || {}).filter(r => r.itemId === itemId && r.enabled !== false);
+  if (rems.length === 0) return null;
+  if (rems.length === 1) {
+    const r = rems[0];
+    const db = parseInt(r.daysBefore);
+    const dbTxt = db === -1 ? 'setiap hari'
+                : db === 0  ? 'hari H'
+                : `H-${db}`;
+    return `Reminder: jam ${r.time||'08:00'}, ${dbTxt}`;
+  }
+  return `${rems.length} reminder aktif`;
 }
 
 // Sync reminders to Service Worker via IndexedDB
