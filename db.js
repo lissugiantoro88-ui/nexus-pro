@@ -140,3 +140,40 @@ export function listenReminders(uid, callback) {
     callback(reminders);
   });
 }
+// ── SUBTASKS ──────────────────────────────────
+// Structure: tasks/{taskId}/subtasks/{subtaskId}/subsubtasks/{subId}
+
+export async function addSubtask(uid, parentId, data) {
+  const c = collection(db, "users", uid, "tasks", parentId, "subtasks");
+  return addDoc(c, { ...data, createdAt: serverTimestamp() });
+}
+export async function updateSubtask(uid, parentId, subtaskId, data) {
+  return updateDoc(doc(db, "users", uid, "tasks", parentId, "subtasks", subtaskId), data);
+}
+export async function deleteSubtask(uid, parentId, subtaskId) {
+  return deleteDoc(doc(db, "users", uid, "tasks", parentId, "subtasks", subtaskId));
+}
+export function listenSubtasks(uid, parentId, callback) {
+  const c = collection(db, "users", uid, "tasks", parentId, "subtasks");
+  return onSnapshot(query(c, orderBy("createdAt", "asc")), snap => {
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  });
+}
+
+// Sub-subtasks (level 3)
+export async function addSubSubtask(uid, parentId, subtaskId, data) {
+  const c = collection(db, "users", uid, "tasks", parentId, "subtasks", subtaskId, "items");
+  return addDoc(c, { ...data, createdAt: serverTimestamp() });
+}
+export async function updateSubSubtask(uid, parentId, subtaskId, itemId, data) {
+  return updateDoc(doc(db, "users", uid, "tasks", parentId, "subtasks", subtaskId, "items", itemId), data);
+}
+export async function deleteSubSubtask(uid, parentId, subtaskId, itemId) {
+  return deleteDoc(doc(db, "users", uid, "tasks", parentId, "subtasks", subtaskId, "items", itemId));
+}
+export function listenSubSubtasks(uid, parentId, subtaskId, callback) {
+  const c = collection(db, "users", uid, "tasks", parentId, "subtasks", subtaskId, "items");
+  return onSnapshot(query(c, orderBy("createdAt", "asc")), snap => {
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  });
+}
