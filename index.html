@@ -1130,6 +1130,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
     <div class="nav-item" onclick="nav('review',this)"><span class="nav-ico">↻</span><span class="nav-name">Review Loop</span></div>
     <div class="nav-item" onclick="nav('retro',this)"><span class="nav-ico">◆</span><span class="nav-name">Retrospektif</span></div>
     <div class="nav-item" onclick="nav('eval',this)"><span class="nav-ico">▦</span><span class="nav-name">Evaluasi</span></div>
+    <div class="nav-item" onclick="nav('scurve',this)"><span class="nav-ico">◬</span><span class="nav-name">S-Curve</span><span class="nav-badge" style="background:var(--teal);color:#000" id="nb-scurve">0</span></div>
   </div>
   <div class="sb-focus">
 
@@ -1379,9 +1380,84 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
         <div class="ecard" style="grid-column:1/3"><div class="ecard-title">Aktivitas 7 Hari Terakhir</div><div class="bar-chart" id="ev-bars"></div><div style="display:flex;gap:5px;margin-top:5px" id="ev-bar-labels"></div></div>
         <div class="ecard"><div class="ecard-title">Delegasi</div><div id="ev-deleg"></div></div>
       </div>
+
+    <!-- S-CURVE -->
+    <div class="view" id="v-scurve">
+      <div class="view-hd">
+        <div>
+          <div class="view-title">S-Curve</div>
+          <div class="view-sub">Progress tracking — Planned vs Actual</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select class="fld-sel" id="sc-project-sel" style="width:auto;min-width:180px;font-size:12px" onchange="onSCProjectChange(this.value)">
+            <option value="__global__">🌐 Global (Semua Project)</option>
+          </select>
+          <div class="vtoggle">
+            <button class="vtbtn active" id="sc-interval-week" onclick="setSCInterval('week',this)">Mingguan</button>
+            <button class="vtbtn" id="sc-interval-month" onclick="setSCInterval('month',this)">Bulanan</button>
+            <button class="vtbtn" id="sc-interval-custom" onclick="setSCInterval('custom',this)">Custom</button>
+          </div>
+          <button class="tb-btn primary" onclick="openSCProjectModal()">+ Project Baru</button>
+        </div>
+      </div>
+
+      <!-- S-Curve Chart Area -->
+      <div style="background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--white)" id="sc-chart-title">S-Curve</div>
+            <div style="font-size:11px;color:var(--fog);margin-top:2px" id="sc-chart-sub">—</div>
+          </div>
+          <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:28px;height:3px;background:var(--accent);border-radius:2px"></div><span style="font-size:11px;color:var(--mist)">Planned</span></div>
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:28px;height:3px;background:var(--lime);border-radius:2px"></div><span style="font-size:11px;color:var(--mist)">Actual</span></div>
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:50%;background:var(--rose)"></div><span style="font-size:11px;color:var(--mist)">Behind</span></div>
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:50%;background:var(--lime)"></div><span style="font-size:11px;color:var(--mist)">Ahead</span></div>
+          </div>
+        </div>
+        <canvas id="sc-canvas" style="width:100%;height:320px;display:block"></canvas>
+        <!-- Status bar -->
+        <div id="sc-status-bar" style="display:flex;gap:12px;margin-top:14px;flex-wrap:wrap"></div>
+      </div>
+
+      <!-- Two column layout -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+
+        <!-- Left: WBS / Item List -->
+        <div style="background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);overflow:hidden">
+          <div style="padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between">
+            <div style="font-size:11px;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:1px">Work Breakdown Structure</div>
+            <button class="tb-btn" style="font-size:11px;padding:5px 10px" onclick="openSCItemModal()">+ Item</button>
+          </div>
+          <!-- WBS Table Header -->
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;padding:8px 14px;border-bottom:1px solid var(--line);font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px;font-weight:600">
+            <div>Item / Pekerjaan</div>
+            <div style="text-align:center">Bobot %</div>
+            <div style="text-align:center">Nilai</div>
+            <div style="text-align:center">Start</div>
+            <div style="text-align:center">Finish</div>
+          </div>
+          <div id="sc-wbs-list" style="max-height:400px;overflow-y:auto"></div>
+          <!-- Total row -->
+          <div id="sc-wbs-total" style="padding:9px 14px;border-top:1px solid var(--line);background:var(--bg3);font-size:11px;font-weight:600;display:flex;justify-content:space-between">
+            <span style="color:var(--mist)">Total Bobot</span>
+            <span id="sc-total-weight" style="color:var(--lime);font-family:'JetBrains Mono',monospace">0%</span>
+          </div>
+        </div>
+
+        <!-- Right: Actual Progress Input -->
+        <div style="background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);overflow:hidden">
+          <div style="padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between">
+            <div style="font-size:11px;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:1px">Input Progress Aktual</div>
+            <span style="font-size:10px;color:var(--fog)" id="sc-period-label">—</span>
+          </div>
+          <div id="sc-actual-input-list" style="padding:12px 14px;max-height:440px;overflow-y:auto"></div>
+        </div>
+      </div>
     </div>
 
-  </div><!-- /content -->
+
+    </div><!-- /content -->
 </div><!-- /main -->
 </div><!-- /app -->
 
@@ -1650,6 +1726,94 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
   <button onclick="document.getElementById('notif-banner').style.display='none'" style="background:none;border:none;color:var(--fog);cursor:pointer;font-size:16px;margin-left:8px">✕</button>
 </div>
 
+
+<!-- S-CURVE PROJECT MODAL -->
+<div class="modal-ov" id="sc-project-modal-ov" onclick="if(event.target===this)closeSCProjectModal()">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title" id="sc-project-modal-title">◬ Project S-Curve Baru</div>
+      <button class="modal-x" onclick="closeSCProjectModal()">✕</button>
+    </div>
+    <div class="fld">
+      <div class="fld-lbl">Nama Project</div>
+      <input class="fld-in" id="sc-proj-name" placeholder="e.g. Perbaikan FV193, Proyek X...">
+    </div>
+    <div class="fld-row">
+      <div class="fld">
+        <div class="fld-lbl">Tanggal Mulai</div>
+        <input class="fld-in" type="date" id="sc-proj-start">
+      </div>
+      <div class="fld">
+        <div class="fld-lbl">Tanggal Selesai (Target)</div>
+        <input class="fld-in" type="date" id="sc-proj-end">
+      </div>
+    </div>
+    <div class="fld">
+      <div class="fld-lbl">Total Nilai / Budget (opsional)</div>
+      <input class="fld-in" id="sc-proj-budget" placeholder="e.g. 500000000" type="number">
+    </div>
+    <div class="fld">
+      <div class="fld-lbl">Satuan Nilai</div>
+      <input class="fld-in" id="sc-proj-currency" placeholder="e.g. IDR, USD, unit, ton..." value="IDR">
+    </div>
+    <div class="fld">
+      <div class="fld-lbl">Deskripsi</div>
+      <textarea class="fld-ta" id="sc-proj-desc" placeholder="Deskripsi singkat project..." style="min-height:60px"></textarea>
+    </div>
+    <div class="modal-acts">
+      <button class="mbtn cancel" onclick="closeSCProjectModal()">Batal</button>
+      <button class="mbtn save" onclick="saveSCProject()">Simpan Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- S-CURVE ITEM MODAL -->
+<div class="modal-ov" id="sc-item-modal-ov" onclick="if(event.target===this)closeSCItemModal()">
+  <div class="modal" style="width:560px">
+    <div class="modal-hd">
+      <div class="modal-title" id="sc-item-modal-title">+ Item WBS</div>
+      <button class="modal-x" onclick="closeSCItemModal()">✕</button>
+    </div>
+    <div class="fld">
+      <div class="fld-lbl">Nama Item / Pekerjaan</div>
+      <input class="fld-in" id="sc-item-name" placeholder="e.g. Inspeksi awal, Machining, Coating...">
+    </div>
+    <div class="fld-row">
+      <div class="fld">
+        <div class="fld-lbl">Bobot % <span style="color:var(--fog);font-size:9px">(total harus 100%)</span></div>
+        <input class="fld-in" id="sc-item-weight" type="number" min="0" max="100" step="0.1" placeholder="e.g. 25">
+      </div>
+      <div class="fld">
+        <div class="fld-lbl">Nilai / Budget Item</div>
+        <input class="fld-in" id="sc-item-value" type="number" placeholder="e.g. 125000000">
+      </div>
+    </div>
+    <div class="fld-row">
+      <div class="fld">
+        <div class="fld-lbl">Start Date</div>
+        <input class="fld-in" type="date" id="sc-item-start">
+      </div>
+      <div class="fld">
+        <div class="fld-lbl">Finish Date</div>
+        <input class="fld-in" type="date" id="sc-item-finish">
+      </div>
+    </div>
+    <div class="fld">
+      <div class="fld-lbl">Kategori / Disiplin</div>
+      <input class="fld-in" id="sc-item-cat" placeholder="e.g. Mechanical, Civil, Electrical...">
+    </div>
+    <!-- Weight auto-calculate hint -->
+    <div style="background:var(--ag2);border:1px solid rgba(124,111,255,.15);border-radius:var(--rs);padding:8px 12px;margin-bottom:12px;font-size:11px;color:var(--mist)">
+      💡 Bobot otomatis dihitung dari nilai jika diisi. Atau input manual. Pastikan total = 100%.
+    </div>
+    <div class="modal-acts">
+      <button class="mbtn" id="sc-item-del-btn" style="margin-right:auto;border-color:var(--rose);color:var(--rose);display:none" onclick="deleteSCItemCurrent()">🗑 Hapus</button>
+      <button class="mbtn cancel" onclick="closeSCItemModal()">Batal</button>
+      <button class="mbtn save" onclick="saveSCItem()">Simpan Item</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"><div class="tdot" id="tdot"></div><span id="tmsg">Tersimpan</span></div>
 
 <script type="module">
@@ -1664,12 +1828,15 @@ import {
   saveRetroDoc as dbSaveRetroDoc, listenRetros,
   saveReminder, deleteReminder, listenReminders,
   addSubtask, updateSubtask, deleteSubtask, listenSubtasks,
-  addSubSubtask, updateSubSubtask, deleteSubSubtask, listenSubSubtasks
+  addSubSubtask, updateSubSubtask, deleteSubSubtask, listenSubSubtasks,
+  saveSCurveProject, deleteSCurveProject, listenSCurveProjects,
+  saveSCurveItem, deleteSCurveItem, listenSCurveItems,
+  saveSCurveActual, listenSCurveActuals
 } from "./db.js";
 
 // ── STATE ─────────────────────────────────────
 let uid = null;
-let D = { tasks:[], habits:[], habitLogs:{}, delegations:[], notes:[], reviews:{}, retro:{}, retros:{}, reminders:{}, subtasks:{}, subsubtasks:{} };
+let D = { tasks:[], habits:[], habitLogs:{}, delegations:[], notes:[], reviews:{}, retro:{}, retros:{}, reminders:{}, subtasks:{}, subsubtasks:{}, scProjects:[], scItems:{}, scActuals:{} };
 let unsubs = [];
 let curView = 'dashboard';
 let taskF = 'all', taskV = 'list', tlF = 'all';
@@ -1798,6 +1965,13 @@ function startListeners(){
   }));
   // Load retros on init
   D.retros = {};
+  // S-Curve listener
+  unsubs.push(listenSCurveProjects(uid, projects => {
+    D.scProjects = projects;
+    updateSCNav();
+    if(curView==='scurve') renderSCurve();
+  }));
+
   // Reminders listener
   unsubs.push(listenReminders(uid, reminders => {
     D.reminders = reminders;
@@ -1827,7 +2001,8 @@ const viewMeta = {
   ideas:{title:'Ideas & Notes',sub:'Ide & catatan pribadi'},
   review:{title:'Review Loop',sub:'Plan → Do → Review → Evaluate'},
   retro:{title:'Retrospektif',sub:'Keep · Improve · Stop · Start'},
-  eval:{title:'Evaluasi',sub:'Performa & progress mingguan'}
+  eval:{title:'Evaluasi',sub:'Performa & progress mingguan'},
+  scurve:{title:'S-Curve',sub:'Progress tracking — Planned vs Actual'}
 };
 
 window.nav = (v,el) => {
@@ -1846,6 +2021,10 @@ window.nav = (v,el) => {
   }
   if(v==='retro') {
     loadRetros();
+  }
+  if(v==='scurve') {
+    updateSCNav();
+    renderSCurve();
   }
   renderAll();
 };
@@ -3353,6 +3532,646 @@ function loadAllSubtasks() {
     }
   });
 }
+
+
+// ══════════════════════════════════════════════
+//   S-CURVE MODULE
+// ══════════════════════════════════════════════
+let scInterval = 'week';
+let scCurrentProjectId = '__global__';
+let scItemUnsubs = [];
+let scEditingItemId = null;
+let scEditingProjectId = null;
+
+// ── HELPERS ───────────────────────────────────
+function updateSCNav() {
+  const el = document.getElementById('nb-scurve');
+  if (el) el.textContent = D.scProjects.length;
+  // Update project selector
+  const sel = document.getElementById('sc-project-sel');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="__global__">🌐 Global (Semua Project)</option>' +
+    D.scProjects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  sel.value = D.scProjects.find(p => p.id === cur) ? cur : '__global__';
+}
+
+function setSCInterval(interval, el) {
+  scInterval = interval;
+  document.querySelectorAll('#sc-interval-week,#sc-interval-month,#sc-interval-custom')
+    .forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderSCurve();
+}
+
+window.setSCInterval = setSCInterval;
+window.onSCProjectChange = (id) => {
+  scCurrentProjectId = id;
+  scItemUnsubs.forEach(u => u());
+  scItemUnsubs = [];
+  if (id !== '__global__') {
+    scItemUnsubs.push(listenSCurveItems(uid, id, items => {
+      D.scItems[id] = items;
+      renderSCurve();
+    }));
+    scItemUnsubs.push(listenSCurveActuals(uid, id, actuals => {
+      D.scActuals[id] = actuals;
+      renderSCurve();
+    }));
+  }
+  renderSCurve();
+};
+
+// ── GENERATE PERIODS ──────────────────────────
+function generatePeriods(startDate, endDate, interval) {
+  const periods = [];
+  const start = new Date(startDate + 'T00:00:00');
+  const end   = new Date(endDate   + 'T00:00:00');
+  let cur = new Date(start);
+
+  if (interval === 'week') {
+    // Align to Monday
+    const day = cur.getDay();
+    cur.setDate(cur.getDate() - (day === 0 ? 6 : day - 1));
+    let wk = 1;
+    while (cur <= end) {
+      const periodEnd = new Date(cur); periodEnd.setDate(periodEnd.getDate() + 6);
+      periods.push({
+        key:   formatPeriodKey(cur, 'week'),
+        label: `W${wk}\n${cur.getDate()}/${cur.getMonth()+1}`,
+        start: new Date(cur),
+        end:   new Date(Math.min(periodEnd, end))
+      });
+      cur.setDate(cur.getDate() + 7);
+      wk++;
+    }
+  } else if (interval === 'month') {
+    cur = new Date(start.getFullYear(), start.getMonth(), 1);
+    let mo = 1;
+    while (cur <= end) {
+      const periodEnd = new Date(cur.getFullYear(), cur.getMonth() + 1, 0);
+      const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+      periods.push({
+        key:   formatPeriodKey(cur, 'month'),
+        label: months[cur.getMonth()] + ' ' + cur.getFullYear().toString().slice(2),
+        start: new Date(cur),
+        end:   new Date(Math.min(periodEnd, end))
+      });
+      cur.setMonth(cur.getMonth() + 1);
+      mo++;
+    }
+  }
+  return periods;
+}
+
+function formatPeriodKey(date, interval) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth()+1).padStart(2,'0');
+  if (interval === 'week') {
+    const d = String(date.getDate()).padStart(2,'0');
+    return `${y}-W${d}${m}`;
+  }
+  return `${y}-${m}`;
+}
+
+function getTodayPeriodIndex(periods) {
+  const today = todayMidnight();
+  for (let i = 0; i < periods.length; i++) {
+    if (today >= periods[i].start && today <= periods[i].end) return i;
+    if (today < periods[i].start) return i - 1;
+  }
+  return periods.length - 1;
+}
+
+// ── CALCULATE PLANNED CURVE ───────────────────
+function calcPlannedCurve(items, periods) {
+  // For each period, cumulative planned % based on item weights distributed over their duration
+  const totalWeight = items.reduce((s, it) => s + (parseFloat(it.weight) || 0), 0) || 100;
+  const planned = new Array(periods.length).fill(0);
+
+  items.forEach(item => {
+    const w    = (parseFloat(item.weight) || 0) / totalWeight * 100;
+    if (!item.startDate || !item.finishDate) return;
+    const iStart = new Date(item.startDate + 'T00:00:00');
+    const iEnd   = new Date(item.finishDate + 'T00:00:00');
+    const iDur   = Math.max(1, (iEnd - iStart) / 86400000);
+
+    periods.forEach((p, idx) => {
+      // How many days of this item fall within this period?
+      const overlapStart = new Date(Math.max(iStart, p.start));
+      const overlapEnd   = new Date(Math.min(iEnd, p.end));
+      if (overlapEnd < overlapStart) return;
+      const overlap = Math.max(0, (overlapEnd - overlapStart) / 86400000 + 1);
+      planned[idx] += w * (overlap / iDur);
+    });
+  });
+
+  // Cumulative
+  let cum = 0;
+  return planned.map(v => { cum += v; return Math.min(100, Math.round(cum * 10) / 10); });
+}
+
+// ── CALCULATE ACTUAL CURVE ────────────────────
+function calcActualCurve(actuals, periods) {
+  return periods.map(p => {
+    const a = actuals.find(ac => ac.id === p.key);
+    return a ? parseFloat(a.cumProgress) || 0 : null;
+  });
+}
+
+// ── DRAW S-CURVE CHART ────────────────────────
+function drawSCurve(periods, planned, actual, todayIdx) {
+  const canvas = document.getElementById('sc-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+
+  // Set actual pixel size
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width  = rect.width  * dpr;
+  canvas.height = 320 * dpr;
+  canvas.style.width  = rect.width  + 'px';
+  canvas.style.height = '320px';
+  ctx.scale(dpr, dpr);
+
+  const W = rect.width;
+  const H = 320;
+  const PAD = { top: 20, right: 20, bottom: 50, left: 52 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top  - PAD.bottom;
+  const n = periods.length;
+
+  // Theme colors
+  const isDark = !document.documentElement.classList.contains('light');
+  const bgColor    = isDark ? '#0f1018' : '#ffffff';
+  const gridColor  = isDark ? '#272736' : '#e5e5ee';
+  const textColor  = isDark ? '#5c5c78' : '#9090a8';
+  const labelColor = isDark ? '#8888a8' : '#606078';
+  const accentClr  = '#7c6fff';
+  const limeClr    = '#a8ff57';
+  const roseClr    = '#ff5e88';
+  const amberClr   = '#ffb830';
+
+  // Clear
+  ctx.clearRect(0, 0, W, H);
+
+  if (n === 0) {
+    ctx.fillStyle = textColor;
+    ctx.font = '13px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Tambah item WBS dengan start/finish date untuk generate S-Curve', W/2, H/2);
+    return;
+  }
+
+  const xStep = chartW / (n - 1 || 1);
+
+  // Grid lines (horizontal 0,20,40,60,80,100)
+  ctx.setLineDash([3, 4]);
+  ctx.lineWidth = 1;
+  [0, 20, 40, 60, 80, 100].forEach(pct => {
+    const y = PAD.top + chartH - (pct / 100) * chartH;
+    ctx.strokeStyle = gridColor;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + chartW, y); ctx.stroke();
+    ctx.fillStyle = textColor;
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(pct + '%', PAD.left - 6, y + 4);
+  });
+  ctx.setLineDash([]);
+
+  // Today line
+  if (todayIdx >= 0 && todayIdx < n) {
+    const tx = PAD.left + todayIdx * xStep;
+    ctx.strokeStyle = amberClr;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(tx, PAD.top); ctx.lineTo(tx, PAD.top + chartH); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = amberClr;
+    ctx.font = '9px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('TODAY', tx, PAD.top - 6);
+  }
+
+  // ── PLANNED CURVE ──
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = accentClr;
+  ctx.shadowColor = accentClr;
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  planned.forEach((v, i) => {
+    const x = PAD.left + i * xStep;
+    const y = PAD.top + chartH - (v / 100) * chartH;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // ── ACTUAL CURVE ──
+  // Find last non-null actual
+  const actualPoints = actual.map((v, i) => v !== null ? { i, v } : null).filter(Boolean);
+
+  if (actualPoints.length > 0) {
+    // Fill between curves (deviation area)
+    ctx.beginPath();
+    // Top: planned from 0 to last actual point
+    const lastAIdx = actualPoints[actualPoints.length - 1].i;
+    for (let i = 0; i <= lastAIdx; i++) {
+      const x = PAD.left + i * xStep;
+      const y = PAD.top + chartH - (planned[i] / 100) * chartH;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    // Bottom: actual in reverse
+    for (let i = lastAIdx; i >= 0; i--) {
+      const av = actual[i] !== null ? actual[i] : (i > 0 ? actual[i-1] : 0);
+      if (av === null) continue;
+      const x = PAD.left + i * xStep;
+      const y = PAD.top + chartH - (av / 100) * chartH;
+      ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    const lastActual = actualPoints[actualPoints.length - 1].v;
+    const lastPlanned = planned[lastAIdx];
+    const isAhead = lastActual >= lastPlanned;
+    ctx.fillStyle = isAhead ? 'rgba(168,255,87,0.08)' : 'rgba(255,94,136,0.08)';
+    ctx.fill();
+
+    // Draw actual line
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = limeClr;
+    ctx.shadowColor = limeClr;
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    let started = false;
+    actualPoints.forEach(({ i, v }) => {
+      const x = PAD.left + i * xStep;
+      const y = PAD.top + chartH - (v / 100) * chartH;
+      if (!started) { ctx.moveTo(x, y); started = true; }
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Dots on actual points
+    actualPoints.forEach(({ i, v }) => {
+      const x = PAD.left + i * xStep;
+      const y = PAD.top + chartH - (v / 100) * chartH;
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = limeClr;
+      ctx.fill();
+    });
+
+    // Deviation annotation at latest point
+    if (actualPoints.length > 0) {
+      const lp = actualPoints[actualPoints.length - 1];
+      const x = PAD.left + lp.i * xStep;
+      const dev = lp.v - planned[lp.i];
+      const devColor = dev >= 0 ? limeClr : roseClr;
+      const devText  = (dev >= 0 ? '+' : '') + dev.toFixed(1) + '%';
+      ctx.fillStyle = devColor;
+      ctx.font = 'bold 11px JetBrains Mono, monospace';
+      ctx.textAlign = 'center';
+      const yDot = PAD.top + chartH - (lp.v / 100) * chartH;
+      ctx.fillText(devText, x, yDot - 12);
+    }
+  }
+
+  // X-axis labels
+  ctx.fillStyle = textColor;
+  ctx.font = '9px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  const step = Math.max(1, Math.floor(n / 12));
+  periods.forEach((p, i) => {
+    if (i % step !== 0 && i !== n - 1) return;
+    const x = PAD.left + i * xStep;
+    const y = PAD.top + chartH + 14;
+    ctx.fillStyle = i === todayIdx ? amberClr : textColor;
+    const lines = p.label.split('\n');
+    lines.forEach((ln, li) => ctx.fillText(ln, x, y + li * 11));
+  });
+
+  // Axes
+  ctx.strokeStyle = gridColor;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD.left, PAD.top);
+  ctx.lineTo(PAD.left, PAD.top + chartH);
+  ctx.lineTo(PAD.left + chartW, PAD.top + chartH);
+  ctx.stroke();
+}
+
+// ── RENDER S-CURVE PAGE ───────────────────────
+function renderSCurve() {
+  if (curView !== 'scurve') return;
+
+  const projId = scCurrentProjectId;
+  const isGlobal = projId === '__global__';
+
+  if (isGlobal) {
+    renderSCurveGlobal();
+    return;
+  }
+
+  const proj = D.scProjects.find(p => p.id === projId);
+  if (!proj) { renderSCurveEmpty(); return; }
+
+  const items   = D.scItems[projId]   || [];
+  const actuals = D.scActuals[projId] || [];
+
+  // Chart title
+  document.getElementById('sc-chart-title').textContent = proj.name;
+  document.getElementById('sc-chart-sub').textContent =
+    `${FMT(proj.startDate)} → ${FMT(proj.finishDate)}  |  ${proj.currency||'IDR'} ${proj.budget ? Number(proj.budget).toLocaleString('id-ID') : '—'}`;
+
+  if (!proj.startDate || !proj.finishDate) {
+    document.getElementById('sc-canvas').getContext('2d').clearRect(0,0,9999,9999);
+    document.getElementById('sc-status-bar').innerHTML = '<span style="color:var(--fog);font-size:12px">Set start & finish date project untuk generate chart</span>';
+    renderWBSList(projId, items, proj);
+    renderActualInputs(projId, items, actuals, []);
+    return;
+  }
+
+  const periods   = generatePeriods(proj.startDate, proj.finishDate, scInterval);
+  const todayIdx  = getTodayPeriodIndex(periods);
+  const planned   = calcPlannedCurve(items, periods);
+  const actual    = calcActualCurve(actuals, periods);
+
+  document.getElementById('sc-period-label').textContent =
+    periods.length > 0 ? `${periods.length} periode (${scInterval})` : '—';
+
+  // Draw chart
+  requestAnimationFrame(() => drawSCurve(periods, planned, actual, todayIdx));
+
+  // Status bar
+  const lastActualPt = actual.reduce((acc, v, i) => v !== null ? { i, v } : acc, null);
+  const statusBar = document.getElementById('sc-status-bar');
+  if (lastActualPt) {
+    const dev = lastActualPt.v - planned[lastActualPt.i];
+    const isAhead = dev >= 0;
+    const devColor = isAhead ? 'var(--lime)' : 'var(--rose)';
+    statusBar.innerHTML = `
+      <div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:8px 14px;display:flex;gap:16px;flex-wrap:wrap">
+        <div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Planned Now</div>
+          <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--accent2)">${planned[lastActualPt.i].toFixed(1)}%</div></div>
+        <div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Actual</div>
+          <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--lime)">${lastActualPt.v.toFixed(1)}%</div></div>
+        <div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Deviasi</div>
+          <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:${devColor}">${dev >= 0 ? '+' : ''}${dev.toFixed(1)}%</div></div>
+        <div style="display:flex;align-items:center">
+          <div style="padding:6px 14px;border-radius:20px;background:${isAhead?'var(--limed)':'var(--rosed)'};border:1px solid ${isAhead?'rgba(168,255,87,.3)':'rgba(255,94,136,.3)'};color:${devColor};font-weight:700;font-size:13px">
+            ${isAhead ? '▲ AHEAD OF SCHEDULE' : '▼ BEHIND SCHEDULE'}
+          </div>
+        </div>
+      </div>`;
+  } else {
+    statusBar.innerHTML = '<span style="font-size:12px;color:var(--fog)">Belum ada input progress aktual</span>';
+  }
+
+  renderWBSList(projId, items, proj);
+  renderActualInputs(projId, items, actuals, periods);
+}
+
+function renderSCurveGlobal() {
+  document.getElementById('sc-chart-title').textContent = 'Global Overview';
+  document.getElementById('sc-chart-sub').textContent = `${D.scProjects.length} project`;
+  document.getElementById('sc-status-bar').innerHTML = '';
+
+  // Render project cards as WBS list
+  const wbsEl = document.getElementById('sc-wbs-list');
+  const totalEl = document.getElementById('sc-total-weight');
+  totalEl.textContent = D.scProjects.length + ' project';
+
+  if (D.scProjects.length === 0) {
+    wbsEl.innerHTML = '<div class="empty"><div class="empty-ttl">Belum ada project S-Curve</div><div class="empty-sub">Klik + Project Baru untuk mulai</div></div>';
+    document.getElementById('sc-actual-input-list').innerHTML = '';
+    return;
+  }
+
+  wbsEl.innerHTML = D.scProjects.map(p => {
+    const items   = D.scItems[p.id]   || [];
+    const actuals = D.scActuals[p.id] || [];
+    const totalW  = items.reduce((s, it) => s + (parseFloat(it.weight) || 0), 0);
+    return `<div style="padding:10px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;cursor:pointer" onclick="document.getElementById('sc-project-sel').value='${p.id}';onSCProjectChange('${p.id}')">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500;color:var(--snow)">${p.name}</div>
+        <div style="font-size:10px;color:var(--fog);margin-top:2px">${FMT(p.startDate)} → ${FMT(p.finishDate)}  ·  ${items.length} item  ·  ${p.currency||'IDR'} ${p.budget?Number(p.budget).toLocaleString('id-ID'):'—'}</div>
+      </div>
+      <button class="act-btn edit" onclick="event.stopPropagation();openSCProjectModal('${p.id}')" title="Edit">✎</button>
+      <button class="act-btn del" onclick="event.stopPropagation();deleteSCProj('${p.id}')" title="Hapus">✕</button>
+    </div>`;
+  }).join('');
+
+  // Global chart: overlay all project S-Curves
+  const canvas = document.getElementById('sc-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  document.getElementById('sc-actual-input-list').innerHTML =
+    '<div style="padding:12px;color:var(--fog);font-size:12px">Pilih project spesifik untuk input progress aktual</div>';
+}
+
+function renderSCurveEmpty() {
+  document.getElementById('sc-wbs-list').innerHTML = '<div class="empty"><div class="empty-ttl">Project tidak ditemukan</div></div>';
+}
+
+// ── WBS LIST ──────────────────────────────────
+function renderWBSList(projId, items, proj) {
+  const el = document.getElementById('sc-wbs-list');
+  const totalWeight = items.reduce((s, it) => s + (parseFloat(it.weight) || 0), 0);
+  document.getElementById('sc-total-weight').textContent =
+    totalWeight.toFixed(1) + '% ' + (Math.abs(totalWeight - 100) < 0.5 ? '✓' : '⚠ harus 100%');
+  document.getElementById('sc-total-weight').style.color =
+    Math.abs(totalWeight - 100) < 0.5 ? 'var(--lime)' : 'var(--rose)';
+
+  if (items.length === 0) {
+    el.innerHTML = '<div class="empty"><div class="empty-ttl">Belum ada item WBS</div><div class="empty-sub">Klik + Item untuk tambah pekerjaan</div></div>';
+    return;
+  }
+
+  el.innerHTML = items.map((item, idx) => {
+    const pct = parseFloat(item.weight) || 0;
+    return `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;padding:8px 14px;border-bottom:1px solid var(--line);align-items:center;font-size:12px;transition:background .15s" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <div>
+        <div style="font-weight:500;color:var(--snow)">${idx+1}. ${item.name}</div>
+        ${item.category ? `<div style="font-size:10px;color:var(--violet)">${item.category}</div>` : ''}
+      </div>
+      <div style="text-align:center">
+        <div style="font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--accent2)">${pct.toFixed(1)}%</div>
+        <div style="height:3px;background:var(--bg4);border-radius:2px;margin-top:3px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:var(--accent);border-radius:2px"></div>
+        </div>
+      </div>
+      <div style="text-align:center;color:var(--fog);font-size:11px">${item.value ? Number(item.value).toLocaleString('id-ID') : '—'}</div>
+      <div style="text-align:center;color:var(--fog);font-size:11px;font-family:'JetBrains Mono',monospace">${item.startDate ? FMT(item.startDate) : '—'}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="color:var(--fog);font-size:11px;font-family:'JetBrains Mono',monospace">${item.finishDate ? FMT(item.finishDate) : '—'}</div>
+        <div style="display:flex;gap:2px">
+          <button class="act-btn edit" onclick="openSCItemModal('${projId}','${item.id}')" title="Edit" style="width:20px;height:20px;font-size:10px">✎</button>
+          <button class="act-btn del" onclick="deleteSCItemCurrent('${projId}','${item.id}')" title="Hapus" style="width:20px;height:20px;font-size:10px">✕</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── ACTUAL INPUT TABLE ────────────────────────
+function renderActualInputs(projId, items, actuals, periods) {
+  const el = document.getElementById('sc-actual-input-list');
+  if (periods.length === 0) {
+    el.innerHTML = '<div style="color:var(--fog);font-size:12px;padding:8px 0">Set start/finish date project untuk generate periode</div>';
+    return;
+  }
+
+  // Show last 8 periods + future
+  const todayIdx = getTodayPeriodIndex(periods);
+  const showFrom = Math.max(0, todayIdx - 4);
+  const showPeriods = periods.slice(showFrom, showFrom + 10);
+
+  el.innerHTML = showPeriods.map(p => {
+    const actual = actuals.find(a => a.id === p.key);
+    const cum    = actual ? actual.cumProgress : '';
+    const isPast = p.end < todayMidnight();
+    const isNow  = !isPast && p.start <= todayMidnight();
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)">
+      <div style="flex:1">
+        <div style="font-size:11px;font-weight:500;color:${isNow?'var(--amber)':isPast?'var(--mist)':'var(--fog)'}">
+          ${isNow ? '▶ ' : ''}${p.label.replace('\n',' ')}
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:10px;color:var(--fog)">Aktual %</span>
+        <input type="number" min="0" max="100" step="0.1"
+          value="${cum}"
+          placeholder="0"
+          style="width:70px;background:var(--bg3);border:1px solid ${isNow?'var(--amber)':'var(--line)'};border-radius:var(--rs);padding:5px 8px;color:var(--snow);font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;text-align:center"
+          onchange="saveActualInput('${projId}','${p.key}',this.value)"
+          onfocus="this.style.borderColor='var(--accent)'"
+          onblur="this.style.borderColor='${isNow?'var(--amber)':'var(--line)'}'">
+        ${cum ? `<span style="font-size:10px;color:var(--lime)">✓</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function saveActualInput(projId, periodKey, value) {
+  const cum = parseFloat(value) || 0;
+  await saveSCurveActual(uid, projId, periodKey, { cumProgress: cum });
+  if (!D.scActuals[projId]) D.scActuals[projId] = [];
+  const existing = D.scActuals[projId].find(a => a.id === periodKey);
+  if (existing) existing.cumProgress = cum;
+  else D.scActuals[projId].push({ id: periodKey, cumProgress: cum });
+  renderSCurve();
+  toast('Progress aktual disimpan ✓');
+}
+window.saveActualInput = saveActualInput;
+
+// ── PROJECT MODAL ─────────────────────────────
+let scEditProjId = null;
+
+window.openSCProjectModal = (projId) => {
+  scEditProjId = projId || null;
+  const proj = projId ? D.scProjects.find(p => p.id === projId) : null;
+  document.getElementById('sc-project-modal-title').textContent = proj ? '✎ Edit Project' : '◬ Project S-Curve Baru';
+  document.getElementById('sc-proj-name').value     = proj?.name     || '';
+  document.getElementById('sc-proj-start').value    = proj?.startDate || TS();
+  document.getElementById('sc-proj-end').value      = proj?.finishDate || '';
+  document.getElementById('sc-proj-budget').value   = proj?.budget    || '';
+  document.getElementById('sc-proj-currency').value = proj?.currency  || 'IDR';
+  document.getElementById('sc-proj-desc').value     = proj?.desc      || '';
+  document.getElementById('sc-project-modal-ov').classList.add('open');
+};
+window.closeSCProjectModal = () => {
+  document.getElementById('sc-project-modal-ov').classList.remove('open');
+};
+window.saveSCProject = async () => {
+  const name = document.getElementById('sc-proj-name').value.trim();
+  if (!name) return toast('Nama project wajib diisi', true);
+  const id   = scEditProjId || 'sc_' + Date.now().toString(36);
+  const data = {
+    name,
+    startDate:  document.getElementById('sc-proj-start').value,
+    finishDate: document.getElementById('sc-proj-end').value,
+    budget:     document.getElementById('sc-proj-budget').value,
+    currency:   document.getElementById('sc-proj-currency').value || 'IDR',
+    desc:       document.getElementById('sc-proj-desc').value.trim(),
+    createdAt:  scEditProjId ? undefined : TS()
+  };
+  await saveSCurveProject(uid, id, data);
+  closeSCProjectModal();
+  toast('Project disimpan ✓');
+  if (!scEditProjId) {
+    // auto-switch to new project
+    setTimeout(() => {
+      const sel = document.getElementById('sc-project-sel');
+      if (sel) { sel.value = id; onSCProjectChange(id); }
+    }, 500);
+  }
+};
+window.deleteSCProj = async (projId) => {
+  if (!confirm('Hapus project S-Curve ini?')) return;
+  await deleteSCurveProject(uid, projId);
+  scCurrentProjectId = '__global__';
+  toast('Project dihapus');
+};
+
+// ── ITEM MODAL ────────────────────────────────
+let scEditItemProjId = null;
+let scEditItemId = null;
+
+window.openSCItemModal = (projId, itemId) => {
+  projId = projId || scCurrentProjectId;
+  if (projId === '__global__') { toast('Pilih project terlebih dahulu', true); return; }
+  scEditItemProjId = projId;
+  scEditItemId = itemId || null;
+  const item = itemId ? (D.scItems[projId]||[]).find(i => i.id === itemId) : null;
+  document.getElementById('sc-item-modal-title').textContent = item ? '✎ Edit Item WBS' : '+ Item WBS Baru';
+  document.getElementById('sc-item-name').value    = item?.name       || '';
+  document.getElementById('sc-item-weight').value  = item?.weight     || '';
+  document.getElementById('sc-item-value').value   = item?.value      || '';
+  document.getElementById('sc-item-start').value   = item?.startDate  || '';
+  document.getElementById('sc-item-finish').value  = item?.finishDate || '';
+  document.getElementById('sc-item-cat').value     = item?.category   || '';
+  document.getElementById('sc-item-del-btn').style.display = item ? 'block' : 'none';
+  document.getElementById('sc-item-modal-ov').classList.add('open');
+};
+window.closeSCItemModal = () => {
+  document.getElementById('sc-item-modal-ov').classList.remove('open');
+};
+window.saveSCItem = async () => {
+  const name   = document.getElementById('sc-item-name').value.trim();
+  if (!name) return toast('Nama item wajib diisi', true);
+  const weight = parseFloat(document.getElementById('sc-item-weight').value) || 0;
+  const value  = parseFloat(document.getElementById('sc-item-value').value)  || 0;
+  const id     = scEditItemId || 'sci_' + Date.now().toString(36);
+
+  // Auto-calc weight from value if weight not set
+  let finalWeight = weight;
+  if (!weight && value && scEditItemProjId) {
+    const items = D.scItems[scEditItemProjId] || [];
+    const totalVal = items.reduce((s, i) => s + (parseFloat(i.value)||0), 0) + value;
+    if (totalVal > 0) finalWeight = Math.round(value / totalVal * 1000) / 10;
+  }
+
+  const data = {
+    name, weight: finalWeight, value,
+    startDate:  document.getElementById('sc-item-start').value,
+    finishDate: document.getElementById('sc-item-finish').value,
+    category:   document.getElementById('sc-item-cat').value.trim(),
+    createdAt:  scEditItemId ? undefined : TS()
+  };
+  await saveSCurveItem(uid, scEditItemProjId, id, data);
+  closeSCItemModal();
+  toast('Item disimpan ✓');
+};
+window.deleteSCItemCurrent = async (projId, itemId) => {
+  projId = projId || scEditItemProjId;
+  itemId = itemId || scEditItemId;
+  if (!confirm('Hapus item WBS ini?')) return;
+  await deleteSCurveItem(uid, projId, itemId);
+  closeSCItemModal();
+  toast('Item dihapus');
+};
 
 // ── THEME TOGGLE ──────────────────────────────
 function applyTheme(mode) {
