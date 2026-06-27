@@ -3027,7 +3027,7 @@ window.openSubtaskModal = async (taskId) => {
   subtaskUnsubs = [];
 
   subtaskUnsubs.push(listenSubtasks(uid, taskId, subs => {
-    D.subtasks[taskId] = [...subs].reverse(); // LIFO
+    D.subtasks[taskId] = subs; // urutan input asli (FIFO)
     // Auto-expand all by default
     subs.forEach(st => {
       if (!expandedSubtasks.has(st.id) && !expandedSubtasks.has('__collapsed_' + st.id)) {
@@ -3036,7 +3036,7 @@ window.openSubtaskModal = async (taskId) => {
       // Listen sub-subtasks
       if (!D.subsubtasks[st.id]) D.subsubtasks[st.id] = [];
       subtaskUnsubs.push(listenSubSubtasks(uid, taskId, st.id, items => {
-        D.subsubtasks[st.id] = [...items].reverse();
+        D.subsubtasks[st.id] = items; // urutan input asli (FIFO)
         renderSubtaskPanel();
       }));
     });
