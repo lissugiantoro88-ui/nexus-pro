@@ -1969,7 +1969,14 @@ function startListeners(){
   unsubs.push(listenSCurveProjects(uid, projects => {
     D.scProjects = projects;
     updateSCNav();
-    if(curView==='scurve') renderSCurve();
+    if (curView === 'scurve') {
+      // If we have projects but none selected, auto-select first
+      if (scCurrentProjectId === '__global__' && projects.length > 0) {
+        onSCProjectChange(projects[0].id);
+      } else {
+        renderSCurve();
+      }
+    }
   }));
 
   // Reminders listener
@@ -3574,10 +3581,22 @@ function setSCInterval(interval, el) {
 
 window.setSCInterval = setSCInterval;
 window.onSCProjectChange = (id) => {
-  scCurrentProjectId = id;
+  // Stop previous listeners
   scItemUnsubs.forEach(u => u());
   scItemUnsubs = [];
+
+  scCurrentProjectId = id;
+
+  // Update selector UI
+  const sel = document.getElementById('sc-project-sel');
+  if (sel && sel.value !== id) sel.value = id;
+
   if (id !== '__global__') {
+    // Reset data for this project
+    D.scItems[id] = [];
+    D.scActuals[id] = [];
+
+    // Start real-time listeners
     scItemUnsubs.push(listenSCurveItems(uid, id, items => {
       D.scItems[id] = items;
       renderSCurve();
@@ -3586,8 +3605,11 @@ window.onSCProjectChange = (id) => {
       D.scActuals[id] = actuals;
       renderSCurve();
     }));
+    // Render immediately with empty data while loading
+    renderSCurve();
+  } else {
+    renderSCurve();
   }
-  renderSCurve();
 };
 
 // ── GENERATE PERIODS ──────────────────────────
@@ -3875,6 +3897,17 @@ function renderSCurve() {
 
   // Always update nav/selector first
   updateSCNav();
+
+  // Auto-select first project if still on global and projects exist
+  if (scCurrentProjectId === '__global__' && D.scProjects.length > 0) {
+    const firstId = D.scProjects[0].id;
+    scCurrentProjectId = firstId;
+    const sel = document.getElementById('sc-project-sel');
+    if (sel) sel.value = firstId;
+    // Start listeners for first project
+    onSCProjectChange(firstId);
+    return; // onSCProjectChange will call renderSCurve again
+  }
 
   const projId = scCurrentProjectId;
   const isGlobal = projId === '__global__';
