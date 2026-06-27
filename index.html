@@ -1834,12 +1834,13 @@ import {
   addSubSubtask, updateSubSubtask, deleteSubSubtask, listenSubSubtasks,
   saveSCurveProject, deleteSCurveProject, listenSCurveProjects,
   saveSCurveItem, deleteSCurveItem, listenSCurveItems,
-  saveSCurveActual, listenSCurveActuals
+  saveSCurveActual, listenSCurveActuals,
+  saveItemActual, listenItemActuals
 } from "./db.js";
 
 // ── STATE ─────────────────────────────────────
 let uid = null;
-let D = { tasks:[], habits:[], habitLogs:{}, delegations:[], notes:[], reviews:{}, retro:{}, retros:{}, reminders:{}, subtasks:{}, subsubtasks:{}, scProjects:[], scItems:{}, scActuals:{} };
+let D = { tasks:[], habits:[], habitLogs:{}, delegations:[], notes:[], reviews:{}, retro:{}, retros:{}, reminders:{}, subtasks:{}, subsubtasks:{}, scProjects:[], scItems:{}, scActuals:{}, scItemActuals:{} };
 let unsubs = [];
 let curView = 'dashboard';
 let taskF = 'all', taskV = 'list', tlF = 'all';
@@ -3610,8 +3611,9 @@ window.onSCProjectChange = (id) => {
 
   if (id !== '__global__') {
     // Reset data for this project
-    D.scItems[id] = [];
-    D.scActuals[id] = [];
+    D.scItems[id]       = [];
+    D.scActuals[id]     = [];
+    D.scItemActuals[id] = {};
 
     // Start real-time listeners
     scItemUnsubs.push(listenSCurveItems(uid, id, items => {
@@ -3620,6 +3622,12 @@ window.onSCProjectChange = (id) => {
     }));
     scItemUnsubs.push(listenSCurveActuals(uid, id, actuals => {
       D.scActuals[id] = actuals;
+      renderSCurve();
+    }));
+    scItemUnsubs.push(listenItemActuals(uid, id, itemActuals => {
+      D.scItemActuals[id] = itemActuals;
+      // Auto-compute and save daily cumulative from item actuals
+      autoComputeActuals(id);
       renderSCurve();
     }));
     // Render immediately with empty data while loading
@@ -4110,19 +4118,33 @@ function renderWBSList(projId, items, proj) {
 }
 
 // ── ACTUAL INPUT TABLE ────────────────────────
+let scActualTab = 'item';
+
 function renderActualInputs(projId, items, actuals, periods) {
   const el = document.getElementById('sc-actual-input-list');
+  if (!el) return;
+
+  const tabHtml = '<div style="display:flex;gap:3px;margin-bottom:10px;background:var(--bg3);border-radius:var(--rs);padding:2px">'
+    + '<button onclick="scActualTab=\'item\';renderSCurve()" style="flex:1;padding:6px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;background:'
+    + ('{scActualTab}' === '{scActualTab}' ? "'+( scActualTab==\'item\' ? \'var(--bg2)\' : \'transparent\')+'" : 'var(--bg2)')
+    + ';color:var(--fog)">Per Item Pekerjaan</button>'
+    + '<button onclick="scActualTab=\'period\';renderSCurve()" style="flex:1;padding:6px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;background:transparent;color:var(--fog)">Per Periode</button>'
+    + '</div>';
+
+  if (scActualTab === 'item') {
+    renderItemActualInputs(projId, items, el, tabHtml);
+    return;
+  }
+
   if (periods.length === 0) {
     el.innerHTML = '<div style="color:var(--fog);font-size:12px;padding:8px 0">Set start/finish date project untuk generate periode</div>';
     return;
   }
 
-  // Show last 8 periods + future
   const todayIdx = getTodayPeriodIndex(periods);
-  // For daily: show all periods; for weekly/monthly: show around today
   let showPeriods;
   if (scInterval === 'day') {
-    showPeriods = periods; // show all days
+    showPeriods = periods;
   } else {
     const showFrom = Math.max(0, todayIdx - 3);
     showPeriods = periods.slice(showFrom, showFrom + 12);
@@ -4135,24 +4157,73 @@ function renderActualInputs(projId, items, actuals, periods) {
     const isPast = p.end < todayMidnight();
     const isNow  = !isPast && p.start <= todayMidnight();
     const labelClean = p.label.replace('\n',' ');
-    return `<div style="padding:8px 0;border-bottom:1px solid var(--line)">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-        <div style="flex:1;font-size:11px;font-weight:500;color:${isNow?'var(--amber)':isPast?'var(--mist)':'var(--fog)'}">${isNow?'▶ ':''}${labelClean}</div>
-        <span style="font-size:10px;color:var(--fog)">%</span>
-        <input type="number" min="0" max="100" step="0.1"
-          value="${cum}" placeholder="0" id="cum-${p.key}"
-          style="width:65px;background:var(--bg3);border:1px solid ${isNow?'var(--amber)':'var(--line)'};border-radius:var(--rs);padding:4px 7px;color:var(--snow);font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;text-align:center"
-          onchange="saveActualInput('${projId}','${p.key}',this.value,(document.getElementById('note-${p.key}')||{}).value||'')"
-          onfocus="this.style.borderColor='var(--accent)'"
-          onblur="this.style.borderColor='${isNow?'var(--amber)':'var(--line)'}'">
-        <span style="font-size:12px;color:${cum?'var(--lime)':'transparent'}">✓</span>
-      </div>
-      <input type="text" id="note-${p.key}"
-        value="${note}" placeholder="Catatan progress..."
-        style="width:100%;background:transparent;border:none;border-bottom:1px dashed var(--line);padding:2px 0;color:var(--fog);font-size:10px;font-family:'Inter',sans-serif;outline:none"
-        onchange="saveActualInput('${projId}','${p.key}',(document.getElementById('cum-${p.key}')||{}).value||0,this.value)">
-    </div>`;
+    return '<div style="padding:8px 0;border-bottom:1px solid var(--line)">'
+      + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">'
+      + '<div style="flex:1;font-size:11px;font-weight:500;color:'+(isNow?'var(--amber)':isPast?'var(--mist)':'var(--fog)')+'">'+( isNow?'▶ ':'')+labelClean+'</div>'
+      + '<span style="font-size:10px;color:var(--fog)">%</span>'
+      + '<input type="number" min="0" max="100" step="0.1" value="'+cum+'" placeholder="0" id="cum-'+p.key+'"'
+      + ' style="width:65px;background:var(--bg3);border:1px solid '+(isNow?'var(--amber)':'var(--line)')+';border-radius:var(--rs);padding:4px 7px;color:var(--snow);font-size:12px;font-family:JetBrains Mono,monospace;outline:none;text-align:center"'
+      + ' onchange="saveActualInput(\''+projId+'\',\''+p.key+'\',this.value,(document.getElementById(\'note-'+p.key+'\'))||{value:\'\'}).value||\'\')"'
+      + ' onfocus="this.style.borderColor=\'var(--accent)\'"'
+      + ' onblur="this.style.borderColor=\''+(isNow?'var(--amber)':'var(--line)')+'\'">'
+      + (cum ? '<span style="color:var(--lime)">✓</span>' : '<span style="color:transparent">✓</span>')
+      + '</div>'
+      + '<input type="text" id="note-'+p.key+'" value="'+note+'" placeholder="Catatan progress..."'
+      + ' style="width:100%;background:transparent;border:none;border-bottom:1px dashed var(--line);padding:2px 0;color:var(--fog);font-size:10px;outline:none"'
+      + ' onchange="saveActualInput(\''+projId+'\',\''+p.key+'\',(document.getElementById(\'cum-'+p.key+'\')||{value:0}).value,this.value)">'
+      + '</div>';
   }).join('');
+}
+
+// ── AUTO-COMPUTE CUMULATIVE FROM ITEM ACTUALS ────────────────────────────────
+async function autoComputeActuals(projId) {
+  const items       = D.scItems[projId] || [];
+  const itemActuals = D.scItemActuals[projId] || {};
+  const totalWeight = items.reduce((s,it) => s + (parseFloat(it.weight)||0), 0) || 100;
+
+  // For each date that has item actuals, compute cumulative progress
+  // Also consider all dates in the project range
+  const proj = D.scProjects.find(p => p.id === projId);
+  if (!proj || !proj.startDate || !proj.finishDate) return;
+
+  // Collect all dates with item updates
+  const allDates = new Set(Object.keys(itemActuals));
+
+  for (const dateStr of allDates) {
+    const dayActuals = itemActuals[dateStr] || {};
+    // Sum contribution of each item that has been updated ON OR BEFORE this date
+    // We need cumulative: take the latest known % for each item up to this date
+    let cumTotal = 0;
+    items.forEach(item => {
+      // Find the latest pct for this item on or before dateStr
+      const latestPct = getLatestItemPct(itemActuals, item.id, dateStr);
+      const w = (parseFloat(item.weight)||0) / totalWeight * 100;
+      cumTotal += w * latestPct / 100;
+    });
+    const cum = Math.min(100, Math.round(cumTotal * 100) / 100);
+
+    // Save to scActuals if changed
+    const existing = (D.scActuals[projId]||[]).find(a => a.id === dateStr);
+    if (!existing || Math.abs((existing.cumProgress||0) - cum) > 0.01) {
+      await saveSCurveActual(uid, projId, dateStr, { cumProgress: cum });
+      if (!D.scActuals[projId]) D.scActuals[projId] = [];
+      if (existing) existing.cumProgress = cum;
+      else D.scActuals[projId].push({ id: dateStr, cumProgress: cum });
+    }
+  }
+}
+
+function getLatestItemPct(itemActuals, itemId, upToDate) {
+  // Find the most recent date <= upToDate that has a value for this item
+  let latestDate = '';
+  let best = 0;
+  for (const [date, dayItems] of Object.entries(itemActuals)) {
+    if (date <= upToDate && dayItems[itemId] !== undefined && date >= latestDate) {
+      latestDate = date;
+      best = dayItems[itemId];
+    }
+  }
+  return best;
 }
 
 async function saveActualInput(projId, periodKey, value, note) {
@@ -4168,6 +4239,111 @@ async function saveActualInput(projId, periodKey, value, note) {
   toast('Progress disimpan ✓');
 }
 window.saveActualInput = saveActualInput;
+
+// ── PER-ITEM ACTUAL INPUT ─────────────────────────────────────────────────────
+function renderItemActualInputs(projId, items, el, tabHtml) {
+  if (items.length === 0) {
+    el.innerHTML = tabHtml + '<div class="empty"><div class="empty-sub">Belum ada item WBS</div></div>';
+    return;
+  }
+
+  const itemActuals = D.scItemActuals[projId] || {};
+  const totalWeight = items.reduce((s,it) => s+(parseFloat(it.weight)||0), 0) || 100;
+  const today = TS();
+
+  // Compute current total actual progress
+  let currentTotal = 0;
+  items.forEach(item => {
+    const latestPct = getLatestItemPctForDisplay(itemActuals, item.id);
+    const w = (parseFloat(item.weight)||0) / totalWeight * 100;
+    currentTotal += w * latestPct / 100;
+  });
+  currentTotal = Math.round(currentTotal * 100) / 100;
+
+  // Summary bar
+  const summaryHtml = `
+    <div style="background:var(--bg3);border-radius:var(--rs);padding:10px 12px;margin-bottom:10px;border:1px solid var(--line)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:11px;color:var(--fog)">Total Progress Aktual</span>
+        <span style="font-size:16px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--lime)">${currentTotal.toFixed(2)}%</span>
+      </div>
+      <div style="height:6px;background:var(--bg2);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${currentTotal}%;background:linear-gradient(90deg,var(--accent),var(--lime));border-radius:3px;transition:width .5s"></div>
+      </div>
+      <div style="font-size:10px;color:var(--fog);margin-top:4px">Update per item → otomatis hitung progress kumulatif</div>
+    </div>`;
+
+  // Group items by category
+  const cats = {};
+  items.forEach(item => {
+    const cat = item.category || 'Lainnya';
+    if (!cats[cat]) cats[cat] = [];
+    cats[cat].push(item);
+  });
+
+  let itemsHtml = '';
+  for (const [cat, catItems] of Object.entries(cats)) {
+    itemsHtml += `<div style="font-size:9px;letter-spacing:2px;color:var(--fog);text-transform:uppercase;padding:8px 0 4px;font-family:'JetBrains Mono',monospace;border-top:1px solid var(--line);margin-top:4px">${cat}</div>`;
+    catItems.forEach(item => {
+      const itemId = item.id;
+      const latestPct = getLatestItemPctForDisplay(itemActuals, itemId);
+      const w = (parseFloat(item.weight)||0);
+      const contrib = Math.round(w * latestPct / 100 * 100) / 100;
+      const isDone = latestPct >= 100;
+
+      itemsHtml += `
+        <div style="padding:8px 0;border-bottom:1px solid var(--line)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:500;color:${isDone?'var(--fog)':'var(--snow)'};${isDone?'text-decoration:line-through':''}">
+                ${item.name}
+              </div>
+              <div style="font-size:10px;color:var(--fog);margin-top:1px">
+                Bobot ${w}% · Kontribusi: <span style="color:var(--lime);font-weight:600">${contrib}%</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+              <input type="number" min="0" max="100" step="5"
+                value="${latestPct}" placeholder="0"
+                id="ipa-${itemId}"
+                style="width:60px;background:var(--bg3);border:1px solid ${isDone?'var(--lime)':'var(--line)'};border-radius:var(--rs);padding:4px 7px;color:var(--snow);font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;text-align:center"
+                onchange="onItemActualChange('${projId}','${itemId}',this.value)"
+                onfocus="this.style.borderColor='var(--accent)'"
+                onblur="this.style.borderColor='${isDone?'var(--lime)':'var(--line)'}'">
+              <span style="font-size:11px;color:var(--fog)">%</span>
+              ${isDone ? '<span style="color:var(--lime);font-size:14px">✓</span>' : ''}
+            </div>
+          </div>
+          <!-- Progress bar per item -->
+          <div style="height:3px;background:var(--bg3);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${latestPct}%;background:${latestPct>=100?'var(--lime)':latestPct>0?'var(--accent)':'transparent'};border-radius:2px;transition:width .4s"></div>
+          </div>
+        </div>`;
+    });
+  }
+
+  el.innerHTML = tabHtml + summaryHtml + itemsHtml;
+}
+
+function getLatestItemPctForDisplay(itemActuals, itemId) {
+  // Get the most recent known % for this item across all dates
+  let latestDate = '';
+  let latestPct  = 0;
+  for (const [date, items] of Object.entries(itemActuals)) {
+    if (items[itemId] !== undefined && date >= latestDate) {
+      latestDate = date;
+      latestPct  = items[itemId];
+    }
+  }
+  return latestPct;
+}
+
+window.onItemActualChange = async (projId, itemId, value) => {
+  const pct  = Math.min(100, Math.max(0, parseFloat(value) || 0));
+  const today = TS();
+  await saveItemActual(uid, projId, today, itemId, pct);
+  toast(`Progress disimpan — ${pct}% ✓`);
+};
 
 // ── PROJECT MODAL ─────────────────────────────
 let scEditProjId = null;
