@@ -1171,7 +1171,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
       <div class="tb-sub" id="tb-sub">Overview semua aktivitas</div>
     </div>
     <div class="tb-space"></div>
-    <button class="tb-btn primary" onclick="openModal()">+ Tambah</button>
+    <button class="tb-btn primary" id="topbar-add-btn" onclick="handleTopbarAdd()">+ Tambah</button>
   </div>
   <div class="content">
 
@@ -2031,6 +2031,14 @@ window.nav = (v,el) => {
 
 // ── MODAL ─────────────────────────────────────
 let mType='task';
+window.handleTopbarAdd = () => {
+  if (curView === 'scurve') {
+    openSCProjectModal();
+  } else {
+    openModal();
+  }
+};
+
 window.openModal = () => {
   const def={tasks:'task',habits:'habit',delegation:'delegation',ideas:'idea'};
   const t=def[curView]||'task';
@@ -3865,6 +3873,9 @@ function drawSCurve(periods, planned, actual, todayIdx) {
 function renderSCurve() {
   if (curView !== 'scurve') return;
 
+  // Always update nav/selector first
+  updateSCNav();
+
   const projId = scCurrentProjectId;
   const isGlobal = projId === '__global__';
 
@@ -3943,8 +3954,20 @@ function renderSCurveGlobal() {
   totalEl.textContent = D.scProjects.length + ' project';
 
   if (D.scProjects.length === 0) {
-    wbsEl.innerHTML = '<div class="empty"><div class="empty-ttl">Belum ada project S-Curve</div><div class="empty-sub">Klik + Project Baru untuk mulai</div></div>';
+    wbsEl.innerHTML = `<div class="empty" style="padding:40px 20px">
+      <div style="font-size:36px;margin-bottom:12px">◬</div>
+      <div class="empty-ttl" style="font-size:15px">Belum ada project S-Curve</div>
+      <div class="empty-sub" style="margin:8px 0 16px">Buat project baru untuk mulai tracking progress</div>
+      <button class="mbtn save" onclick="openSCProjectModal()" style="padding:10px 20px;font-size:13px">+ Buat Project S-Curve Pertama</button>
+    </div>`;
     document.getElementById('sc-actual-input-list').innerHTML = '';
+    // Clear canvas
+    const canvas = document.getElementById('sc-canvas');
+    if(canvas) { const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }
+    document.getElementById('sc-chart-title').textContent = 'S-Curve';
+    document.getElementById('sc-chart-sub').textContent = 'Belum ada project';
+    document.getElementById('sc-status-bar').innerHTML = '';
+    document.getElementById('sc-total-weight').textContent = '0 project';
     return;
   }
 
