@@ -3575,6 +3575,10 @@ Object.defineProperty(window, 'scCurrentProjectId', {
   get: () => scCurrentProjectId,
   set: (v) => { scCurrentProjectId = v; }
 });
+Object.defineProperty(window, 'scActualTab', {
+  get: () => scActualTab,
+  set: (v) => { scActualTab = v; }
+});
 
 // ── HELPERS ───────────────────────────────────
 function updateSCNav() {
@@ -3598,6 +3602,7 @@ function setSCInterval(interval, el) {
 }
 
 window.setSCInterval = setSCInterval;
+window.renderSCurve  = () => renderSCurve();
 window.onSCProjectChange = (id) => {
   // Stop previous listeners
   scItemUnsubs.forEach(u => u());
@@ -4180,29 +4185,37 @@ async function autoComputeActuals(projId) {
   const items       = D.scItems[projId] || [];
   const itemActuals = D.scItemActuals[projId] || {};
   const totalWeight = items.reduce((s,it) => s + (parseFloat(it.weight)||0), 0) || 100;
-
-  // For each date that has item actuals, compute cumulative progress
-  // Also consider all dates in the project range
-  const proj = D.scProjects.find(p => p.id === projId);
+  const proj        = D.scProjects.find(p => p.id === projId);
   if (!proj || !proj.startDate || !proj.finishDate) return;
 
-  // Collect all dates with item updates
-  const allDates = new Set(Object.keys(itemActuals));
+  // Build sorted list of all dates in project range
+  const dates = [];
+  let cur = localMidnight(proj.startDate);
+  const end = localMidnight(proj.finishDate);
+  while (cur <= end) {
+    dates.push(cur.toISOString().split('T')[0]);
+    cur.setDate(cur.getDate()+1);
+  }
 
-  for (const dateStr of allDates) {
-    const dayActuals = itemActuals[dateStr] || {};
-    // Sum contribution of each item that has been updated ON OR BEFORE this date
-    // We need cumulative: take the latest known % for each item up to this date
+  // For each date: cumulative = sum of (latest known % per item × weight)
+  // "Latest known %" = most recent entry on or before this date
+  for (const dateStr of dates) {
     let cumTotal = 0;
     items.forEach(item => {
-      // Find the latest pct for this item on or before dateStr
-      const latestPct = getLatestItemPct(itemActuals, item.id, dateStr);
-      const w = (parseFloat(item.weight)||0) / totalWeight * 100;
-      cumTotal += w * latestPct / 100;
+      let latestPct = 0;
+      for (const d of dates) {
+        if (d > dateStr) break;
+        const dayData = itemActuals[d];
+        if (dayData && dayData[item.id] !== undefined) {
+          latestPct = parseFloat(dayData[item.id]) || 0;
+        }
+      }
+      cumTotal += (parseFloat(item.weight)||0) / totalWeight * latestPct;
     });
     const cum = Math.min(100, Math.round(cumTotal * 100) / 100);
+    if (cum === 0) continue; // skip zero dates
 
-    // Save to scActuals if changed
+    // Save to scActuals
     const existing = (D.scActuals[projId]||[]).find(a => a.id === dateStr);
     if (!existing || Math.abs((existing.cumProgress||0) - cum) > 0.01) {
       await saveSCurveActual(uid, projId, dateStr, { cumProgress: cum });
@@ -4247,103 +4260,171 @@ function renderItemActualInputs(projId, items, el, tabHtml) {
     return;
   }
 
+  const proj        = D.scProjects.find(p => p.id === projId);
   const itemActuals = D.scItemActuals[projId] || {};
   const totalWeight = items.reduce((s,it) => s+(parseFloat(it.weight)||0), 0) || 100;
+
+  // Get all project dates
+  const dates = [];
+  if (proj && proj.startDate && proj.finishDate) {
+    let cur = localMidnight(proj.startDate);
+    const end = localMidnight(proj.finishDate);
+    while (cur <= end) {
+      dates.push(cur.toISOString().split('T')[0]);
+      cur.setDate(cur.getDate()+1);
+    }
+  }
   const today = TS();
 
-  // Compute current total actual progress
-  let currentTotal = 0;
-  items.forEach(item => {
-    const latestPct = getLatestItemPctForDisplay(itemActuals, item.id);
-    const w = (parseFloat(item.weight)||0) / totalWeight * 100;
-    currentTotal += w * latestPct / 100;
-  });
-  currentTotal = Math.round(currentTotal * 100) / 100;
+  // Day name headers
+  const dayNames = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
 
-  // Summary bar
-  const summaryHtml = `
-    <div style="background:var(--bg3);border-radius:var(--rs);padding:10px 12px;margin-bottom:10px;border:1px solid var(--line)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:11px;color:var(--fog)">Total Progress Aktual</span>
-        <span style="font-size:16px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--lime)">${currentTotal.toFixed(2)}%</span>
-      </div>
-      <div style="height:6px;background:var(--bg2);border-radius:3px;overflow:hidden">
-        <div style="height:100%;width:${currentTotal}%;background:linear-gradient(90deg,var(--accent),var(--lime));border-radius:3px;transition:width .5s"></div>
-      </div>
-      <div style="font-size:10px;color:var(--fog);margin-top:4px">Update per item → otomatis hitung progress kumulatif</div>
-    </div>`;
+  // Build per-item, per-day progress matrix
+  // For each item x date: what % was done ON that day
+  // Cumulative per item = running sum across dates
+  // Daily total = sum of (item_daily_pct * weight/totalWeight) across items
+
+  // Compute daily contribution per item
+  function getDailyPct(itemId, date) {
+    return (itemActuals[date] && itemActuals[date][itemId] !== undefined)
+      ? itemActuals[date][itemId] : '';
+  }
+
+  // Compute daily total contribution to project %
+  function getDailyTotal(date) {
+    let total = 0;
+    items.forEach(item => {
+      const pct = parseFloat(getDailyPct(item.id, date)) || 0;
+      total += (parseFloat(item.weight)||0) / totalWeight * pct;
+    });
+    return Math.round(total * 100) / 100;
+  }
+
+  // Compute cumulative total up to date
+  function getCumTotal(upToDate) {
+    let total = 0;
+    items.forEach(item => {
+      // Latest known % for this item up to upToDate
+      let latestPct = 0;
+      for (const d of dates) {
+        if (d > upToDate) break;
+        const v = getDailyPct(item.id, d);
+        if (v !== '') latestPct = parseFloat(v)||0;
+      }
+      total += (parseFloat(item.weight)||0) / totalWeight * latestPct;
+    });
+    return Math.round(total * 100) / 100;
+  }
+
+  // ── BUILD TABLE ──────────────────────────────────────────────────────────
+  const colW = 52; // px per date column
+  const rowH = 36;
 
   // Group items by category
   const cats = {};
-  items.forEach(item => {
-    const cat = item.category || 'Lainnya';
-    if (!cats[cat]) cats[cat] = [];
-    cats[cat].push(item);
+  items.forEach(it => {
+    const c = it.category || 'Lainnya';
+    if (!cats[c]) cats[c] = [];
+    cats[c].push(it);
   });
 
-  let itemsHtml = '';
+  let tableHtml = `
+  <div style="overflow-x:auto;overflow-y:auto;max-height:500px">
+    <table style="border-collapse:collapse;font-size:11px;min-width:max-content;width:100%">
+      <!-- Header: dates -->
+      <thead>
+        <tr style="position:sticky;top:0;z-index:10;background:var(--bg2)">
+          <th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--line);min-width:160px;position:sticky;left:0;background:var(--bg2);z-index:11;font-size:10px;color:var(--fog);font-weight:600;text-transform:uppercase;letter-spacing:1px">Item Pekerjaan</th>
+          <th style="padding:4px 2px;border-bottom:2px solid var(--line);color:var(--fog);font-size:10px;font-weight:600;min-width:40px">Bobot</th>
+          ${dates.map(d => {
+            const isToday = d === today;
+            const isPast  = d < today;
+            const dt = localMidnight(d);
+            const dayLbl = dt.getDate()+'/'+( dt.getMonth()+1);
+            const dayName = dayNames[dt.getDay()];
+            return `<th style="padding:4px 3px;border-bottom:2px solid ${isToday?'var(--amber)':'var(--line)'};color:${isToday?'var(--amber)':isPast?'var(--mist)':'var(--fog)'};font-size:9px;text-align:center;min-width:${colW}px;white-space:nowrap;font-weight:${isToday?700:500}">
+              <div>${dayLbl}</div>
+              <div style="font-size:8px;opacity:.7">${dayName}</div>
+            </th>`;
+          }).join('')}
+        </tr>
+      </thead>
+      <tbody>`;
+
+  // Rows per category + item
   for (const [cat, catItems] of Object.entries(cats)) {
-    itemsHtml += `<div style="font-size:9px;letter-spacing:2px;color:var(--fog);text-transform:uppercase;padding:8px 0 4px;font-family:'JetBrains Mono',monospace;border-top:1px solid var(--line);margin-top:4px">${cat}</div>`;
+    // Category header row
+    tableHtml += `<tr style="background:var(--bg3)">
+      <td colspan="${dates.length + 2}" style="padding:5px 10px;font-size:9px;color:var(--accent2);font-weight:700;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--line)">${cat}</td>
+    </tr>`;
+
     catItems.forEach(item => {
       const itemId = item.id;
-      const latestPct = getLatestItemPctForDisplay(itemActuals, itemId);
-      const w = (parseFloat(item.weight)||0);
-      const contrib = Math.round(w * latestPct / 100 * 100) / 100;
-      const isDone = latestPct >= 100;
-
-      itemsHtml += `
-        <div style="padding:8px 0;border-bottom:1px solid var(--line)">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
-            <div style="flex:1;min-width:0">
-              <div style="font-size:12px;font-weight:500;color:${isDone?'var(--fog)':'var(--snow)'};${isDone?'text-decoration:line-through':''}">
-                ${item.name}
-              </div>
-              <div style="font-size:10px;color:var(--fog);margin-top:1px">
-                Bobot ${w}% · Kontribusi: <span style="color:var(--lime);font-weight:600">${contrib}%</span>
-              </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
-              <input type="number" min="0" max="100" step="5"
-                value="${latestPct}" placeholder="0"
-                id="ipa-${itemId}"
-                style="width:60px;background:var(--bg3);border:1px solid ${isDone?'var(--lime)':'var(--line)'};border-radius:var(--rs);padding:4px 7px;color:var(--snow);font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;text-align:center"
-                onchange="onItemActualChange('${projId}','${itemId}',this.value)"
-                onfocus="this.style.borderColor='var(--accent)'"
-                onblur="this.style.borderColor='${isDone?'var(--lime)':'var(--line)'}'">
-              <span style="font-size:11px;color:var(--fog)">%</span>
-              ${isDone ? '<span style="color:var(--lime);font-size:14px">✓</span>' : ''}
-            </div>
-          </div>
-          <!-- Progress bar per item -->
-          <div style="height:3px;background:var(--bg3);border-radius:2px;overflow:hidden">
-            <div style="height:100%;width:${latestPct}%;background:${latestPct>=100?'var(--lime)':latestPct>0?'var(--accent)':'transparent'};border-radius:2px;transition:width .4s"></div>
-          </div>
-        </div>`;
+      const w = parseFloat(item.weight)||0;
+      tableHtml += `<tr onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+        <td style="padding:4px 10px;border-bottom:1px solid var(--line);color:var(--snow);font-size:11px;position:sticky;left:0;background:var(--bg2);z-index:5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px" title="${item.name}">${item.name}</td>
+        <td style="padding:4px 6px;border-bottom:1px solid var(--line);text-align:center;color:var(--accent2);font-family:'JetBrains Mono',monospace;font-weight:600;font-size:10px">${w}%</td>
+        ${dates.map(d => {
+          const val     = getDailyPct(itemId, d);
+          const isToday = d === today;
+          const isPast  = d < today;
+          const isFuture= d > today;
+          const numVal  = parseFloat(val)||0;
+          const isDone  = numVal >= 100;
+          const isActive= val !== '' && numVal > 0;
+          return `<td style="padding:2px 3px;border-bottom:1px solid var(--line);border-left:1px solid ${isToday?'var(--amber)':'var(--line)'};text-align:center">
+            <input type="number" min="0" max="100" step="5"
+              value="${val}"
+              placeholder="${isFuture?'':'-'}"
+              style="width:${colW-6}px;background:${isDone?'rgba(168,255,87,.15)':isActive?'rgba(124,111,255,.1)':'transparent'};border:1px solid ${isDone?'var(--lime)':isActive?'var(--accent)':isToday?'rgba(255,184,48,.3)':'transparent'};border-radius:3px;padding:3px 2px;color:${isDone?'var(--lime)':isActive?'var(--snow)':'var(--fog)'};font-size:11px;font-family:JetBrains Mono,monospace;outline:none;text-align:center;font-weight:${isDone||isActive?600:400}"
+              onchange="onItemDailyChange('${projId}','${itemId}','${d}',this.value)"
+              onfocus="this.style.borderColor='var(--accent)';this.style.background='var(--bg3)'"
+              onblur="this.style.borderColor='${isDone?'var(--lime)':isToday?'rgba(255,184,48,.3)':'transparent'}';this.style.background='${isDone?'rgba(168,255,87,.15)':isActive?'rgba(124,111,255,.1)':'transparent'}'">
+          </td>`;
+        }).join('')}
+      </tr>`;
     });
   }
 
-  el.innerHTML = tabHtml + summaryHtml + itemsHtml;
+  // Daily total row
+  tableHtml += `<tr style="background:var(--bg3);position:sticky;bottom:28px">
+    <td style="padding:6px 10px;border-top:2px solid var(--line);font-weight:700;color:var(--mist);font-size:11px;position:sticky;left:0;background:var(--bg3);z-index:5">Progress Harian (%)</td>
+    <td style="padding:6px;border-top:2px solid var(--line);text-align:center;color:var(--fog);font-size:10px">100%</td>
+    ${dates.map(d => {
+      const dt = getDailyTotal(d);
+      return `<td style="padding:6px 3px;border-top:2px solid var(--line);text-align:center;font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:${dt>0?'var(--accent2)':'var(--fog)'}">${dt>0?dt.toFixed(1)+'%':'-'}</td>`;
+    }).join('')}
+  </tr>`;
+
+  // Cumulative row
+  tableHtml += `<tr style="background:var(--bg2);position:sticky;bottom:0">
+    <td style="padding:6px 10px;border-top:1px solid var(--line);font-weight:700;color:var(--snow);font-size:11px;position:sticky;left:0;background:var(--bg2);z-index:5">Kumulatif Aktual (%)</td>
+    <td style="border-top:1px solid var(--line)"></td>
+    ${dates.map(d => {
+      const cum = getCumTotal(d);
+      const isToday = d === today;
+      // Get planned for this date
+      const planActual = (D.scActuals[projId]||[]).find(a => a.id === d);
+      const plannedCum = planActual ? (planActual.plannedCum || 0) : 0;
+      const dev = plannedCum > 0 ? Math.round((cum - plannedCum)*10)/10 : null;
+      return `<td style="padding:4px 3px;border-top:1px solid var(--line);text-align:center;border-left:1px solid ${isToday?'var(--amber)':'transparent'}">
+        <div style="font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:${cum>0?'var(--lime)':'var(--fog)'}">${cum>0?cum.toFixed(1)+'%':'-'}</div>
+        ${dev!==null&&cum>0?`<div style="font-size:9px;color:${dev>=0?'var(--lime)':'var(--rose)'};font-weight:600">${dev>=0?'+':''}${dev}%</div>`:''}
+      </td>`;
+    }).join('')}
+  </tr>`;
+
+  tableHtml += `</tbody></table></div>`;
+
+  el.innerHTML = tabHtml + tableHtml;
 }
 
-function getLatestItemPctForDisplay(itemActuals, itemId) {
-  // Get the most recent known % for this item across all dates
-  let latestDate = '';
-  let latestPct  = 0;
-  for (const [date, items] of Object.entries(itemActuals)) {
-    if (items[itemId] !== undefined && date >= latestDate) {
-      latestDate = date;
-      latestPct  = items[itemId];
-    }
-  }
-  return latestPct;
-}
-
-window.onItemActualChange = async (projId, itemId, value) => {
-  const pct  = Math.min(100, Math.max(0, parseFloat(value) || 0));
-  const today = TS();
-  await saveItemActual(uid, projId, today, itemId, pct);
-  toast(`Progress disimpan — ${pct}% ✓`);
+window.onItemDailyChange = async (projId, itemId, dateStr, value) => {
+  const pct = Math.min(100, Math.max(0, parseFloat(value) || 0));
+  await saveItemActual(uid, projId, dateStr, itemId, pct);
+  toast('✓ Tersimpan');
 };
+
 
 // ── PROJECT MODAL ─────────────────────────────
 let scEditProjId = null;
