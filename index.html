@@ -4421,7 +4421,7 @@ function renderActualInputs(projId, items, actuals, periods) {
   }
 
   if (periods.length === 0) {
-    el.innerHTML = '<div style="color:var(--fog);font-size:12px;padding:8px 0">Set start/finish date project untuk generate periode</div>';
+    el.innerHTML = tabHtml + '<div style="color:var(--fog);font-size:12px;padding:8px 0">Set start/finish date project untuk generate periode</div>';
     return;
   }
 
@@ -4434,7 +4434,7 @@ function renderActualInputs(projId, items, actuals, periods) {
     showPeriods = periods.slice(showFrom, showFrom + 12);
   }
 
-  el.innerHTML = showPeriods.map(p => {
+  el.innerHTML = tabHtml + '<div>' + showPeriods.map(p => {
     const actual = actuals.find(a => a.id === p.key);
     const cum    = actual ? actual.cumProgress : '';
     const note   = actual ? (actual.note || '') : '';
@@ -4456,7 +4456,7 @@ function renderActualInputs(projId, items, actuals, periods) {
       + ' style="width:100%;background:transparent;border:none;border-bottom:1px dashed var(--line);padding:2px 0;color:var(--fog);font-size:10px;outline:none"'
       + ' onchange="saveActualInput(\''+projId+'\',\''+p.key+'\',(document.getElementById(\'cum-'+p.key+'\')||{value:0}).value,this.value)">'
       + '</div>';
-  }).join('');
+  }).join('') + '</div>';
 }
 
 // ── AUTO-COMPUTE CUMULATIVE FROM ITEM ACTUALS ────────────────────────────────
