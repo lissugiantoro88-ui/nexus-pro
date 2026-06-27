@@ -4735,6 +4735,107 @@ window.onItemDailyChange = async function(projId, itemId, dateStr, value) {
   renderSCurve();
 };
 
+// ── S-CURVE MODAL FUNCTIONS ───────────────────
+let scEditProjId = null;
+let scEditItemProjId = null;
+let scEditItemId = null;
+
+window.openSCProjectModal = function(projId) {
+  scEditProjId = projId || null;
+  const proj = projId ? D.scProjects.find(p => p.id === projId) : null;
+  document.getElementById('sc-project-modal-title').textContent = proj ? '✎ Edit Project' : '◬ Project S-Curve Baru';
+  document.getElementById('sc-proj-name').value     = proj ? (proj.name||'')     : '';
+  document.getElementById('sc-proj-start').value    = proj ? (proj.startDate||'') : TS();
+  document.getElementById('sc-proj-end').value      = proj ? (proj.finishDate||''): '';
+  document.getElementById('sc-proj-budget').value   = proj ? (proj.budget||'')   : '';
+  document.getElementById('sc-proj-currency').value = proj ? (proj.currency||'IDR'): 'IDR';
+  document.getElementById('sc-proj-desc').value     = proj ? (proj.desc||'')     : '';
+  document.getElementById('sc-project-modal-ov').classList.add('open');
+};
+window.closeSCProjectModal = function() {
+  document.getElementById('sc-project-modal-ov').classList.remove('open');
+};
+window.saveSCProject = async function() {
+  const name = document.getElementById('sc-proj-name').value.trim();
+  if (!name) { toast('Nama project wajib diisi', true); return; }
+  const id   = scEditProjId || 'sc_' + Date.now().toString(36);
+  const data = {
+    name,
+    startDate:  document.getElementById('sc-proj-start').value,
+    finishDate: document.getElementById('sc-proj-end').value,
+    budget:     document.getElementById('sc-proj-budget').value,
+    currency:   document.getElementById('sc-proj-currency').value || 'IDR',
+    desc:       document.getElementById('sc-proj-desc').value.trim(),
+  };
+  await saveSCurveProject(uid, id, data);
+  closeSCProjectModal();
+  toast('Project disimpan ✓');
+  if (!scEditProjId) {
+    setTimeout(() => {
+      const sel = document.getElementById('sc-project-sel');
+      if (sel) { sel.value = id; window.onSCProjectChange(id); }
+    }, 600);
+  }
+};
+
+window.openSCItemModal = function(projId, itemId) {
+  projId = projId || scCurrentProjectId;
+  if (projId === '__global__') { toast('Pilih project terlebih dahulu', true); return; }
+  scEditItemProjId = projId;
+  scEditItemId = itemId || null;
+  const item = itemId ? (D.scItems[projId]||[]).find(i => i.id === itemId) : null;
+  document.getElementById('sc-item-modal-title').textContent = item ? '✎ Edit Item WBS' : '+ Item WBS Baru';
+  document.getElementById('sc-item-name').value    = item ? (item.name||'')       : '';
+  document.getElementById('sc-item-weight').value  = item ? (item.weight||'')     : '';
+  document.getElementById('sc-item-value').value   = item ? (item.value||'')      : '';
+  document.getElementById('sc-item-start').value   = item ? (item.startDate||'')  : '';
+  document.getElementById('sc-item-finish').value  = item ? (item.finishDate||'') : '';
+  document.getElementById('sc-item-cat').value     = item ? (item.category||'')   : '';
+  document.getElementById('sc-item-del-btn').style.display = item ? 'block' : 'none';
+  document.getElementById('sc-item-modal-ov').classList.add('open');
+};
+window.closeSCItemModal = function() {
+  document.getElementById('sc-item-modal-ov').classList.remove('open');
+};
+window.saveSCItem = async function() {
+  const name = document.getElementById('sc-item-name').value.trim();
+  if (!name) { toast('Nama item wajib diisi', true); return; }
+  const weight = parseFloat(document.getElementById('sc-item-weight').value) || 0;
+  const value  = parseFloat(document.getElementById('sc-item-value').value)  || 0;
+  const id     = scEditItemId || 'sci_' + Date.now().toString(36);
+  const data   = {
+    name, weight, value,
+    startDate:  document.getElementById('sc-item-start').value,
+    finishDate: document.getElementById('sc-item-finish').value,
+    category:   document.getElementById('sc-item-cat').value.trim(),
+    createdAt:  scEditItemId ? undefined : Date.now()
+  };
+  await saveSCurveItem(uid, scEditItemProjId, id, data);
+  closeSCItemModal();
+  toast('Item disimpan ✓');
+};
+window.deleteSCProj = async function(projId) {
+  if (!confirm('Hapus project S-Curve ini? Semua data akan hilang.')) return;
+  await deleteSCurveProject(uid, projId);
+  scCurrentProjectId = '__global__';
+  toast('Project dihapus');
+};
+window.deleteSCItemCurrent = async function(projId, itemId) {
+  projId = projId || scEditItemProjId;
+  itemId = itemId || scEditItemId;
+  if (!confirm('Hapus item WBS ini?')) return;
+  await deleteSCurveItem(uid, projId, itemId);
+  closeSCItemModal();
+  toast('Item dihapus');
+};
+window.editCurrentSCProject   = function() { window.openSCProjectModal(scCurrentProjectId); };
+window.deleteCurrentSCProject = function() { window.deleteSCProj(scCurrentProjectId); };
+window.handleTopbarAdd = function() {
+  if (curView === 'scurve') window.openSCProjectModal();
+  else window.openModal();
+};
+
+
 // ── THEME TOGGLE ──────────────────────────────
 function toggleTheme() {
   const isLight = document.documentElement.classList.toggle('light');
@@ -4749,20 +4850,3 @@ window.toggleTheme = toggleTheme;
     document.documentElement.classList.add('light');
   }
 })();
-
-// ── EXPOSE SC FUNCTIONS TO WINDOW ──────────────
-// window.openSCProjectModal - not found
-// window.closeSCProjectModal - not found
-// window.saveSCProject - not found
-// window.openSCItemModal - not found
-// window.closeSCItemModal - not found
-// window.saveSCItem - not found
-// window.deleteSCProj - not found
-// window.deleteSCItemCurrent - not found
-// window.editCurrentSCProject - not found
-// window.deleteCurrentSCProject - not found
-// window.addSCItemCurrent - not found
-// window.handleTopbarAdd - not found
-</script>
-</body>
-</html>
