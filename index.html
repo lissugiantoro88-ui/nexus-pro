@@ -1397,8 +1397,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
           <option value="__global__">🌐 Global</option>
         </select>
         <div class="vtoggle">
-          <button class="vtbtn active" id="sc-interval-week" onclick="setSCInterval('week',this)">Minggu</button>
-          <button class="vtbtn" id="sc-interval-month" onclick="setSCInterval('month',this)">Bulan</button>
+          <button class="vtbtn active" id="sc-interval-day" onclick="setSCInterval('day',this)">Harian</button>
+          <button class="vtbtn" id="sc-interval-week" onclick="setSCInterval('week',this)">Mingguan</button>
+          <button class="vtbtn" id="sc-interval-month" onclick="setSCInterval('month',this)">Bulanan</button>
         </div>
         <button class="tb-btn primary" onclick="handleTopbarAdd()" style="white-space:nowrap">+ Project</button>
       </div>
@@ -3568,6 +3569,12 @@ let scItemUnsubs = [];
 let scEditingItemId = null;
 let scEditingProjectId = null;
 
+// Expose to window so onclick handlers in HTML can access them
+Object.defineProperty(window, 'scCurrentProjectId', {
+  get: () => scCurrentProjectId,
+  set: (v) => { scCurrentProjectId = v; }
+});
+
 // ── HELPERS ───────────────────────────────────
 function updateSCNav() {
   const el = document.getElementById('nb-scurve');
@@ -3625,11 +3632,23 @@ window.onSCProjectChange = (id) => {
 // ── GENERATE PERIODS ──────────────────────────
 function generatePeriods(startDate, endDate, interval) {
   const periods = [];
-  const start = new Date(startDate + 'T00:00:00');
-  const end   = new Date(endDate   + 'T00:00:00');
+  const start = localMidnight(startDate);
+  const end   = localMidnight(endDate);
   let cur = new Date(start);
 
-  if (interval === 'week') {
+  if (interval === 'day') {
+    while (cur <= end) {
+      const d = cur.toISOString().split('T')[0];
+      const dayNames = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+      periods.push({
+        key:   d,
+        label: `${cur.getDate()}/${cur.getMonth()+1}\n${dayNames[cur.getDay()]}`,
+        start: new Date(cur),
+        end:   new Date(cur)
+      });
+      cur.setDate(cur.getDate() + 1);
+    }
+  } else if (interval === 'week') {
     // Align to Monday
     const day = cur.getDay();
     cur.setDate(cur.getDate() - (day === 0 ? 6 : day - 1));
@@ -4100,44 +4119,53 @@ function renderActualInputs(projId, items, actuals, periods) {
 
   // Show last 8 periods + future
   const todayIdx = getTodayPeriodIndex(periods);
-  const showFrom = Math.max(0, todayIdx - 4);
-  const showPeriods = periods.slice(showFrom, showFrom + 10);
+  // For daily: show all periods; for weekly/monthly: show around today
+  let showPeriods;
+  if (scInterval === 'day') {
+    showPeriods = periods; // show all days
+  } else {
+    const showFrom = Math.max(0, todayIdx - 3);
+    showPeriods = periods.slice(showFrom, showFrom + 12);
+  }
 
   el.innerHTML = showPeriods.map(p => {
     const actual = actuals.find(a => a.id === p.key);
     const cum    = actual ? actual.cumProgress : '';
+    const note   = actual ? (actual.note || '') : '';
     const isPast = p.end < todayMidnight();
     const isNow  = !isPast && p.start <= todayMidnight();
-    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)">
-      <div style="flex:1">
-        <div style="font-size:11px;font-weight:500;color:${isNow?'var(--amber)':isPast?'var(--mist)':'var(--fog)'}">
-          ${isNow ? '▶ ' : ''}${p.label.replace('\n',' ')}
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:10px;color:var(--fog)">Aktual %</span>
+    const labelClean = p.label.replace('\n',' ');
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--line)">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <div style="flex:1;font-size:11px;font-weight:500;color:${isNow?'var(--amber)':isPast?'var(--mist)':'var(--fog)'}">${isNow?'▶ ':''}${labelClean}</div>
+        <span style="font-size:10px;color:var(--fog)">%</span>
         <input type="number" min="0" max="100" step="0.1"
-          value="${cum}"
-          placeholder="0"
-          style="width:70px;background:var(--bg3);border:1px solid ${isNow?'var(--amber)':'var(--line)'};border-radius:var(--rs);padding:5px 8px;color:var(--snow);font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;text-align:center"
-          onchange="saveActualInput('${projId}','${p.key}',this.value)"
+          value="${cum}" placeholder="0" id="cum-${p.key}"
+          style="width:65px;background:var(--bg3);border:1px solid ${isNow?'var(--amber)':'var(--line)'};border-radius:var(--rs);padding:4px 7px;color:var(--snow);font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;text-align:center"
+          onchange="saveActualInput('${projId}','${p.key}',this.value,(document.getElementById('note-${p.key}')||{}).value||'')"
           onfocus="this.style.borderColor='var(--accent)'"
           onblur="this.style.borderColor='${isNow?'var(--amber)':'var(--line)'}'">
-        ${cum ? `<span style="font-size:10px;color:var(--lime)">✓</span>` : ''}
+        <span style="font-size:12px;color:${cum?'var(--lime)':'transparent'}">✓</span>
       </div>
+      <input type="text" id="note-${p.key}"
+        value="${note}" placeholder="Catatan progress..."
+        style="width:100%;background:transparent;border:none;border-bottom:1px dashed var(--line);padding:2px 0;color:var(--fog);font-size:10px;font-family:'Inter',sans-serif;outline:none"
+        onchange="saveActualInput('${projId}','${p.key}',(document.getElementById('cum-${p.key}')||{}).value||0,this.value)">
     </div>`;
   }).join('');
 }
 
-async function saveActualInput(projId, periodKey, value) {
+async function saveActualInput(projId, periodKey, value, note) {
   const cum = parseFloat(value) || 0;
-  await saveSCurveActual(uid, projId, periodKey, { cumProgress: cum });
+  const data = { cumProgress: cum };
+  if (note !== undefined) data.note = note;
+  await saveSCurveActual(uid, projId, periodKey, data);
   if (!D.scActuals[projId]) D.scActuals[projId] = [];
   const existing = D.scActuals[projId].find(a => a.id === periodKey);
-  if (existing) existing.cumProgress = cum;
-  else D.scActuals[projId].push({ id: periodKey, cumProgress: cum });
+  if (existing) { existing.cumProgress = cum; if (note !== undefined) existing.note = note; }
+  else D.scActuals[projId].push({ id: periodKey, cumProgress: cum, note: note||'' });
   renderSCurve();
-  toast('Progress aktual disimpan ✓');
+  toast('Progress disimpan ✓');
 }
 window.saveActualInput = saveActualInput;
 
@@ -4247,6 +4275,11 @@ window.deleteSCItemCurrent = async (projId, itemId) => {
   closeSCItemModal();
   toast('Item dihapus');
 };
+
+// ── S-CURVE WRAPPER FUNCTIONS (accessible from HTML onclick) ──
+window.editCurrentSCProject   = () => openSCProjectModal(scCurrentProjectId);
+window.deleteCurrentSCProject = () => deleteSCProj(scCurrentProjectId);
+window.addSCItemCurrent       = () => openSCItemModal();
 
 // ── THEME TOGGLE ──────────────────────────────
 function applyTheme(mode) {
