@@ -3997,7 +3997,9 @@ function renderSCurve() {
   const actual    = calcActualCurve(actuals, periods);
 
   document.getElementById('sc-period-label').textContent =
-    periods.length > 0 ? `${periods.length} periode (${scInterval})` : '—';
+    scActualTab === 'item'
+      ? 'Input per item'
+      : periods.length > 0 ? `${periods.length} periode (${scInterval})` : '—';
 
   // Draw chart - use double RAF to ensure layout is complete
   requestAnimationFrame(() => requestAnimationFrame(() => drawSCurve(periods, planned, actual, todayIdx)));
@@ -4329,7 +4331,10 @@ function renderItemActualInputs(projId, items, el, tabHtml) {
   });
 
   let tableHtml = `
-  <div style="overflow-x:auto;overflow-y:auto;max-height:500px">
+  <div style="font-size:11px;color:var(--fog);margin-bottom:8px;padding:7px 10px;background:var(--bg3);border-radius:var(--rs);border-left:3px solid var(--accent)">
+    💡 Isi % progress per item per hari langsung di cell. Enter atau klik luar untuk simpan. Kumulatif & chart update otomatis.
+  </div>
+  <div style="overflow-x:auto;overflow-y:auto;max-height:460px">
     <table style="border-collapse:collapse;font-size:11px;min-width:max-content;width:100%">
       <!-- Header: dates -->
       <thead>
@@ -4374,12 +4379,13 @@ function renderItemActualInputs(projId, items, el, tabHtml) {
           const isActive= val !== '' && numVal > 0;
           return `<td style="padding:2px 3px;border-bottom:1px solid var(--line);border-left:1px solid ${isToday?'var(--amber)':'var(--line)'};text-align:center">
             <input type="number" min="0" max="100" step="5"
-              value="${val}"
-              placeholder="${isFuture?'':'-'}"
-              style="width:${colW-6}px;background:${isDone?'rgba(168,255,87,.15)':isActive?'rgba(124,111,255,.1)':'transparent'};border:1px solid ${isDone?'var(--lime)':isActive?'var(--accent)':isToday?'rgba(255,184,48,.3)':'transparent'};border-radius:3px;padding:3px 2px;color:${isDone?'var(--lime)':isActive?'var(--snow)':'var(--fog)'};font-size:11px;font-family:JetBrains Mono,monospace;outline:none;text-align:center;font-weight:${isDone||isActive?600:400}"
+              value="${val!==''?parseFloat(String(val).replace(',','.'))||'':''}"
+              placeholder="${isFuture?'':''}"
+              style="width:${colW-6}px;background:${isDone?'rgba(168,255,87,.15)':isActive?'rgba(124,111,255,.1)':'transparent'};border:1px solid ${isDone?'var(--lime)':isActive?'var(--accent)':isToday?'rgba(255,184,48,.3)':'var(--line)'};border-radius:3px;padding:3px 2px;color:${isDone?'var(--lime)':isActive?'var(--snow)':'var(--fog)'};font-size:11px;font-family:JetBrains Mono,monospace;outline:none;text-align:center;font-weight:${isDone||isActive?600:400}"
+              oninput="this.style.borderColor='var(--accent)';this.style.color='var(--white)'"
               onchange="onItemDailyChange('${projId}','${itemId}','${d}',this.value)"
-              onfocus="this.style.borderColor='var(--accent)';this.style.background='var(--bg3)'"
-              onblur="this.style.borderColor='${isDone?'var(--lime)':isToday?'rgba(255,184,48,.3)':'transparent'}';this.style.background='${isDone?'rgba(168,255,87,.15)':isActive?'rgba(124,111,255,.1)':'transparent'}'">
+              onfocus="this.style.borderColor='var(--accent)';this.style.background='var(--bg3)';this.select()"
+              onblur="onItemDailyChange('${projId}','${itemId}','${d}',this.value);this.style.borderColor='${isDone?'var(--lime)':isToday?'rgba(255,184,48,.3)':'transparent'}';this.style.background='${isDone?'rgba(168,255,87,.15)':isActive?'rgba(124,111,255,.1)':'transparent'}'">
           </td>`;
         }).join('')}
       </tr>`;
@@ -4420,9 +4426,19 @@ function renderItemActualInputs(projId, items, el, tabHtml) {
 }
 
 window.onItemDailyChange = async (projId, itemId, dateStr, value) => {
-  const pct = Math.min(100, Math.max(0, parseFloat(value) || 0));
+  const raw = String(value).replace(',', '.'); // fix decimal separator
+  const pct = Math.min(100, Math.max(0, parseFloat(raw) || 0));
+  if (isNaN(pct)) return;
+  // Update local state immediately for responsive UI
+  if (!D.scItemActuals[projId]) D.scItemActuals[projId] = {};
+  if (!D.scItemActuals[projId][dateStr]) D.scItemActuals[projId][dateStr] = {};
+  D.scItemActuals[projId][dateStr][itemId] = pct;
+  // Save to Firebase
   await saveItemActual(uid, projId, dateStr, itemId, pct);
-  toast('✓ Tersimpan');
+  // Recompute actuals silently
+  await autoComputeActuals(projId);
+  renderSCurve();
+  toast('✓ ' + pct + '%');
 };
 
 
