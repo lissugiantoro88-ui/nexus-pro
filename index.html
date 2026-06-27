@@ -395,6 +395,161 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 
 
 
+
+/* ── SUBTASK PANEL ── */
+.subtask-panel {
+  background:var(--bg2);border:1px solid var(--line2);
+  border-radius:12px;width:680px;max-width:96vw;
+  max-height:88vh;display:flex;flex-direction:column;
+  transform:translateY(10px);transition:transform .2s;
+  overflow:hidden;
+}
+.modal-ov.open .subtask-panel{transform:translateY(0);}
+
+.stp-header {
+  padding:18px 20px 14px;
+  border-bottom:1px solid var(--line);
+  flex-shrink:0;
+}
+.stp-title {
+  font-size:16px;font-weight:700;color:var(--white);
+  display:flex;align-items:center;gap:8px;
+}
+.stp-meta {
+  display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;
+}
+.stp-progress-wrap {
+  padding:12px 20px;border-bottom:1px solid var(--line);flex-shrink:0;
+}
+.stp-progress-bar {
+  height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:6px;
+}
+.stp-progress-fill {
+  height:100%;border-radius:3px;background:var(--lime);
+  transition:width .5s;
+}
+.stp-progress-label {
+  display:flex;justify-content:space-between;
+  font-size:11px;color:var(--fog);font-family:'JetBrains Mono',monospace;
+}
+
+/* Subtask list */
+.stp-body {
+  flex:1;overflow-y:auto;padding:14px 20px;
+}
+.stp-section-label {
+  font-size:9px;letter-spacing:2px;color:var(--fog);
+  text-transform:uppercase;font-family:'JetBrains Mono',monospace;
+  margin-bottom:8px;margin-top:12px;
+}
+.stp-section-label:first-child{margin-top:0;}
+
+/* Subtask item */
+.st-item {
+  background:var(--bg3);border:1px solid var(--line);
+  border-radius:var(--r);margin-bottom:6px;
+  overflow:hidden;transition:all .15s;
+}
+.st-item:hover{border-color:var(--line2);}
+.st-item.done-item{opacity:.55;}
+
+.st-item-header {
+  display:flex;align-items:center;gap:8px;
+  padding:10px 12px;cursor:pointer;
+}
+.st-check {
+  width:16px;height:16px;border-radius:4px;
+  border:1.5px solid var(--line2);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .15s;
+}
+.st-check.done{background:var(--lime);border-color:var(--lime);}
+.st-check.done::after{content:'✓';color:#000;font-size:9px;font-weight:700;}
+.st-check.partial{background:var(--amberd);border-color:var(--amber);}
+.st-check.partial::after{content:'◐';color:var(--amber);font-size:10px;}
+
+.st-name {
+  flex:1;font-size:13px;font-weight:500;color:var(--snow);
+}
+.st-name.done{text-decoration:line-through;color:var(--fog);}
+
+.st-meta-row {
+  display:flex;align-items:center;gap:6px;margin-left:24px;
+  padding:0 12px 8px;flex-wrap:wrap;
+}
+
+/* Sub-subtask items (level 3) */
+.sst-list {
+  background:var(--bg2);border-top:1px solid var(--line);
+  padding:8px 12px 10px 32px;
+}
+.sst-item {
+  display:flex;align-items:center;gap:7px;
+  padding:5px 0;border-bottom:1px solid var(--line);
+}
+.sst-item:last-child{border-bottom:none;}
+.sst-check {
+  width:13px;height:13px;border-radius:3px;
+  border:1.5px solid var(--line2);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .15s;
+}
+.sst-check.done{background:var(--lime);border-color:var(--lime);}
+.sst-check.done::after{content:'✓';color:#000;font-size:8px;font-weight:700;}
+.sst-name{flex:1;font-size:12px;color:var(--mist);}
+.sst-name.done{text-decoration:line-through;color:var(--fog);}
+.sst-due{font-size:10px;color:var(--fog);font-family:'JetBrains Mono',monospace;}
+
+/* Add form */
+.st-add-form {
+  background:var(--bg3);border:1px dashed var(--line2);
+  border-radius:var(--r);padding:10px 12px;margin-bottom:6px;
+}
+.st-add-row {
+  display:flex;gap:6px;align-items:center;margin-bottom:6px;
+}
+.st-add-row:last-child{margin-bottom:0;}
+.st-add-input {
+  flex:1;background:var(--bg2);border:1px solid var(--line);
+  border-radius:var(--rs);padding:7px 10px;color:var(--snow);
+  font-size:12px;font-family:'Inter',sans-serif;outline:none;
+  transition:border-color .15s;
+}
+.st-add-input:focus{border-color:var(--accent);}
+.st-add-btn {
+  padding:6px 12px;border-radius:var(--rs);
+  border:1px solid var(--accent);background:var(--ag);
+  color:var(--accent2);font-size:11px;font-weight:600;
+  cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;
+  white-space:nowrap;
+}
+.st-add-btn:hover{background:var(--accent);color:#fff;}
+.st-add-btn.cancel{border-color:var(--line2);background:transparent;color:var(--fog);}
+.st-add-btn.cancel:hover{color:var(--snow);}
+
+/* Expand toggle */
+.st-expand {
+  font-size:10px;color:var(--fog);cursor:pointer;padding:0 4px;
+  transition:transform .15s;display:inline-block;
+}
+.st-expand.open{transform:rotate(90deg);}
+
+/* Subtask open button on task items */
+.act-btn.subtask-btn { color:var(--teal); }
+.act-btn.subtask-btn:hover { border-color:var(--teal);background:var(--teald); }
+.act-btn.subtask-btn.has-sub {
+  background:var(--teald);border-color:rgba(45,255,212,.3);color:var(--teal);
+}
+
+/* Mini progress bar on task list items */
+.task-progress-mini {
+  height:3px;background:var(--bg3);border-radius:2px;
+  margin-top:4px;overflow:hidden;width:100%;
+}
+.task-progress-mini-fill {
+  height:100%;border-radius:2px;background:var(--lime);transition:width .4s;
+}
+
 /* ── FOCUS QUEUE ── */
 .fq-item {
   display:flex;align-items:flex-start;gap:8px;
@@ -1284,6 +1439,57 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 </div>
 
 
+
+<!-- SUBTASK PANEL MODAL -->
+<div class="modal-ov" id="subtask-modal-ov" onclick="closeSubtaskModalOut(event)">
+  <div class="subtask-panel">
+
+    <!-- Header -->
+    <div class="stp-header">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div style="flex:1">
+          <div class="stp-title">
+            <span style="color:var(--accent)">◈</span>
+            <span id="stp-title-text">Task</span>
+          </div>
+          <div class="stp-meta" id="stp-meta-row"></div>
+        </div>
+        <button class="modal-x" onclick="closeSubtaskModal()">✕</button>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="stp-progress-wrap">
+      <div class="stp-progress-label">
+        <span id="stp-progress-label">Progress</span>
+        <span id="stp-progress-pct" style="color:var(--lime);font-weight:600">0%</span>
+      </div>
+      <div class="stp-progress-bar">
+        <div class="stp-progress-fill" id="stp-progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Body: subtask list -->
+    <div class="stp-body" id="stp-body">
+      <div class="empty"><div class="empty-sub">Memuat subtask...</div></div>
+    </div>
+
+    <!-- Footer: add subtask -->
+    <div style="padding:12px 20px;border-top:1px solid var(--line);flex-shrink:0">
+      <div class="st-add-row">
+        <input class="st-add-input" id="new-subtask-name" placeholder="+ Tambah subtask baru..." onkeydown="if(event.key==='Enter')addSubtaskItem()">
+        <input class="st-add-input" type="date" id="new-subtask-due" style="width:130px">
+        <select class="fld-sel" id="new-subtask-prio" style="width:auto;padding:6px 8px;font-size:11px">
+          <option value="high">🔴 High</option>
+          <option value="medium" selected>🟡 Medium</option>
+          <option value="low">🟢 Low</option>
+        </select>
+        <button class="st-add-btn" onclick="addSubtaskItem()">+ Tambah</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- REMINDER MODAL -->
 <div class="modal-ov" id="reminder-modal-ov" onclick="closeReminderModalOut(event)">
   <div class="reminder-modal">
@@ -1369,12 +1575,14 @@ import {
   addNote, updateNote, deleteNote as dbDeleteNote, listenNotes,
   saveReview, listenReviews,
   saveRetroDoc as dbSaveRetroDoc, listenRetros,
-  saveReminder, deleteReminder, listenReminders
+  saveReminder, deleteReminder, listenReminders,
+  addSubtask, updateSubtask, deleteSubtask, listenSubtasks,
+  addSubSubtask, updateSubSubtask, deleteSubSubtask, listenSubSubtasks
 } from "./db.js";
 
 // ── STATE ─────────────────────────────────────
 let uid = null;
-let D = { tasks:[], habits:[], habitLogs:{}, delegations:[], notes:[], reviews:{}, retro:{}, retros:{}, reminders:{} };
+let D = { tasks:[], habits:[], habitLogs:{}, delegations:[], notes:[], reviews:{}, retro:{}, retros:{}, reminders:{}, subtasks:{}, subsubtasks:{} };
 let unsubs = [];
 let curView = 'dashboard';
 let taskF = 'all', taskV = 'list', tlF = 'all';
@@ -1517,6 +1725,9 @@ function startListeners(){
 
   // Register service worker
   registerSW();
+
+  // Load subtasks for progress bars (after tasks load)
+  setTimeout(loadAllSubtasks, 1500);
 }
 
 // ── NAV ───────────────────────────────────────
@@ -1993,7 +2204,7 @@ function renderTasks(){
   document.getElementById('tasks-sub').textContent=`${D.tasks.filter(t=>t.status!=='done').length} aktif · ${D.tasks.filter(t=>t.status==='done').length} selesai`;
   document.getElementById('tasks-list').innerHTML=tasks.length===0?emptyHTML('◈','Tidak ada task')
     :tasks.map(t=>{const tr=getReminderSummary(t.id);return`<div class="ti"><div class="ti-check ${t.status==='done'?'done':''}" onclick="doMarkDone('${t.id}')"></div><div style="flex:1"><div class="ti-name ${t.status==='done'?'done':''}">${t.name}</div>${t.notes?`<div style="font-size:10px;color:var(--fog);margin-top:1px">${t.notes}</div>`:''
-}${tr?`<div style="font-size:10px;color:var(--amber);margin-top:2px">⏰ ${tr}</div>`:''}</div><div class="pdot ${t.priority}"></div><div class="tdate ${isOv(t.due)&&t.status!=='done'?'ov':''}">${FMT(t.due)}</div><div class="tag ${sTag(t.status)}">${sLbl(t.status)}</div><div class="item-actions"><button class="act-btn" onclick="doCycleTask('${t.id}')" title="Ganti status">⟳</button><button class="act-btn edit" onclick="openEditTask('${t.id}')" title="Edit">✎</button><button class="act-btn ${hasReminder(t.id)?'bell-on':'bell-off'}" onclick="openReminderModal('${t.id}','task','${t.name.replace(/'/g,'')}','${t.due||''}')" title="${hasReminder(t.id)?'⏰ Ada reminder aktif — klik untuk edit':'Tambah reminder'}">🔔</button><button class="act-btn del" onclick="doDelTask('${t.id}')" title="Hapus">✕</button></div></div>`}).join('');
+}${tr?`<div style="font-size:10px;color:var(--amber);margin-top:2px">⏰ ${tr}</div>`:''}${getSubtaskProgress(t.id)!==null?`<div class="task-progress-mini"><div class="task-progress-mini-fill" style="width:${getSubtaskProgress(t.id)}%"></div></div><div style="font-size:9px;color:var(--fog);margin-top:2px">${getSubtaskProgress(t.id)}% subtask selesai</div>`:''}</div><div class="pdot ${t.priority}"></div><div class="tdate ${isOv(t.due)&&t.status!=='done'?'ov':''}">${FMT(t.due)}</div><div class="tag ${sTag(t.status)}">${sLbl(t.status)}</div><div class="item-actions"><button class="act-btn" onclick="doCycleTask('${t.id}')" title="Ganti status">⟳</button><button class="act-btn subtask-btn ${hasSubtasks(t.id)?'has-sub':''}" onclick="openSubtaskModal('${t.id}')" title="${hasSubtasks(t.id)?'Lihat subtask':'Tambah subtask'}">⊞</button><button class="act-btn edit" onclick="openEditTask('${t.id}')" title="Edit">✎</button><button class="act-btn ${hasReminder(t.id)?'bell-on':'bell-off'}" onclick="openReminderModal('${t.id}','task','${t.name.replace(/'/g,'')}','${t.due||''}')" title="${hasReminder(t.id)?'⏰ Ada reminder aktif — klik untuk edit':'Tambah reminder'}">🔔</button><button class="act-btn del" onclick="doDelTask('${t.id}')" title="Hapus">✕</button></div></div>`}).join('');
   ['todo','inprogress','review','done'].forEach((s,i)=>{
     const ids=['todo','ip','rv','dn'];
     const cards=[...D.tasks].reverse().filter(t=>t.status===s);
@@ -2687,6 +2898,243 @@ function openIDB() {
     };
     req.onsuccess = e => res(e.target.result);
     req.onerror = rej;
+  });
+}
+
+// ── SUBTASK SYSTEM ────────────────────────────
+let subtaskModalTaskId = null;
+let subtaskUnsubs = [];
+let expandedSubtasks = new Set();
+
+// Helper: does task have any subtasks?
+function hasSubtasks(taskId) {
+  return (D.subtasks[taskId] || []).length > 0;
+}
+
+// Helper: get subtask progress % (null if no subtasks)
+function getSubtaskProgress(taskId) {
+  const subs = D.subtasks[taskId];
+  if (!subs || subs.length === 0) return null;
+  const total = subs.length;
+  const done  = subs.filter(s => s.status === 'done').length;
+  return Math.round(done / total * 100);
+}
+
+// Open subtask modal for a task
+window.openSubtaskModal = async (taskId) => {
+  subtaskModalTaskId = taskId;
+  const task = D.tasks.find(t => t.id === taskId);
+  if (!task) return;
+
+  // Set header
+  document.getElementById('stp-title-text').textContent = task.name;
+  document.getElementById('stp-meta-row').innerHTML = `
+    <div class="pill ${task.priority}">${task.priority}</div>
+    <div class="pill ${task.status}">${sLbl(task.status)}</div>
+    ${task.due ? `<div class="tdate" style="font-size:11px">⏱ ${FMT(task.due)}</div>` : ''}
+    ${task.category ? `<div class="tl-cat">${task.category}</div>` : ''}
+  `;
+
+  // Set default due date
+  document.getElementById('new-subtask-due').value = task.due || TS();
+
+  document.getElementById('subtask-modal-ov').classList.add('open');
+
+  // Start listening to subtasks
+  subtaskUnsubs.forEach(u => u());
+  subtaskUnsubs = [];
+
+  // Listen subtasks
+  subtaskUnsubs.push(listenSubtasks(uid, taskId, subs => {
+    D.subtasks[taskId] = subs;
+    // For each subtask, listen to its sub-subtasks
+    subs.forEach(st => {
+      if (!D.subsubtasks[st.id]) {
+        subtaskUnsubs.push(listenSubSubtasks(uid, taskId, st.id, items => {
+          D.subsubtasks[st.id] = items;
+          renderSubtaskPanel();
+        }));
+      }
+    });
+    renderSubtaskPanel();
+  }));
+};
+
+window.closeSubtaskModal = () => {
+  document.getElementById('subtask-modal-ov').classList.remove('open');
+  subtaskUnsubs.forEach(u => u());
+  subtaskUnsubs = [];
+  subtaskModalTaskId = null;
+};
+window.closeSubtaskModalOut = e => {
+  if (e.target === document.getElementById('subtask-modal-ov')) closeSubtaskModal();
+};
+
+function renderSubtaskPanel() {
+  const taskId = subtaskModalTaskId;
+  if (!taskId) return;
+  const subs = [...(D.subtasks[taskId] || [])].reverse();
+
+  // Progress
+  const total = subs.length;
+  const done  = subs.filter(s => s.status === 'done').length;
+  const pct   = total > 0 ? Math.round(done / total * 100) : 0;
+
+  document.getElementById('stp-progress-label').textContent = `${done} dari ${total} subtask selesai`;
+  document.getElementById('stp-progress-pct').textContent   = pct + '%';
+  document.getElementById('stp-progress-fill').style.width  = pct + '%';
+
+  // Color ring based on progress
+  const fillEl = document.getElementById('stp-progress-fill');
+  fillEl.style.background = pct === 100 ? 'var(--lime)' : pct >= 50 ? 'var(--accent)' : 'var(--amber)';
+
+  const body = document.getElementById('stp-body');
+  if (total === 0) {
+    body.innerHTML = `<div class="empty" style="padding:24px 0">
+      <div class="empty-ico">⊞</div>
+      <div class="empty-ttl">Belum ada subtask</div>
+      <div class="empty-sub">Tambah subtask di bawah untuk memecah task ini</div>
+    </div>`;
+    return;
+  }
+
+  body.innerHTML = subs.map(st => {
+    const sst   = [...(D.subsubtasks[st.id] || [])].reverse();
+    const sstTotal = sst.length;
+    const sstDone  = sst.filter(s => s.done).length;
+    const sstPct   = sstTotal > 0 ? Math.round(sstDone / sstTotal * 100) : null;
+    const expanded = expandedSubtasks.has(st.id);
+    const isDone   = st.status === 'done';
+
+    // Determine check state
+    let checkCls = isDone ? 'done' : (sstPct !== null && sstPct > 0 && sstPct < 100) ? 'partial' : '';
+
+    const dueL = st.due ? dueDateLabel(st.due, st.status) : null;
+
+    return `<div class="st-item ${isDone ? 'done-item' : ''}">
+      <div class="st-item-header">
+        <div class="st-check ${checkCls}" onclick="toggleSubtaskDone('${taskId}','${st.id}',${isDone})"></div>
+        <div class="st-name ${isDone ? 'done' : ''}" style="flex:1">${st.name}</div>
+        ${sstTotal > 0 ? `<span style="font-size:10px;color:var(--fog);margin-right:4px">${sstDone}/${sstTotal}</span>` : ''}
+        <span class="st-expand ${expanded ? 'open' : ''}" onclick="toggleExpandST('${st.id}')">›</span>
+        <div style="display:flex;gap:3px;margin-left:4px">
+          <button class="act-btn edit" onclick="openAddSubSubtask('${taskId}','${st.id}')" title="Tambah sub-item" style="width:20px;height:20px;font-size:10px">+</button>
+          <button class="act-btn del" onclick="doDeleteSubtask('${taskId}','${st.id}')" title="Hapus subtask" style="width:20px;height:20px;font-size:10px">✕</button>
+        </div>
+      </div>
+      <div class="st-meta-row">
+        ${st.priority ? `<span class="pill ${st.priority}" style="font-size:9px">${st.priority}</span>` : ''}
+        ${dueL ? `<span class="tdate ${dueL.cls}" style="font-size:10px">⏱ ${dueL.text}</span>` : ''}
+        ${sstPct !== null ? `<div style="flex:1;min-width:80px"><div class="task-progress-mini"><div class="task-progress-mini-fill" style="width:${sstPct}%;background:var(--teal)"></div></div></div>` : ''}
+      </div>
+      ${expanded ? `<div class="sst-list">
+        ${sst.length === 0 ? '<div style="font-size:11px;color:var(--fog);padding:4px 0">Belum ada sub-item</div>' :
+          sst.map(item => `<div class="sst-item">
+            <div class="sst-check ${item.done ? 'done' : ''}" onclick="toggleSSTDone('${taskId}','${st.id}','${item.id}',${!!item.done})"></div>
+            <div class="sst-name ${item.done ? 'done' : ''}">${item.name}</div>
+            ${item.due ? `<div class="sst-due">⏱ ${FMT(item.due)}</div>` : ''}
+            <button class="act-btn del" onclick="doDeleteSST('${taskId}','${st.id}','${item.id}')" style="width:16px;height:16px;font-size:9px">✕</button>
+          </div>`).join('')}
+        <div class="st-add-row" style="margin-top:8px">
+          <input class="st-add-input" id="new-sst-${st.id}" placeholder="+ Tambah sub-item..." onkeydown="if(event.key==='Enter')addSSTItem('${taskId}','${st.id}')">
+          <input class="st-add-input" type="date" id="new-sst-due-${st.id}" style="width:120px">
+          <button class="st-add-btn" onclick="addSSTItem('${taskId}','${st.id}')">+</button>
+        </div>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// Toggle expand sub-subtask list
+window.toggleExpandST = (stId) => {
+  if (expandedSubtasks.has(stId)) expandedSubtasks.delete(stId);
+  else expandedSubtasks.add(stId);
+  renderSubtaskPanel();
+};
+
+// Add subtask
+window.addSubtaskItem = async () => {
+  const name = document.getElementById('new-subtask-name').value.trim();
+  if (!name) return toast('Nama subtask wajib diisi', true);
+  const due  = document.getElementById('new-subtask-due').value;
+  const prio = document.getElementById('new-subtask-prio').value;
+  await addSubtask(uid, subtaskModalTaskId, {
+    name, due, priority: prio, status: 'todo', created: TS()
+  });
+  document.getElementById('new-subtask-name').value = '';
+  toast('Subtask ditambahkan ✓');
+};
+
+// Toggle subtask done
+window.toggleSubtaskDone = async (taskId, stId, isDone) => {
+  await updateSubtask(uid, taskId, stId, { status: isDone ? 'todo' : 'done' });
+  // Auto-update parent task status if all subtasks done
+  const subs = D.subtasks[taskId] || [];
+  const allDone = subs.every(s => s.id === stId ? !isDone : s.status === 'done');
+  if (allDone && subs.length > 0) {
+    await updateTask(uid, taskId, { status: 'done' });
+    toast('Semua subtask selesai — task utama ditandai selesai ✓');
+  }
+};
+
+// Delete subtask
+window.doDeleteSubtask = async (taskId, stId) => {
+  if (!confirm('Hapus subtask ini?')) return;
+  await deleteSubtask(uid, taskId, stId);
+  toast('Subtask dihapus');
+};
+
+// Open add sub-subtask (expand the subtask)
+window.openAddSubSubtask = (taskId, stId) => {
+  expandedSubtasks.add(stId);
+  renderSubtaskPanel();
+  setTimeout(() => {
+    const el = document.getElementById('new-sst-' + stId);
+    if (el) el.focus();
+  }, 100);
+};
+
+// Add sub-subtask
+window.addSSTItem = async (taskId, stId) => {
+  const el  = document.getElementById('new-sst-' + stId);
+  const due = document.getElementById('new-sst-due-' + stId);
+  if (!el) return;
+  const name = el.value.trim();
+  if (!name) return toast('Nama sub-item wajib diisi', true);
+  await addSubSubtask(uid, taskId, stId, {
+    name, due: due ? due.value : '', done: false, created: TS()
+  });
+  el.value = '';
+  toast('Sub-item ditambahkan ✓');
+};
+
+// Toggle sub-subtask done
+window.toggleSSTDone = async (taskId, stId, itemId, isDone) => {
+  await updateSubSubtask(uid, taskId, stId, itemId, { done: !isDone });
+  // Check if all sub-subtasks done → auto complete subtask
+  const items = D.subsubtasks[stId] || [];
+  const allDone = items.every(i => i.id === itemId ? !isDone : i.done);
+  if (allDone && items.length > 0) {
+    await updateSubtask(uid, taskId, stId, { status: 'done' });
+  }
+};
+
+// Delete sub-subtask
+window.doDeleteSST = async (taskId, stId, itemId) => {
+  await deleteSubSubtask(uid, taskId, stId, itemId);
+  toast('Sub-item dihapus');
+};
+
+// Load subtasks for all tasks (for progress bars in list)
+function loadAllSubtasks() {
+  D.tasks.forEach(t => {
+    if (!D.subtasks[t.id]) {
+      listenSubtasks(uid, t.id, subs => {
+        D.subtasks[t.id] = subs;
+        renderTasks();
+        renderDashboard();
+      });
+    }
   });
 }
 
