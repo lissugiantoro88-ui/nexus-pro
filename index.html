@@ -4210,17 +4210,17 @@ async function autoComputeActuals(projId) {
   // "Latest known %" = most recent entry on or before this date
   for (const dateStr of dates) {
     let cumTotal = 0;
-    items.forEach(item => {
-      let latestPct = 0;
-      for (const d of dates) {
-        if (d > dateStr) break;
+    // Cell value = direct % contribution to project total
+    // Cumulative = sum all daily contributions up to this date
+    for (const d of dates) {
+      if (d > dateStr) break;
+      items.forEach(item => {
         const dayData = itemActuals[d];
         if (dayData && dayData[item.id] !== undefined) {
-          latestPct = parseFloat(dayData[item.id]) || 0;
+          cumTotal += parseFloat(dayData[item.id]) || 0;
         }
-      }
-      cumTotal += (parseFloat(item.weight)||0) / totalWeight * latestPct;
-    });
+      });
+    }
     const cum = Math.min(100, Math.round(cumTotal * 100) / 100);
     if (cum === 0) continue; // skip zero dates
 
@@ -4301,27 +4301,23 @@ function renderItemActualInputs(projId, items, el, tabHtml) {
 
   // Compute daily total contribution to project %
   function getDailyTotal(date) {
+    // Cell value = direct % contribution to project total (like PDF format)
+    // Just sum all cell values for this date
     let total = 0;
     items.forEach(item => {
-      const pct = parseFloat(getDailyPct(item.id, date)) || 0;
-      total += (parseFloat(item.weight)||0) / totalWeight * pct;
+      const val = parseFloat(getDailyPct(item.id, date)) || 0;
+      total += val;
     });
     return Math.round(total * 100) / 100;
   }
 
-  // Compute cumulative total up to date
+  // Compute cumulative total up to date = sum of all daily totals
   function getCumTotal(upToDate) {
     let total = 0;
-    items.forEach(item => {
-      // Latest known % for this item up to upToDate
-      let latestPct = 0;
-      for (const d of dates) {
-        if (d > upToDate) break;
-        const v = getDailyPct(item.id, d);
-        if (v !== '') latestPct = parseFloat(v)||0;
-      }
-      total += (parseFloat(item.weight)||0) / totalWeight * latestPct;
-    });
+    for (const d of dates) {
+      if (d > upToDate) break;
+      total += getDailyTotal(d);
+    }
     return Math.round(total * 100) / 100;
   }
 
@@ -4440,6 +4436,7 @@ window.onItemDailyChange = async (projId, itemId, dateStr, value) => {
   if (!D.scItemActuals[projId]) D.scItemActuals[projId] = {};
   if (!D.scItemActuals[projId][dateStr]) D.scItemActuals[projId][dateStr] = {};
   D.scItemActuals[projId][dateStr][itemId] = pct;
+  // pct here = direct % contribution to project total
   // Save to Firebase
   await saveItemActual(uid, projId, dateStr, itemId, pct);
   // Recompute actuals silently
