@@ -177,3 +177,41 @@ export function listenSubSubtasks(uid, parentId, subtaskId, callback) {
     callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
   });
 }
+// ── S-CURVE ───────────────────────────────────
+export async function saveSCurveProject(uid, id, data) {
+  const r = doc(db, "users", uid, "scurve", id);
+  return setDoc(r, { ...data, updatedAt: serverTimestamp() }, { merge: true });
+}
+export async function deleteSCurveProject(uid, id) {
+  return deleteDoc(doc(db, "users", uid, "scurve", id));
+}
+export function listenSCurveProjects(uid, callback) {
+  return onSnapshot(
+    query(collection(db, "users", uid, "scurve"), orderBy("updatedAt", "desc")),
+    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+  );
+}
+export async function saveSCurveItem(uid, projectId, itemId, data) {
+  const r = doc(db, "users", uid, "scurve", projectId, "items", itemId);
+  return setDoc(r, data, { merge: true });
+}
+export async function deleteSCurveItem(uid, projectId, itemId) {
+  return deleteDoc(doc(db, "users", uid, "scurve", projectId, "items", itemId));
+}
+export function listenSCurveItems(uid, projectId, callback) {
+  return onSnapshot(
+    query(collection(db, "users", uid, "scurve", projectId, "items"), orderBy("createdAt", "asc")),
+    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+  );
+}
+export async function saveSCurveActual(uid, projectId, dateKey, data) {
+  // dateKey = "2025-W26" or "2025-06"
+  const r = doc(db, "users", uid, "scurve", projectId, "actuals", dateKey);
+  return setDoc(r, { ...data, updatedAt: serverTimestamp() }, { merge: true });
+}
+export function listenSCurveActuals(uid, projectId, callback) {
+  return onSnapshot(
+    collection(db, "users", uid, "scurve", projectId, "actuals"),
+    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+  );
+}
