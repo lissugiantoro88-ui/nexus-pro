@@ -3995,42 +3995,34 @@ function getTodayPeriodIndex(periods) {
 // ── CALCULATE PLANNED CURVE ─────────────────────
 function calcPlannedCurve(items, periods) {
   if (periods.length === 0) return [];
-  const totalWeight = items.reduce((s,it) => s + (parseFloat(it.weight)||0), 0) || 100;
+  // Use LINEAR distribution: bobot dibagi rata per hari dalam durasi item
+  // Ini menghasilkan angka yang sama persis dengan format PDF
   const planned = new Array(periods.length).fill(0);
 
   items.forEach(item => {
-    const w = (parseFloat(item.weight)||0) / totalWeight * 100;
-    if (!item.startDate || !item.finishDate) {
-      // No dates: spread evenly
-      periods.forEach((_,i) => planned[i] += w / periods.length);
-      return;
-    }
+    const w = parseFloat(item.weight) || 0;
+    if (!item.startDate || !item.finishDate) return;
     const iStart = localMidnight(item.startDate);
     const iEnd   = localMidnight(item.finishDate);
-    const iDur   = Math.max(1, (iEnd - iStart) / 86400000);
+    // Durasi = jumlah hari inklusif
+    const iDur = Math.round((iEnd - iStart) / 86400000) + 1;
+    const wPerDay = w / iDur; // bobot per hari (linear)
 
     periods.forEach((p, idx) => {
-      const oStart = new Date(Math.max(iStart, p.start));
-      const oEnd   = new Date(Math.min(iEnd, p.end));
+      const oStart = new Date(Math.max(iStart.getTime(), p.start.getTime()));
+      const oEnd   = new Date(Math.min(iEnd.getTime(),   p.end.getTime()));
       if (oEnd < oStart) return;
-      const overlap  = Math.max(0, (oEnd - oStart) / 86400000 + 1);
-      const midProg  = ((oStart - iStart) / 86400000 + overlap / 2) / iDur;
-      // Bell curve: more work in middle → creates S-shape when cumulated
-      const bell     = Math.exp(-Math.pow((midProg - 0.5) * 3.5, 2) / 2);
-      planned[idx]  += w * (overlap / iDur) * (0.3 + 0.7 * bell);
+      const days = Math.round((oEnd - oStart) / 86400000) + 1;
+      planned[idx] += wPerDay * days;
     });
   });
 
-  // Normalize so total = sum of weights %
-  const rawSum = planned.reduce((s,v) => s+v, 0);
-  if (rawSum > 0) {
-    const target = items.reduce((s,it) => s + (parseFloat(it.weight)||0), 0) / totalWeight * 100;
-    planned.forEach((_,i) => planned[i] = planned[i] / rawSum * target);
-  }
+  // Round each period value
+  planned.forEach((v, i) => { planned[i] = Math.round(v * 100) / 100; });
 
   // Cumulative sum
   let cum = 0;
-  return planned.map(v => { cum += v; return Math.min(100, Math.round(cum*10)/10); });
+  return planned.map(v => { cum += v; return Math.round(cum * 100) / 100; });
 }
 
 
@@ -4270,7 +4262,25 @@ function renderSCurve() {
 
   const periods   = generatePeriods(proj.startDate, proj.finishDate, scInterval);
   const todayIdx  = getTodayPeriodIndex(periods);
-  const planned   = calcPlannedCurve(items, periods);
+
+  // Use stored plannedCum if available (from PDF import), else calculate
+  const hasStoredPlan = actuals.some(a => a.plannedCum && a.plannedCum > 0);
+  let planned;
+  if (hasStoredPlan && scInterval === 'day') {
+    // Use stored daily plannedCum values
+    planned = periods.map(p => {
+      const stored = actuals.find(a => a.id === p.key);
+      return stored && stored.plannedCum ? stored.plannedCum : null;
+    });
+    // Fill nulls by interpolation
+    let lastVal = 0;
+    planned = planned.map(v => {
+      if (v !== null) { lastVal = v; return v; }
+      return lastVal;
+    });
+  } else {
+    planned = calcPlannedCurve(items, periods);
+  }
   const actual    = calcActualCurve(actuals, periods);
 
   document.getElementById('sc-period-label').textContent =
@@ -4806,13 +4816,14 @@ window.saveSCItem = async function() {
   const weight = parseFloat(document.getElementById('sc-item-weight').value) || 0;
   const value  = parseFloat(document.getElementById('sc-item-value').value)  || 0;
   const id     = scEditItemId || 'sci_' + Date.now().toString(36);
-  const data   = {
+  const data = {
     name, weight, value,
     startDate:  document.getElementById('sc-item-start').value,
     finishDate: document.getElementById('sc-item-finish').value,
     category:   document.getElementById('sc-item-cat').value.trim(),
-    createdAt:  scEditItemId ? undefined : Date.now()
   };
+  // Only set createdAt on NEW items, never on edit
+  if (!scEditItemId) data.createdAt = Date.now();
   await saveSCurveItem(uid, scEditItemProjId, id, data);
   closeSCItemModal();
   toast('Item disimpan ✓');
