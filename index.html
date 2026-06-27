@@ -1404,7 +1404,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
       </div>
 
       <!-- S-Curve Chart Area -->
-      <div style="background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin-bottom:14px">
+      <div style="background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin-bottom:14px;overflow:hidden;min-width:0">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
           <div>
             <div style="font-size:15px;font-weight:700;color:var(--white)" id="sc-chart-title">S-Curve</div>
@@ -1423,13 +1423,17 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
       </div>
 
       <!-- Two column layout -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;min-width:0">
 
         <!-- Left: WBS / Item List -->
         <div style="background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);overflow:hidden">
-          <div style="padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between">
+          <div style="padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:8px">
             <div style="font-size:11px;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:1px">Work Breakdown Structure</div>
-            <button class="tb-btn" style="font-size:11px;padding:5px 10px" onclick="openSCItemModal()">+ Item</button>
+            <div style="display:flex;gap:6px">
+              <button class="tb-btn" style="font-size:11px;padding:5px 10px" onclick="openSCProjectModal(scCurrentProjectId)">✎ Edit Project</button>
+              <button class="tb-btn" style="font-size:11px;padding:5px 10px;border-color:var(--rose);color:var(--rose)" onclick="deleteSCProj(scCurrentProjectId)">🗑 Hapus Project</button>
+              <button class="tb-btn primary" style="font-size:11px;padding:5px 10px" onclick="openSCItemModal()">+ Item</button>
+            </div>
           </div>
           <!-- WBS Table Header -->
           <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;padding:8px 14px;border-bottom:1px solid var(--line);font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px;font-weight:600">
@@ -2963,6 +2967,14 @@ let reminderModalItemName = null;
 let reminderModalItemDue = null;
 
 // Register Service Worker
+// Redraw S-Curve on resize
+window.addEventListener('resize', () => {
+  if (curView === 'scurve') {
+    clearTimeout(window._scResizeTimer);
+    window._scResizeTimer = setTimeout(() => renderSCurve(), 200);
+  }
+});
+
 async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   try {
@@ -3718,16 +3730,15 @@ function drawSCurve(periods, planned, actual, todayIdx) {
   const ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
 
-  // Set actual pixel size
-  const rect = canvas.parentElement.getBoundingClientRect();
-  canvas.width  = rect.width  * dpr;
-  canvas.height = 320 * dpr;
-  canvas.style.width  = rect.width  + 'px';
-  canvas.style.height = '320px';
-  ctx.scale(dpr, dpr);
-
-  const W = rect.width;
+  // Set actual pixel size - use multiple fallbacks for reliability
+  const parent = canvas.parentElement;
+  const W = parent.offsetWidth || parent.clientWidth || 800;
   const H = 320;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
   const PAD = { top: 20, right: 20, bottom: 50, left: 52 };
   const chartW = W - PAD.left - PAD.right;
   const chartH = H - PAD.top  - PAD.bottom;
@@ -3946,8 +3957,8 @@ function renderSCurve() {
   document.getElementById('sc-period-label').textContent =
     periods.length > 0 ? `${periods.length} periode (${scInterval})` : '—';
 
-  // Draw chart
-  requestAnimationFrame(() => drawSCurve(periods, planned, actual, todayIdx));
+  // Draw chart - use double RAF to ensure layout is complete
+  requestAnimationFrame(() => requestAnimationFrame(() => drawSCurve(periods, planned, actual, todayIdx)));
 
   // Status bar
   const lastActualPt = actual.reduce((acc, v, i) => v !== null ? { i, v } : acc, null);
