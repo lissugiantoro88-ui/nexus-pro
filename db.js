@@ -215,3 +215,28 @@ export function listenSCurveActuals(uid, projectId, callback) {
     snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
   );
 }
+// ── PER-ITEM ACTUALS ──────────────────────────
+// Store: users/{uid}/scurve/{projId}/itemActuals/{dateStr_itemId}
+export async function saveItemActual(uid, projId, dateStr, itemId, pct) {
+  const docId = `${dateStr}_${itemId}`;
+  return setDoc(
+    doc(db, "users", uid, "scurve", projId, "itemActuals", docId),
+    { dateStr, itemId, pct, updatedAt: serverTimestamp() },
+    { merge: true }
+  );
+}
+export function listenItemActuals(uid, projId, callback) {
+  return onSnapshot(
+    collection(db, "users", uid, "scurve", projId, "itemActuals"),
+    snap => {
+      // Return as { "2026-06-25": { "sci_1_1": 100, "sci_2_1": 50, ... }, ... }
+      const result = {};
+      snap.docs.forEach(d => {
+        const { dateStr, itemId, pct } = d.data();
+        if (!result[dateStr]) result[dateStr] = {};
+        result[dateStr][itemId] = pct;
+      });
+      callback(result);
+    }
+  );
+}
