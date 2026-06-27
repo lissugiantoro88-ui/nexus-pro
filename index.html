@@ -1388,10 +1388,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 
       <!-- Top bar: project selector + controls -->
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">
-        <div>
-          <div class="view-title">S-Curve</div>
-          <div class="view-sub">Progress tracking — Planned vs Actual</div>
-        </div>
         <div style="flex:1;min-width:0"></div>
         <select class="fld-sel" id="sc-project-sel" style="max-width:200px;font-size:12px" onchange="onSCProjectChange(this.value)">
           <option value="__global__">🌐 Global</option>
@@ -2316,6 +2312,9 @@ window.nav = (v,el) => {
     updateSCNav();
     renderSCurve();
   }
+  // Show topbar add button only on non-scurve views
+  const topbarBtn = document.getElementById('topbar-add-btn');
+  if(topbarBtn) topbarBtn.style.display = (v==='scurve') ? 'none' : '';
   renderAll();
 };
 
@@ -4287,17 +4286,21 @@ function renderSCurve() {
   const todayStr  = TS();
 
   // Find today's planned cumulative
-  const todayPlanned = todayIdx >= 0 && todayIdx < planned.length
-    ? planned[todayIdx]
-    : planned[planned.length - 1] || 0;
+  // todayIdx = index of today in periods array (-1 if before start, periods.length if after end)
+  let todayPlanned = 0;
+  if (planned.length > 0) {
+    if (todayIdx < 0) todayPlanned = 0; // before project start
+    else if (todayIdx >= planned.length) todayPlanned = planned[planned.length-1]; // after end
+    else todayPlanned = planned[todayIdx]; // today is within project
+  }
 
   // Find latest actual (most recent non-null)
   const lastActualPt = actual.reduce((acc, v, i) => v !== null ? { i, v } : acc, null);
 
   if (lastActualPt) {
-    // Compare latest actual vs planned at SAME point in time (not 100%)
-    const plannedAtActual = planned[lastActualPt.i] || 0;
-    const dev      = Math.round((lastActualPt.v - plannedAtActual) * 10) / 10;
+    // Deviasi = actual kumulatif terakhir vs target rencana HARI INI
+    // (bukan vs planned di titik aktual, tapi vs planned hari ini)
+    const dev = Math.round((lastActualPt.v - todayPlanned) * 10) / 10;
     const isAhead  = dev >= 0;
     const devColor = isAhead ? 'var(--lime)' : 'var(--rose)';
     statusBar.innerHTML =
