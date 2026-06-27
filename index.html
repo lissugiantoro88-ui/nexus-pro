@@ -1850,7 +1850,7 @@ let curRP = 'morning';
 let authMode = 'login';
 
 // ── HELPERS ───────────────────────────────────
-const TS = () => new Date().toISOString().split('T')[0];
+const TS = () => { const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'); };
 const FMT = d => { if(!d) return '—'; return new Date(d+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short'}); };
 // ── DATE HELPERS — timezone-safe (WIB/UTC+7 friendly) ──
 function localMidnight(dateStr) {
@@ -1864,6 +1864,13 @@ function todayMidnight() {
 function daysDiff(dateStr) {
   if (!dateStr) return null;
   return Math.round((localMidnight(dateStr) - todayMidnight()) / 86400000);
+}
+// Format local Date as YYYY-MM-DD (safe for any timezone)
+function localDateStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
 }
 const isOv    = d => d && daysDiff(d) < 0;
 const isSoon  = d => { if(!d) return false; const diff=daysDiff(d); return diff>=0 && diff<=2; };
@@ -3651,7 +3658,7 @@ function generatePeriods(startDate, endDate, interval) {
 
   if (interval === 'day') {
     while (cur <= end) {
-      const d = cur.toISOString().split('T')[0];
+      const d = localDateStr(cur);
       const dayNames = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
       periods.push({
         key:   d,
@@ -3697,13 +3704,13 @@ function generatePeriods(startDate, endDate, interval) {
 }
 
 function formatPeriodKey(date, interval) {
-  const y = date.getFullYear();
+  const y = String(date.getFullYear());
   const m = String(date.getMonth()+1).padStart(2,'0');
   if (interval === 'week') {
     const d = String(date.getDate()).padStart(2,'0');
-    return `${y}-W${d}${m}`;
+    return y+'-W'+d+m; // uses local date components, no UTC
   }
-  return `${y}-${m}`;
+  return y+'-'+m;
 }
 
 function getTodayPeriodIndex(periods) {
@@ -4195,7 +4202,7 @@ async function autoComputeActuals(projId) {
   let cur = localMidnight(proj.startDate);
   const end = localMidnight(proj.finishDate);
   while (cur <= end) {
-    dates.push(cur.toISOString().split('T')[0]);
+    dates.push(localDateStr(cur));
     cur.setDate(cur.getDate()+1);
   }
 
@@ -4272,7 +4279,7 @@ function renderItemActualInputs(projId, items, el, tabHtml) {
     let cur = localMidnight(proj.startDate);
     const end = localMidnight(proj.finishDate);
     while (cur <= end) {
-      dates.push(cur.toISOString().split('T')[0]);
+      dates.push(localDateStr(cur));
       cur.setDate(cur.getDate()+1);
     }
   }
