@@ -4138,11 +4138,10 @@ function renderActualInputs(projId, items, actuals, periods) {
   const el = document.getElementById('sc-actual-input-list');
   if (!el) return;
 
+  const isItemTab = scActualTab === 'item';
   const tabHtml = '<div style="display:flex;gap:3px;margin-bottom:10px;background:var(--bg3);border-radius:var(--rs);padding:2px">'
-    + '<button onclick="scActualTab=\'item\';renderSCurve()" style="flex:1;padding:6px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;background:'
-    + ('{scActualTab}' === '{scActualTab}' ? "'+( scActualTab==\'item\' ? \'var(--bg2)\' : \'transparent\')+'" : 'var(--bg2)')
-    + ';color:var(--fog)">Per Item Pekerjaan</button>'
-    + '<button onclick="scActualTab=\'period\';renderSCurve()" style="flex:1;padding:6px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;background:transparent;color:var(--fog)">Per Periode</button>'
+    + '<button onclick="window.scActualTab=\'item\';window.renderSCurve()" style="flex:1;padding:6px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;transition:all .15s;background:'+(isItemTab?'var(--bg2)':'transparent')+';color:'+(isItemTab?'var(--snow)':'var(--fog)')+'">Per Item Pekerjaan</button>'
+    + '<button onclick="window.scActualTab=\'period\';window.renderSCurve()" style="flex:1;padding:6px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;transition:all .15s;background:'+(!isItemTab?'var(--bg2)':'transparent')+';color:'+(!isItemTab?'var(--snow)':'var(--fog)')+'">Per Periode</button>'
     + '</div>';
 
   if (scActualTab === 'item') {
@@ -4271,7 +4270,6 @@ function renderItemActualInputs(projId, items, el, tabHtml) {
 
   const proj        = D.scProjects.find(p => p.id === projId);
   const itemActuals = D.scItemActuals[projId] || {};
-  const totalWeight = items.reduce((s,it) => s+(parseFloat(it.weight)||0), 0) || 100;
 
   // Get all project dates
   const dates = [];
@@ -4280,50 +4278,58 @@ function renderItemActualInputs(projId, items, el, tabHtml) {
     const end = localMidnight(proj.finishDate);
     while (cur <= end) {
       dates.push(localDateStr(cur));
-      cur.setDate(cur.getDate()+1);
+      cur.setDate(cur.getDate() + 1);
     }
   }
-  const today = TS();
 
-  // Day name headers
+  const today = TS();
   const dayNames = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
 
-  // Build per-item, per-day progress matrix
-  // For each item x date: what % was done ON that day
-  // Cumulative per item = running sum across dates
-  // Daily total = sum of (item_daily_pct * weight/totalWeight) across items
-
-  // Compute daily contribution per item
-  function getDailyPct(itemId, date) {
-    return (itemActuals[date] && itemActuals[date][itemId] !== undefined)
-      ? itemActuals[date][itemId] : '';
-  }
-
-  // Compute daily total contribution to project %
-  function getDailyTotal(date) {
-    // Cell value = direct % contribution to project total (like PDF format)
-    // Just sum all cell values for this date
-    let total = 0;
-    items.forEach(item => {
-      const val = parseFloat(getDailyPct(item.id, date)) || 0;
-      total += val;
-    });
-    return Math.round(total * 100) / 100;
-  }
-
-  // Compute cumulative total up to date = sum of all daily totals
-  function getCumTotal(upToDate) {
-    let total = 0;
-    for (const d of dates) {
-      if (d > upToDate) break;
-      total += getDailyTotal(d);
+  // Helper: get planned value for item on date (from item's plannedDaily field or distribute evenly)
+  function getItemPlanned(item, date) {
+    // If item has plannedDaily stored
+    if (item.plannedDaily && item.plannedDaily[date] !== undefined) {
+      return item.plannedDaily[date];
     }
-    return Math.round(total * 100) / 100;
+    // Distribute bobot evenly across item duration
+    if (item.startDate && item.finishDate) {
+      const iStart = localMidnight(item.startDate);
+      const iEnd   = localMidnight(item.finishDate);
+      const dur    = Math.round((iEnd - iStart) / 86400000) + 1;
+      const d      = localMidnight(date);
+      if (d >= iStart && d <= iEnd) {
+        return Math.round((parseFloat(item.weight)||0) / dur * 100) / 100;
+      }
+    }
+    return 0;
   }
 
-  // ── BUILD TABLE ──────────────────────────────────────────────────────────
-  const colW = 52; // px per date column
-  const rowH = 36;
+  // Get actual value for item on date
+  function getItemActual(item, date) {
+    const day = itemActuals[date];
+    if (day && day[item.id] !== undefined) return day[item.id];
+    return '';
+  }
+
+  // Daily totals
+  function getPlanDayTotal(date) {
+    return Math.round(items.reduce((s, it) => s + getItemPlanned(it, date), 0) * 100) / 100;
+  }
+  function getActualDayTotal(date) {
+    return Math.round(items.reduce((s, it) => s + (parseFloat(getItemActual(it, date)) || 0), 0) * 100) / 100;
+  }
+
+  // Cumulative totals
+  function getPlanCum(upTo) {
+    let s = 0;
+    dates.forEach(d => { if (d <= upTo) s += getPlanDayTotal(d); });
+    return Math.round(s * 100) / 100;
+  }
+  function getActualCum(upTo) {
+    let s = 0;
+    dates.forEach(d => { if (d <= upTo) s += getActualDayTotal(d); });
+    return Math.round(s * 100) / 100;
+  }
 
   // Group items by category
   const cats = {};
@@ -4333,251 +4339,148 @@ function renderItemActualInputs(projId, items, el, tabHtml) {
     cats[c].push(it);
   });
 
-  let tableHtml = `
-  <div style="font-size:11px;color:var(--fog);margin-bottom:8px;padding:7px 10px;background:var(--bg3);border-radius:var(--rs);border-left:3px solid var(--accent)">
-    💡 Isi % progress per item per hari langsung di cell. Enter atau klik luar untuk simpan. Kumulatif & chart update otomatis.
-  </div>
-  <div style="overflow-x:auto;overflow-y:auto;max-height:460px">
-    <table style="border-collapse:collapse;font-size:11px;min-width:max-content;width:100%">
-      <!-- Header: dates -->
-      <thead>
-        <tr style="position:sticky;top:0;z-index:10;background:var(--bg2)">
-          <th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--line);min-width:160px;position:sticky;left:0;background:var(--bg2);z-index:11;font-size:10px;color:var(--fog);font-weight:600;text-transform:uppercase;letter-spacing:1px">Item Pekerjaan</th>
-          <th style="padding:4px 2px;border-bottom:2px solid var(--line);color:var(--fog);font-size:10px;font-weight:600;min-width:40px">Bobot</th>
-          ${dates.map(d => {
-            const isToday = d === today;
-            const isPast  = d < today;
-            const dt = localMidnight(d);
-            const dayLbl = dt.getDate()+'/'+( dt.getMonth()+1);
-            const dayName = dayNames[dt.getDay()];
-            return `<th style="padding:4px 3px;border-bottom:2px solid ${isToday?'var(--amber)':'var(--line)'};color:${isToday?'var(--amber)':isPast?'var(--mist)':'var(--fog)'};font-size:9px;text-align:center;min-width:${colW}px;white-space:nowrap;font-weight:${isToday?700:500}">
-              <div>${dayLbl}</div>
-              <div style="font-size:8px;opacity:.7">${dayName}</div>
-            </th>`;
-          }).join('')}
-        </tr>
-      </thead>
-      <tbody>`;
+  const colW = 56;
+  const planColor   = 'var(--accent2)';
+  const actualColor = 'var(--lime)';
+  const behindColor = 'var(--rose)';
 
-  // Rows per category + item
+  // Build table
+  let html = tabHtml;
+  html += '<div style="font-size:11px;color:var(--fog);margin-bottom:8px;padding:7px 10px;background:var(--bg3);border-radius:var(--rs);border-left:3px solid var(--accent)">';
+  html += '💡 Isi baris <b style="color:var(--lime)">Aktual</b> per item per hari. Baris <b style="color:var(--accent2)">Rencana</b> otomatis dari distribusi bobot & timeline.</div>';
+  html += '<div style="overflow-x:auto;overflow-y:auto;max-height:500px">';
+  html += '<table style="border-collapse:collapse;font-size:11px;min-width:max-content;width:100%">';
+
+  // Header row
+  html += '<thead><tr style="position:sticky;top:0;z-index:10;background:var(--bg2)">';
+  html += '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--line);min-width:180px;position:sticky;left:0;background:var(--bg2);z-index:11;font-size:10px;color:var(--fog);font-weight:600;text-transform:uppercase;letter-spacing:1px">Item Pekerjaan</th>';
+  html += '<th style="padding:4px 4px;border-bottom:2px solid var(--line);color:var(--fog);font-size:10px;font-weight:600;text-align:center;min-width:45px">Bobot</th>';
+  html += '<th style="padding:4px 4px;border-bottom:2px solid var(--line);color:var(--fog);font-size:10px;min-width:40px;text-align:center">P/A</th>';
+  dates.forEach(d => {
+    const isToday = d === today;
+    const dt = localMidnight(d);
+    const dayLbl = dt.getDate()+'/'+(dt.getMonth()+1);
+    const dayName = dayNames[dt.getDay()];
+    html += '<th style="padding:4px 3px;border-bottom:2px solid '+(isToday?'var(--amber)':'var(--line)')+';color:'+(isToday?'var(--amber)':'var(--fog)')+';font-size:9px;text-align:center;min-width:'+colW+'px;white-space:nowrap;font-weight:'+(isToday?700:500)+'">';
+    html += '<div>'+dayLbl+'</div><div style="font-size:8px;opacity:.7">'+dayName+'</div></th>';
+  });
+  html += '</tr></thead><tbody>';
+
+  // Item rows
   for (const [cat, catItems] of Object.entries(cats)) {
-    // Category header row
-    tableHtml += `<tr style="background:var(--bg3)">
-      <td colspan="${dates.length + 2}" style="padding:5px 10px;font-size:9px;color:var(--accent2);font-weight:700;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--line)">${cat}</td>
-    </tr>`;
+    // Category header
+    html += '<tr style="background:var(--bg3)"><td colspan="'+(dates.length+3)+'" style="padding:5px 10px;font-size:9px;color:var(--accent2);font-weight:700;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--line)">'+cat+'</td></tr>';
 
     catItems.forEach(item => {
-      const itemId = item.id;
-      const w = parseFloat(item.weight)||0;
-      tableHtml += `<tr onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
-        <td style="padding:4px 10px;border-bottom:1px solid var(--line);color:var(--snow);font-size:11px;position:sticky;left:0;background:var(--bg2);z-index:5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px" title="${item.name}">${item.name}</td>
-        <td style="padding:4px 6px;border-bottom:1px solid var(--line);text-align:center;color:var(--accent2);font-family:'JetBrains Mono',monospace;font-weight:600;font-size:10px">${w}%</td>
-        ${dates.map(d => {
-          const val     = getDailyPct(itemId, d);
-          const isToday = d === today;
-          const isPast  = d < today;
-          const isFuture= d > today;
-          const numVal  = parseFloat(val)||0;
-          const isDone  = numVal >= 100;
-          const isActive= val !== '' && numVal > 0;
-          return `<td style="padding:2px 3px;border-bottom:1px solid var(--line);border-left:1px solid ${isToday?'var(--amber)':'var(--line)'};text-align:center">
-            <input type="number" min="0" max="100" step="5"
-              value="${val!==''?parseFloat(String(val).replace(',','.'))||'':''}"
-              placeholder="${isFuture?'':''}"
-              style="width:${colW-6}px;background:${isDone?'rgba(168,255,87,.15)':isActive?'rgba(124,111,255,.1)':'transparent'};border:1px solid ${isDone?'var(--lime)':isActive?'var(--accent)':isToday?'rgba(255,184,48,.3)':'var(--line)'};border-radius:3px;padding:3px 2px;color:${isDone?'var(--lime)':isActive?'var(--snow)':'var(--fog)'};font-size:11px;font-family:JetBrains Mono,monospace;outline:none;text-align:center;font-weight:${isDone||isActive?600:400}"
-              oninput="this.style.borderColor='var(--accent)';this.style.color='var(--white)'"
-              onchange="onItemDailyChange('${projId}','${itemId}','${d}',this.value)"
-              onfocus="this.style.borderColor='var(--accent)';this.style.background='var(--bg3)';this.select()"
-              onblur="onItemDailyChange('${projId}','${itemId}','${d}',this.value);this.style.borderColor='${isDone?'var(--lime)':isToday?'rgba(255,184,48,.3)':'transparent'}';this.style.background='${isDone?'rgba(168,255,87,.15)':isActive?'rgba(124,111,255,.1)':'transparent'}'">
-          </td>`;
-        }).join('')}
-      </tr>`;
+      const w = parseFloat(item.weight) || 0;
+
+      // RENCANA row
+      html += '<tr style="background:rgba(124,111,255,.03)" onmouseover="this.style.background='rgba(124,111,255,.07)'" onmouseout="this.style.background='rgba(124,111,255,.03)'">';
+      html += '<td rowspan="2" style="padding:4px 10px;border-bottom:2px solid var(--line2);color:var(--snow);font-size:11px;position:sticky;left:0;background:var(--bg2);z-index:5;vertical-align:middle;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+item.name+'">'+item.name+'</td>';
+      html += '<td rowspan="2" style="padding:4px 6px;border-bottom:2px solid var(--line2);text-align:center;color:var(--accent2);font-family:JetBrains Mono,monospace;font-weight:600;font-size:10px;vertical-align:middle">'+w+'%</td>';
+      html += '<td style="padding:3px 4px;border-bottom:1px dashed var(--line);text-align:center;font-size:9px;font-weight:700;color:'+planColor+';white-space:nowrap">R</td>';
+      dates.forEach(d => {
+        const plan = getItemPlanned(item, d);
+        const isToday = d === today;
+        html += '<td style="padding:2px 3px;border-bottom:1px dashed var(--line);border-left:1px solid '+(isToday?'rgba(255,184,48,.3)':'var(--line)')+';text-align:center;color:'+planColor+';font-size:11px;font-family:JetBrains Mono,monospace;font-weight:500">';
+        html += plan > 0 ? plan.toFixed(2)+'%' : '-';
+        html += '</td>';
+      });
+      html += '</tr>';
+
+      // AKTUAL row
+      html += '<tr onmouseover="this.style.background='rgba(168,255,87,.05)'" onmouseout="this.style.background='transparent'">';
+      html += '<td style="padding:3px 4px;border-bottom:2px solid var(--line2);text-align:center;font-size:9px;font-weight:700;color:'+actualColor+';white-space:nowrap">A</td>';
+      dates.forEach(d => {
+        const val     = getItemActual(item, d);
+        const numVal  = parseFloat(val) || 0;
+        const plan    = getItemPlanned(item, d);
+        const isToday = d === today;
+        const isFuture= d > today;
+        const hasVal  = val !== '' && numVal > 0;
+        const behind  = hasVal && numVal < plan;
+        const ahead   = hasVal && numVal >= plan && plan > 0;
+        const cellBg  = ahead ? 'rgba(168,255,87,.1)' : behind ? 'rgba(255,94,136,.08)' : hasVal ? 'rgba(124,111,255,.08)' : 'transparent';
+        const cellBdr = ahead ? 'var(--lime)' : behind ? 'var(--rose)' : isToday ? 'rgba(255,184,48,.4)' : 'transparent';
+        html += '<td style="padding:2px 3px;border-bottom:2px solid var(--line2);border-left:1px solid '+(isToday?'rgba(255,184,48,.3)':'var(--line)')+';text-align:center">';
+        html += '<input type="number" min="0" max="'+(w*1.2)+'" step="0.01"';
+        html += ' value="'+(val!==''?numVal:'')+'"';
+        html += ' placeholder="'+(isFuture?'':'')+'"';
+        html += ' style="width:'+(colW-8)+'px;background:'+cellBg+';border:1px solid '+cellBdr+';border-radius:3px;padding:3px 2px;color:'+(hasVal?(behind?'var(--rose)':'var(--lime)'):'var(--fog)')+';font-size:11px;font-family:JetBrains Mono,monospace;outline:none;text-align:center;font-weight:'+(hasVal?700:400)+'"';
+        html += ' onkeydown="if(event.key==='Enter'){event.preventDefault();window.onItemDailyChange(''+projId+'',''+item.id+'',''+d+'',this.value);}"';
+        html += ' onchange="window.onItemDailyChange(''+projId+'',''+item.id+'',''+d+'',this.value)"';
+        html += ' onfocus="this.style.borderColor='var(--accent)';this.style.background='var(--bg3)';this.select()"';
+        html += ' onblur="window.onItemDailyChange(''+projId+'',''+item.id+'',''+d+'',this.value)">';
+        html += '</td>';
+      });
+      html += '</tr>';
     });
   }
 
-  // Daily total row
-  tableHtml += `<tr style="background:var(--bg3);position:sticky;bottom:28px">
-    <td style="padding:6px 10px;border-top:2px solid var(--line);font-weight:700;color:var(--mist);font-size:11px;position:sticky;left:0;background:var(--bg3);z-index:5">Progress Harian (%)</td>
-    <td style="padding:6px;border-top:2px solid var(--line);text-align:center;color:var(--fog);font-size:10px">100%</td>
-    ${dates.map(d => {
-      const dt = getDailyTotal(d);
-      return `<td style="padding:6px 3px;border-top:2px solid var(--line);text-align:center;font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:${dt>0?'var(--accent2)':'var(--fog)'}">${dt>0?dt.toFixed(1)+'%':'-'}</td>`;
-    }).join('')}
-  </tr>`;
+  // Summary: Plan harian total
+  html += '<tr style="background:var(--bg3);position:sticky;bottom:56px">';
+  html += '<td style="padding:6px 10px;border-top:2px solid var(--line);font-weight:700;color:'+planColor+';font-size:11px;position:sticky;left:0;background:var(--bg3);z-index:5">Rencana Harian</td>';
+  html += '<td style="border-top:2px solid var(--line)"></td><td style="border-top:2px solid var(--line)"></td>';
+  dates.forEach(d => {
+    const pt = getPlanDayTotal(d);
+    html += '<td style="padding:5px 3px;border-top:2px solid var(--line);text-align:center;font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:'+planColor+'">'+(pt>0?pt.toFixed(2)+'%':'-')+'</td>';
+  });
+  html += '</tr>';
 
-  // Cumulative row
-  tableHtml += `<tr style="background:var(--bg2);position:sticky;bottom:0">
-    <td style="padding:6px 10px;border-top:1px solid var(--line);font-weight:700;color:var(--snow);font-size:11px;position:sticky;left:0;background:var(--bg2);z-index:5">Kumulatif Aktual (%)</td>
-    <td style="border-top:1px solid var(--line)"></td>
-    ${dates.map(d => {
-      const cum = getCumTotal(d);
-      const isToday = d === today;
-      // Get planned for this date
-      const planActual = (D.scActuals[projId]||[]).find(a => a.id === d);
-      const plannedCum = planActual ? (planActual.plannedCum || 0) : 0;
-      const dev = plannedCum > 0 ? Math.round((cum - plannedCum)*10)/10 : null;
-      return `<td style="padding:4px 3px;border-top:1px solid var(--line);text-align:center;border-left:1px solid ${isToday?'var(--amber)':'transparent'}">
-        <div style="font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:${cum>0?'var(--lime)':'var(--fog)'}">${cum>0?cum.toFixed(1)+'%':'-'}</div>
-        ${dev!==null&&cum>0?`<div style="font-size:9px;color:${dev>=0?'var(--lime)':'var(--rose)'};font-weight:600">${dev>=0?'+':''}${dev}%</div>`:''}
-      </td>`;
-    }).join('')}
-  </tr>`;
+  // Summary: Actual harian total
+  html += '<tr style="background:var(--bg2);position:sticky;bottom:28px">';
+  html += '<td style="padding:6px 10px;border-top:1px solid var(--line);font-weight:700;color:'+actualColor+';font-size:11px;position:sticky;left:0;background:var(--bg2);z-index:5">Aktual Harian</td>';
+  html += '<td style="border-top:1px solid var(--line)"></td><td style="border-top:1px solid var(--line)"></td>';
+  dates.forEach(d => {
+    const at = getActualDayTotal(d);
+    html += '<td style="padding:5px 3px;border-top:1px solid var(--line);text-align:center;font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:'+(at>0?actualColor:'var(--fog)')+'">'+(at>0?at.toFixed(2)+'%':'-')+'</td>';
+  });
+  html += '</tr>';
 
-  tableHtml += `</tbody></table></div>`;
+  // Kumulatif rencana
+  html += '<tr style="background:var(--bg3);position:sticky;bottom:28px">';
+  html += '<td style="padding:5px 10px;border-top:1px solid var(--line);font-weight:700;color:'+planColor+';font-size:11px;position:sticky;left:0;background:var(--bg3);z-index:5">Kum. Rencana</td>';
+  html += '<td style="border-top:1px solid var(--line)"></td><td style="border-top:1px solid var(--line)"></td>';
+  dates.forEach(d => {
+    const pc = getPlanCum(d);
+    html += '<td style="padding:4px 3px;border-top:1px solid var(--line);text-align:center;font-family:JetBrains Mono,monospace;font-size:11px;color:'+planColor+'">'+(pc>0?pc.toFixed(2)+'%':'-')+'</td>';
+  });
+  html += '</tr>';
 
-  el.innerHTML = tabHtml + tableHtml;
+  // Kumulatif aktual + deviasi
+  html += '<tr style="background:var(--bg2);position:sticky;bottom:0">';
+  html += '<td style="padding:5px 10px;border-top:2px solid var(--line2);font-weight:700;color:'+actualColor+';font-size:11px;position:sticky;left:0;background:var(--bg2);z-index:5">Kum. Aktual</td>';
+  html += '<td style="border-top:2px solid var(--line2)"></td><td style="border-top:2px solid var(--line2)"></td>';
+  dates.forEach(d => {
+    const ac  = getActualCum(d);
+    const pc  = getPlanCum(d);
+    const dev = ac > 0 ? Math.round((ac - pc) * 100) / 100 : null;
+    const devColor = dev !== null ? (dev >= 0 ? actualColor : behindColor) : 'transparent';
+    html += '<td style="padding:4px 3px;border-top:2px solid var(--line2);text-align:center">';
+    if (ac > 0) {
+      html += '<div style="font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:'+actualColor+'">'+ac.toFixed(2)+'%</div>';
+      if (dev !== null) html += '<div style="font-size:9px;font-weight:700;color:'+devColor+'">'+(dev>=0?'+':'')+dev.toFixed(2)+'%</div>';
+    } else {
+      html += '<span style="color:var(--fog)">-</span>';
+    }
+    html += '</td>';
+  });
+  html += '</tr>';
+
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
 }
 
 window.onItemDailyChange = async (projId, itemId, dateStr, value) => {
-  const raw = String(value).replace(',', '.'); // fix decimal separator
+  if (!projId || !itemId || !dateStr) return;
+  const raw = String(value).replace(',', '.');
   const pct = Math.min(100, Math.max(0, parseFloat(raw) || 0));
-  if (isNaN(pct)) return;
-  // Update local state immediately for responsive UI
   if (!D.scItemActuals[projId]) D.scItemActuals[projId] = {};
   if (!D.scItemActuals[projId][dateStr]) D.scItemActuals[projId][dateStr] = {};
   D.scItemActuals[projId][dateStr][itemId] = pct;
-  // pct here = direct % contribution to project total
-  // Save to Firebase
   await saveItemActual(uid, projId, dateStr, itemId, pct);
-  // Recompute actuals silently
   await autoComputeActuals(projId);
   renderSCurve();
-  toast('✓ ' + pct + '%');
 };
 
 
-// ── PROJECT MODAL ─────────────────────────────
-let scEditProjId = null;
-
-window.openSCProjectModal = (projId) => {
-  scEditProjId = projId || null;
-  const proj = projId ? D.scProjects.find(p => p.id === projId) : null;
-  document.getElementById('sc-project-modal-title').textContent = proj ? '✎ Edit Project' : '◬ Project S-Curve Baru';
-  document.getElementById('sc-proj-name').value     = proj?.name     || '';
-  document.getElementById('sc-proj-start').value    = proj?.startDate || TS();
-  document.getElementById('sc-proj-end').value      = proj?.finishDate || '';
-  document.getElementById('sc-proj-budget').value   = proj?.budget    || '';
-  document.getElementById('sc-proj-currency').value = proj?.currency  || 'IDR';
-  document.getElementById('sc-proj-desc').value     = proj?.desc      || '';
-  document.getElementById('sc-project-modal-ov').classList.add('open');
-};
-window.closeSCProjectModal = () => {
-  document.getElementById('sc-project-modal-ov').classList.remove('open');
-};
-window.saveSCProject = async () => {
-  const name = document.getElementById('sc-proj-name').value.trim();
-  if (!name) return toast('Nama project wajib diisi', true);
-  const id   = scEditProjId || 'sc_' + Date.now().toString(36);
-  const data = {
-    name,
-    startDate:  document.getElementById('sc-proj-start').value,
-    finishDate: document.getElementById('sc-proj-end').value,
-    budget:     document.getElementById('sc-proj-budget').value,
-    currency:   document.getElementById('sc-proj-currency').value || 'IDR',
-    desc:       document.getElementById('sc-proj-desc').value.trim(),
-    createdAt:  scEditProjId ? undefined : TS()
-  };
-  await saveSCurveProject(uid, id, data);
-  closeSCProjectModal();
-  toast('Project disimpan ✓');
-  if (!scEditProjId) {
-    // auto-switch to new project
-    setTimeout(() => {
-      const sel = document.getElementById('sc-project-sel');
-      if (sel) { sel.value = id; onSCProjectChange(id); }
-    }, 500);
-  }
-};
-window.deleteSCProj = async (projId) => {
-  if (!confirm('Hapus project S-Curve ini?')) return;
-  await deleteSCurveProject(uid, projId);
-  scCurrentProjectId = '__global__';
-  toast('Project dihapus');
-};
-
-// ── ITEM MODAL ────────────────────────────────
-let scEditItemProjId = null;
-let scEditItemId = null;
-
-window.openSCItemModal = (projId, itemId) => {
-  projId = projId || scCurrentProjectId;
-  if (projId === '__global__') { toast('Pilih project terlebih dahulu', true); return; }
-  scEditItemProjId = projId;
-  scEditItemId = itemId || null;
-  const item = itemId ? (D.scItems[projId]||[]).find(i => i.id === itemId) : null;
-  document.getElementById('sc-item-modal-title').textContent = item ? '✎ Edit Item WBS' : '+ Item WBS Baru';
-  document.getElementById('sc-item-name').value    = item?.name       || '';
-  document.getElementById('sc-item-weight').value  = item?.weight     || '';
-  document.getElementById('sc-item-value').value   = item?.value      || '';
-  document.getElementById('sc-item-start').value   = item?.startDate  || '';
-  document.getElementById('sc-item-finish').value  = item?.finishDate || '';
-  document.getElementById('sc-item-cat').value     = item?.category   || '';
-  document.getElementById('sc-item-del-btn').style.display = item ? 'block' : 'none';
-  document.getElementById('sc-item-modal-ov').classList.add('open');
-};
-window.closeSCItemModal = () => {
-  document.getElementById('sc-item-modal-ov').classList.remove('open');
-};
-window.saveSCItem = async () => {
-  const name   = document.getElementById('sc-item-name').value.trim();
-  if (!name) return toast('Nama item wajib diisi', true);
-  const weight = parseFloat(document.getElementById('sc-item-weight').value) || 0;
-  const value  = parseFloat(document.getElementById('sc-item-value').value)  || 0;
-  const id     = scEditItemId || 'sci_' + Date.now().toString(36);
-
-  // Auto-calc weight from value if weight not set
-  let finalWeight = weight;
-  if (!weight && value && scEditItemProjId) {
-    const items = D.scItems[scEditItemProjId] || [];
-    const totalVal = items.reduce((s, i) => s + (parseFloat(i.value)||0), 0) + value;
-    if (totalVal > 0) finalWeight = Math.round(value / totalVal * 1000) / 10;
-  }
-
-  const data = {
-    name, weight: finalWeight, value,
-    startDate:  document.getElementById('sc-item-start').value,
-    finishDate: document.getElementById('sc-item-finish').value,
-    category:   document.getElementById('sc-item-cat').value.trim(),
-    createdAt:  scEditItemId ? undefined : TS()
-  };
-  await saveSCurveItem(uid, scEditItemProjId, id, data);
-  closeSCItemModal();
-  toast('Item disimpan ✓');
-};
-window.deleteSCItemCurrent = async (projId, itemId) => {
-  projId = projId || scEditItemProjId;
-  itemId = itemId || scEditItemId;
-  if (!confirm('Hapus item WBS ini?')) return;
-  await deleteSCurveItem(uid, projId, itemId);
-  closeSCItemModal();
-  toast('Item dihapus');
-};
-
-// ── S-CURVE WRAPPER FUNCTIONS (accessible from HTML onclick) ──
-window.editCurrentSCProject   = () => openSCProjectModal(scCurrentProjectId);
-window.deleteCurrentSCProject = () => deleteSCProj(scCurrentProjectId);
-window.addSCItemCurrent       = () => openSCItemModal();
-
-// ── THEME TOGGLE ──────────────────────────────
-function applyTheme(mode) {
-  if(mode === 'light') {
-    document.documentElement.classList.add('light');
-    document.getElementById('theme-toggle-btn').textContent = '☀️';
-  } else {
-    document.documentElement.classList.remove('light');
-    document.getElementById('theme-toggle-btn').textContent = '🌙';
-  }
-  localStorage.setItem('nexus_theme', mode);
-}
-
-window.toggleTheme = () => {
-  const isLight = document.documentElement.classList.contains('light');
-  applyTheme(isLight ? 'dark' : 'light');
-};
-
-// Apply saved theme on load
-const savedTheme = localStorage.getItem('nexus_theme') || 'dark';
-applyTheme(savedTheme);
-</script>
-</body>
-</html>
