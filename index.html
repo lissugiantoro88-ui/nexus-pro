@@ -4720,6 +4720,21 @@ window.onItemDailyChange = async function(projId, itemId, dateStr, value) {
   await autoComputeActuals(projId);
   renderSCurve();
 };
+
+// ── THEME TOGGLE ──────────────────────────────
+function toggleTheme() {
+  const isLight = document.documentElement.classList.toggle('light');
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  const btn = document.querySelector('[onclick="toggleTheme()"]');
+  if (btn) btn.textContent = isLight ? '☀️' : '🌙';
+}
+window.toggleTheme = toggleTheme;
+// Apply saved theme on load
+(function() {
+  if (localStorage.getItem('theme') === 'light') {
+    document.documentElement.classList.add('light');
+  }
+})();
 </script>
 </body>
 </html>
