@@ -1820,6 +1820,22 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 <div class="toast" id="toast"><div class="tdot" id="tdot"></div><span id="tmsg">Tersimpan</span></div>
 
   <script type="module">
+// ── GLOBAL ERROR HANDLER ──────────────────────
+window.addEventListener('error', function(e) {
+  document.getElementById('loading').innerHTML = 
+    '<div style="color:#ff5e88;padding:20px;font-family:monospace;font-size:12px;max-width:80vw;word-break:break-all">' +
+    '<b>ERROR:</b> ' + (e.message||'Unknown') + '<br>' +
+    '<b>File:</b> ' + (e.filename||'') + '<br>' +
+    '<b>Line:</b> ' + (e.lineno||'') +
+    '</div>';
+});
+window.addEventListener('unhandledrejection', function(e) {
+  document.getElementById('loading').innerHTML = 
+    '<div style="color:#ff5e88;padding:20px;font-family:monospace;font-size:12px;max-width:80vw;word-break:break-all">' +
+    '<b>PROMISE ERROR:</b> ' + (e.reason||'Unknown') +
+    '</div>';
+});
+
 // ── FIREBASE CONFIG (from firebase-config.js) ──
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -2179,6 +2195,22 @@ window.doLogout = async () => {
 };
 
 // ── INIT AUTH STATE ───────────────────────────
+// Timeout fallback
+setTimeout(() => {
+  const el = document.getElementById('loading');
+  if (el && el.style.display !== 'none') {
+    el.innerHTML = '<div style="color:#ffb830;padding:24px;font-family:monospace;font-size:13px;text-align:center">' +
+      '<div style="font-size:20px;margin-bottom:12px">⚠️</div>' +
+      '<b>Firebase tidak merespons</b><br><br>' +
+      'Kemungkinan penyebab:<br>' +
+      '1. firebase-config.js belum diupdate<br>' +
+      '2. Koneksi internet bermasalah<br>' +
+      '3. Firebase project tidak aktif<br><br>' +
+      '<button onclick="location.reload()" style="background:#7c6fff;border:none;color:#fff;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:13px">🔄 Coba Lagi</button>' +
+      '</div>';
+  }
+}, 10000);
+
 onAuth(user => {
   document.getElementById('loading').style.display='none';
   if(user){
