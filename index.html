@@ -4349,28 +4349,51 @@ function renderSCurve() {
   requestAnimationFrame(() => requestAnimationFrame(() => drawSCurve(periods, planned, actual, todayIdx)));
 
   // Status bar
-  const lastActualPt = actual.reduce((acc, v, i) => v !== null ? { i, v } : acc, null);
+  // Status bar: compare actual (latest on or before ref date) vs plan at ref date
+  const refDate   = getSCRefDate();
+  const isRefToday = refDate === TS();
+
+  // Planned at ref date (todayIdx already uses getSCRefDate)
+  const planAtRef = (todayIdx >= 0 && todayIdx < planned.length)
+    ? planned[todayIdx]
+    : (todayIdx >= planned.length ? planned[planned.length-1] : 0);
+
+  // Latest actual on or before ref date
+  const refActualPt = actual.reduce((acc, v, i) => {
+    if (v === null) return acc;
+    const pKey = periods[i] ? periods[i].key : '';
+    if (pKey <= refDate) return { i, v };
+    return acc;
+  }, null);
+
   const statusBar = document.getElementById('sc-status-bar');
-  if (lastActualPt) {
-    const dev = lastActualPt.v - planned[lastActualPt.i];
-    const isAhead = dev >= 0;
-    const devColor = isAhead ? 'var(--lime)' : 'var(--rose)';
-    statusBar.innerHTML = `
-      <div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:8px 14px;display:flex;gap:16px;flex-wrap:wrap">
-        <div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Planned Now</div>
-          <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--accent2)">${planned[lastActualPt.i].toFixed(1)}%</div></div>
-        <div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Actual</div>
-          <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--lime)">${lastActualPt.v.toFixed(1)}%</div></div>
-        <div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Deviasi</div>
-          <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:${devColor}">${dev >= 0 ? '+' : ''}${dev.toFixed(1)}%</div></div>
-        <div style="display:flex;align-items:center">
-          <div style="padding:6px 14px;border-radius:20px;background:${isAhead?'var(--limed)':'var(--rosed)'};border:1px solid ${isAhead?'rgba(168,255,87,.3)':'rgba(255,94,136,.3)'};color:${devColor};font-weight:700;font-size:13px">
-            ${isAhead ? '▲ AHEAD OF SCHEDULE' : '▼ BEHIND SCHEDULE'}
-          </div>
-        </div>
-      </div>`;
+  const refLabel  = isRefToday ? 'Hari Ini' : refDate.slice(8)+'/'+refDate.slice(5,7);
+
+  if (refActualPt !== null) {
+    const actualVal = refActualPt.v;
+    const dev       = Math.round((actualVal - planAtRef) * 10) / 10;
+    const isAhead   = dev >= 0;
+    const devColor  = isAhead ? 'var(--lime)' : 'var(--rose)';
+    statusBar.innerHTML =
+      '<div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:8px 14px;display:flex;gap:14px;flex-wrap:wrap;align-items:center">' +
+      (!isRefToday ? '<div style="font-size:10px;padding:3px 10px;border-radius:10px;background:var(--amberd);border:1px solid rgba(217,119,6,.3);color:var(--amber);font-weight:600">📅 '+refDate+'</div>' : '') +
+      '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Rencana '+refLabel+'</div>' +
+      '<div style="font-size:20px;font-weight:700;font-family:JetBrains Mono,monospace;color:var(--accent2)">'+planAtRef.toFixed(1)+'%</div></div>' +
+      '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Aktual s/d '+refLabel+'</div>' +
+      '<div style="font-size:20px;font-weight:700;font-family:JetBrains Mono,monospace;color:var(--lime)">'+actualVal.toFixed(1)+'%</div></div>' +
+      '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Deviasi</div>' +
+      '<div style="font-size:20px;font-weight:700;font-family:JetBrains Mono,monospace;color:'+devColor+'">'+(dev>=0?'+':'')+dev.toFixed(1)+'%</div></div>' +
+      '<div style="display:flex;align-items:center">' +
+      '<div style="padding:6px 14px;border-radius:20px;background:'+(isAhead?'var(--limed)':'var(--rosed)')+';border:1px solid '+(isAhead?'rgba(168,255,87,.3)':'rgba(255,94,136,.3)')+';color:'+devColor+';font-weight:700;font-size:13px">' +
+      (isAhead ? '▲ Ahead' : '▼ Behind') +
+      '</div></div></div>';
   } else {
-    statusBar.innerHTML = '<span style="font-size:12px;color:var(--fog)">Belum ada input progress aktual</span>';
+    statusBar.innerHTML =
+      '<div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:8px 14px;display:flex;gap:12px;align-items:center">' +
+      '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Rencana '+refLabel+'</div>' +
+      '<div style="font-size:20px;font-weight:700;font-family:JetBrains Mono,monospace;color:var(--accent2)">'+planAtRef.toFixed(1)+'%</div></div>' +
+      '<div style="font-size:12px;color:var(--fog)">— Belum ada data aktual</div>' +
+      '</div>';
   }
 
   renderWBSList(projId, items, proj);
@@ -4527,40 +4550,35 @@ function renderActualInputs(projId, items, actuals, periods) {
 
 // ── AUTO-COMPUTE CUMULATIVE FROM ITEM ACTUALS ────────────────────────────────
 async function autoComputeActuals(projId) {
-  const items       = D.scItems[projId] || [];
+  const items       = D.scItems[projId]   || [];
   const itemActuals = D.scItemActuals[projId] || {};
-  const totalWeight = items.reduce((s,it) => s + (parseFloat(it.weight)||0), 0) || 100;
   const proj        = D.scProjects.find(p => p.id === projId);
   if (!proj || !proj.startDate || !proj.finishDate) return;
 
-  // Build sorted list of all dates in project range
   const dates = [];
   let cur = localMidnight(proj.startDate);
   const end = localMidnight(proj.finishDate);
-  while (cur <= end) {
-    dates.push(localDateStr(cur));
-    cur.setDate(cur.getDate()+1);
-  }
+  while (cur <= end) { dates.push(localDateStr(cur)); cur.setDate(cur.getDate()+1); }
 
-  // For each date: cumulative = sum of (latest known % per item × weight)
-  // "Latest known %" = most recent entry on or before this date
+  // Only process dates that HAVE actual input - do not carry forward
   for (const dateStr of dates) {
-    let cumTotal = 0;
-    // Cell value = direct % contribution to project total
+    // Check if this date has any input at all
+    const dayData = itemActuals[dateStr];
+    const hasInput = dayData && items.some(it => dayData[it.id] !== undefined);
+    if (!hasInput) continue; // skip dates with no input
+
     // Cumulative = sum all daily contributions up to this date
+    let cum = 0;
     for (const d of dates) {
       if (d > dateStr) break;
       items.forEach(item => {
-        const dayData = itemActuals[d];
-        if (dayData && dayData[item.id] !== undefined) {
-          cumTotal += parseFloat(dayData[item.id]) || 0;
-        }
+        const dd = itemActuals[d];
+        if (dd && dd[item.id] !== undefined) cum += parseFloat(dd[item.id]) || 0;
       });
     }
-    const cum = Math.min(100, Math.round(cumTotal * 100) / 100);
-    if (cum === 0) continue; // skip zero dates
+    cum = Math.min(100, Math.round(cum * 100) / 100);
+    if (cum === 0) continue;
 
-    // Save to scActuals
     const existing = (D.scActuals[projId]||[]).find(a => a.id === dateStr);
     if (!existing || Math.abs((existing.cumProgress||0) - cum) > 0.01) {
       await saveSCurveActual(uid, projId, dateStr, { cumProgress: cum });
