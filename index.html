@@ -4907,7 +4907,17 @@ window.generateSCurvePDF = function(exportDate) {
   const actuals  = D.scActuals[projId] || [];
   const iActuals = D.scItemActuals[projId] || {};
   const refDate  = exportDate || getSCRefDate();
-  const rtl      = proj.rtl || {};
+  // Read RTL directly from DOM (in case user hasn't triggered onchange yet)
+  const rtlFromDom = {
+    highlight: (document.getElementById('sc-rtl-highlight') || {}).value || '',
+    action:    (document.getElementById('sc-rtl-action')    || {}).value || '',
+    target:    (document.getElementById('sc-rtl-target')    || {}).value || '',
+  };
+  // Use DOM values if any field is filled, else fall back to saved proj.rtl
+  const rtlSaved = proj.rtl || {};
+  const rtl = (rtlFromDom.highlight || rtlFromDom.action || rtlFromDom.target)
+    ? rtlFromDom
+    : rtlSaved;
 
   const allPeriods = generatePeriods(proj.startDate, proj.finishDate, 'day');
 
