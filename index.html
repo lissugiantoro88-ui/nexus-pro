@@ -1415,6 +1415,12 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
           <button class="vtbtn" id="sc-interval-week" onclick="setSCInterval('week',this)">Mingguan</button>
           <button class="vtbtn" id="sc-interval-month" onclick="setSCInterval('month',this)">Bulanan</button>
         </div>
+        <!-- Reference date picker -->
+        <div style="display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:4px 10px">
+          <span style="font-size:10px;color:var(--fog);white-space:nowrap">📅 Ref:</span>
+          <input type="date" id="sc-ref-date" style="background:transparent;border:none;color:var(--snow);font-size:11px;font-family:'JetBrains Mono',monospace;outline:none;width:110px" onchange="onSCRefDateChange(this.value)">
+          <button onclick="resetSCRefDate()" style="background:none;border:none;color:var(--fog);cursor:pointer;font-size:11px;padding:0" title="Reset ke hari ini">↺</button>
+        </div>
         <button class="tb-btn primary" onclick="handleTopbarAdd()" style="white-space:nowrap">+ Project</button>
       </div>
 
@@ -2431,6 +2437,10 @@ window.nav = (v,el) => {
   }
   if(v==='scurve') {
     updateSCNav();
+    // Init ref date picker to today
+    const dp = document.getElementById('sc-ref-date');
+    if (dp && !dp.value) dp.value = TS();
+    if (!scRefDate) { scRefDate = null; if(dp) dp.value = TS(); }
     renderSCurve();
   }
   renderAll();
@@ -3965,6 +3975,7 @@ function loadAllSubtasks() {
 // ══════════════════════════════════════════════
 let scInterval = 'week';
 let scCurrentProjectId = '__global__';
+let scRefDate = null; // null = use today
 let scItemUnsubs = [];
 let scEditingItemId = null;
 let scEditingProjectId = null;
@@ -4106,10 +4117,12 @@ function formatPeriodKey(date, interval) {
 }
 
 function getTodayPeriodIndex(periods) {
-  const today = todayMidnight();
+  // Use scRefDate if set, otherwise use actual today
+  const refStr = getSCRefDate();
+  const ref = localMidnight(refStr);
   for (let i = 0; i < periods.length; i++) {
-    if (today >= periods[i].start && today <= periods[i].end) return i;
-    if (today < periods[i].start) return i - 1;
+    if (ref >= periods[i].start && ref <= periods[i].end) return i;
+    if (ref < periods[i].start) return i - 1;
   }
   return periods.length - 1;
 }
@@ -4234,7 +4247,8 @@ function drawSCurve(periods, planned, actual, todayIdx) {
     ctx.fillStyle = amberClr;
     ctx.font = '9px Inter, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('TODAY', tx, PAD.top - 6);
+    const refLabel = getSCRefDate() === TS() ? 'TODAY' : FMT(getSCRefDate());
+    ctx.fillText(refLabel, tx, PAD.top - 6);
   }
 
   // ── PLANNED CURVE ──
