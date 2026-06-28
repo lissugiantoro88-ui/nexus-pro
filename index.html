@@ -4411,8 +4411,9 @@ function renderSCurve() {
   if (hasAnyActual) {
     const actualVal = finalActual;
     const dev       = Math.round((actualVal - planCumAtRef) * 10) / 10;
-    const isAhead   = dev >= 0;
-    const devColor  = isAhead ? 'var(--lime)' : 'var(--rose)';
+    const isAhead   = dev > 0;
+    const isOnTrack = dev === 0;
+    const devColor  = isOnTrack ? 'var(--teal)' : isAhead ? 'var(--lime)' : 'var(--rose)';
     statusBar.innerHTML =
       '<div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:8px 14px;display:flex;gap:14px;flex-wrap:wrap;align-items:center">' +
       (!isRefToday ? '<div style="font-size:10px;padding:3px 10px;border-radius:10px;background:var(--amberd);border:1px solid rgba(217,119,6,.3);color:var(--amber);font-weight:600">📅 '+refDate+'</div>' : '') +
@@ -4423,8 +4424,8 @@ function renderSCurve() {
       '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Deviasi</div>' +
       '<div style="font-size:20px;font-weight:700;font-family:JetBrains Mono,monospace;color:'+devColor+'">'+(dev>=0?'+':'')+dev.toFixed(1)+'%</div></div>' +
       '<div style="display:flex;align-items:center">' +
-      '<div style="padding:6px 14px;border-radius:20px;background:'+(isAhead?'var(--limed)':'var(--rosed)')+';border:1px solid '+(isAhead?'rgba(168,255,87,.3)':'rgba(255,94,136,.3)')+';color:'+devColor+';font-weight:700;font-size:13px">' +
-      (isAhead ? '▲ Ahead' : '▼ Behind') +
+      '<div style="padding:6px 14px;border-radius:20px;background:'+(isOnTrack?'var(--teald)':isAhead?'var(--limed)':'var(--rosed)')+';border:1px solid '+(isOnTrack?'rgba(8,145,178,.3)':isAhead?'rgba(168,255,87,.3)':'rgba(255,94,136,.3)')+';color:'+devColor+';font-weight:700;font-size:13px">' +
+      (dev === 0 ? '● On Schedule' : isAhead ? '▲ Ahead' : '▼ Behind') +
       '</div></div></div>';
   } else {
     statusBar.innerHTML =
@@ -5061,7 +5062,7 @@ window.generateSCurvePDF = function(exportDate) {
   // Status
   var statusBadge = !hasActual
     ? '<div style="display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb">Belum ada data aktual</div>'
-    : '<div style="display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:'+(isBehind?'#fef2f2':'#f0fdf4')+';color:'+(isBehind?'#dc2626':'#16a34a')+';border:1px solid '+(isBehind?'#fecaca':'#bbf7d0')+'">'+(isBehind?'&#9660; Behind':'&#9650; Ahead')+'</div>';
+    : '<div style="display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:'+(isBehind?'#fef2f2':'#f0fdf4')+';color:'+(isBehind?'#dc2626':'#16a34a')+';border:1px solid '+(isBehind?'#fecaca':'#bbf7d0')+'">'+(dev===0?'&#9679; On Schedule':isBehind?'&#9660; Behind':'&#9650; Ahead')+'</div>';
 
   // Behind items for highlight fallback
   var behindItems=items.map(function(it){var pl=getItemPlanAtDate(it,refDate);var ac=getItemActualAtDate(it.id,refDate);return{name:it.name,dev:ac.hasData?Math.round((ac.val-pl)*10)/10:null};}).filter(function(it){return it.dev!==null&&it.dev<0;}).sort(function(a,b){return a.dev-b.dev;});
