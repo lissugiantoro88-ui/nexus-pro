@@ -786,7 +786,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 @keyframes slideDown{from{top:-60px;opacity:0;}to{top:14px;opacity:1;}}
 
 
-/* ── EVAL TAB ── */
+/* eval tabs */
 .modal-tabs{display:flex;gap:2px;margin-bottom:14px;background:var(--bg3);border-radius:var(--rs);padding:3px;}
 .modal-tab{flex:1;padding:7px;border:none;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;background:transparent;color:var(--fog);}
 .modal-tab.active{background:var(--bg2);color:var(--snow);box-shadow:0 1px 3px rgba(0,0,0,.2);}
@@ -798,7 +798,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 .eval-badge.active-partial{background:var(--amberd);color:var(--amber);border-color:rgba(217,119,6,.3);}
 .eval-star{width:28px;height:28px;border-radius:5px;border:1px solid var(--line2);background:transparent;cursor:pointer;font-size:14px;transition:all .15s;}
 .eval-star.active{background:var(--amberd);border-color:var(--amber);}
-
 /* ── TOAST / LOADING ── */
 .toast{position:fixed;bottom:18px;right:18px;background:var(--bg3);border:1px solid var(--line2);border-radius:var(--rs);padding:9px 14px;font-size:12px;color:var(--snow);z-index:200;transform:translateY(60px);opacity:0;transition:all .25s;display:flex;align-items:center;gap:7px;}
 .toast.show{transform:translateY(0);opacity:1;}
@@ -1415,15 +1414,12 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
           <button class="vtbtn" id="sc-interval-week" onclick="setSCInterval('week',this)">Mingguan</button>
           <button class="vtbtn" id="sc-interval-month" onclick="setSCInterval('month',this)">Bulanan</button>
         </div>
-        <!-- Reference date picker -->
-        <div style="display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:4px 10px">
-          <span style="font-size:10px;color:var(--fog);white-space:nowrap">📅 Ref:</span>
-          <input type="date" id="sc-ref-date" style="background:transparent;border:none;color:var(--snow);font-size:11px;font-family:'JetBrains Mono',monospace;outline:none;width:110px" onchange="onSCRefDateChange(this.value)">
-          <button onclick="resetSCRefDate()" style="background:none;border:none;color:var(--fog);cursor:pointer;font-size:11px;padding:0" title="Reset ke hari ini">↺</button>
+        <div style="display:flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:3px 8px">
+          <span style="font-size:11px;color:var(--fog)">📅</span>
+          <input type="date" id="sc-ref-date" style="background:transparent;border:none;color:var(--snow);font-size:11px;font-family:JetBrains Mono,monospace;outline:none;width:110px" onchange="onSCRefDateChange(this.value)">
+          <button onclick="resetSCRefDate()" style="background:none;border:none;color:var(--fog);cursor:pointer;font-size:12px;padding:0" title="Reset">↺</button>
         </div>
-        <button class="tb-btn" onclick="exportSCurvePDF()" style="white-space:nowrap;gap:5px" title="Export PDF Report">
-          <span style="font-size:13px">⬇</span> Export PDF
-        </button>
+        <button class="tb-btn" onclick="exportSCurvePDF()" style="white-space:nowrap" title="Export PDF">⬇ PDF</button>
         <button class="tb-btn primary" onclick="handleTopbarAdd()" style="white-space:nowrap">+ Project</button>
       </div>
 
@@ -1477,22 +1473,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
             <span style="font-size:10px;color:var(--fog)" id="sc-period-label">—</span>
           </div>
           <div id="sc-actual-input-list" style="padding:10px 14px;max-height:360px;overflow-y:auto"></div>
-
-          <!-- RTL / Analisis Panel -->
           <div style="border-top:1px solid var(--line);padding:10px 14px">
-            <div style="font-size:11px;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Analisis &amp; Rencana Tindak Lanjut</div>
-            <div class="fld" style="margin-bottom:8px">
-              <div class="fld-lbl">Highlight (kondisi terkini)</div>
-              <textarea class="fld-ta" id="sc-rtl-highlight" rows="2" placeholder="Contoh: Proses fabrikasi terlambat 12%, repair body belum bisa dimulai karena NDT clearance..." style="min-height:52px;font-size:11px" onchange="saveSCRTL()"></textarea>
-            </div>
-            <div class="fld" style="margin-bottom:8px">
-              <div class="fld-lbl">Rencana tindak lanjut</div>
-              <textarea class="fld-ta" id="sc-rtl-action" rows="3" placeholder="1. Tambah shift malam untuk item repair body&#10;2. Koordinasi dengan QC untuk percepatan NDT&#10;3. ..." style="min-height:68px;font-size:11px" onchange="saveSCRTL()"></textarea>
-            </div>
-            <div class="fld">
-              <div class="fld-lbl">Target penyelesaian</div>
-              <input class="fld-in" id="sc-rtl-target" placeholder="Contoh: Semua item selesai 4 Jul 2026, deviasi ditutup dalam 3 hari" style="font-size:11px" onchange="saveSCRTL()">
-            </div>
+            <div style="font-size:11px;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Analisis &amp; RTL</div>
+            <div class="fld" style="margin-bottom:8px"><div class="fld-lbl">Highlight</div><textarea class="fld-ta" id="sc-rtl-highlight" style="min-height:52px;font-size:11px" placeholder="Kondisi terkini..." onchange="saveSCRTL()"></textarea></div>
+            <div class="fld" style="margin-bottom:8px"><div class="fld-lbl">Rencana tindak lanjut</div><textarea class="fld-ta" id="sc-rtl-action" style="min-height:68px;font-size:11px" placeholder="1. Akselerasi item A&#10;2. Koordinasi QC" onchange="saveSCRTL()"></textarea></div>
+            <div class="fld"><div class="fld-lbl">Target</div><input class="fld-in" id="sc-rtl-target" style="font-size:11px" placeholder="e.g. Semua item selesai 4 Jul 2026" onchange="saveSCRTL()"></div>
           </div>
         </div>
 
@@ -1565,58 +1550,20 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 
     <!-- Edit Task -->
     <div id="edit-task-fields" style="display:none">
-      <div class="modal-tabs">
-        <button class="modal-tab active" onclick="switchEditTab('task','info',this)">📋 Info</button>
-        <button class="modal-tab" onclick="switchEditTab('task','eval',this)">📊 Evaluasi</button>
-      </div>
+      <div class="modal-tabs"><button class="modal-tab active" onclick="switchEditTab('task','info',this)">📋 Info</button><button class="modal-tab" onclick="switchEditTab('task','eval',this)">📊 Evaluasi</button></div>
       <div class="modal-tab-content active" id="task-tab-info">
         <div class="fld"><div class="fld-lbl">Nama Task</div><input class="fld-in" id="et-name" placeholder="Nama task..."></div>
-        <div class="fld-row">
-          <div class="fld"><div class="fld-lbl">Status</div>
-            <select class="fld-sel" id="et-status">
-              <option value="todo">To Do</option>
-              <option value="inprogress">In Progress</option>
-              <option value="review">Review</option>
-              <option value="done">Done</option>
-            </select>
-          </div>
-          <div class="fld"><div class="fld-lbl">Prioritas</div>
-            <select class="fld-sel" id="et-prio">
-              <option value="high">🔴 High</option>
-              <option value="medium">🟡 Medium</option>
-              <option value="low">🟢 Low</option>
-            </select>
-          </div>
-        </div>
-        <div class="fld-row">
-          <div class="fld"><div class="fld-lbl">Due Date</div><input class="fld-in" id="et-due" type="date"></div>
-          <div class="fld"><div class="fld-lbl">Kategori</div><input class="fld-in" id="et-cat" placeholder="e.g. Pekerjaan"></div>
-        </div>
+        <div class="fld-row"><div class="fld"><div class="fld-lbl">Status</div><select class="fld-sel" id="et-status"><option value="todo">To Do</option><option value="inprogress">In Progress</option><option value="review">Review</option><option value="done">Done</option></select></div><div class="fld"><div class="fld-lbl">Prioritas</div><select class="fld-sel" id="et-prio"><option value="high">🔴 High</option><option value="medium">🟡 Medium</option><option value="low">🟢 Low</option></select></div></div>
+        <div class="fld-row"><div class="fld"><div class="fld-lbl">Due Date</div><input class="fld-in" id="et-due" type="date"></div><div class="fld"><div class="fld-lbl">Kategori</div><input class="fld-in" id="et-cat" placeholder="e.g. Pekerjaan"></div></div>
         <div class="fld"><div class="fld-lbl">Catatan</div><textarea class="fld-ta" id="et-notes" placeholder="Detail tambahan..."></textarea></div>
       </div>
       <div class="modal-tab-content" id="task-tab-eval">
-        <div style="font-size:11px;color:var(--mist);background:var(--ag2);border:1px solid rgba(124,111,255,.15);border-radius:var(--rs);padding:8px 12px;margin-bottom:10px">📊 Isi setelah task selesai untuk evaluasi & pembelajaran</div>
-        <div class="fld"><div class="fld-lbl">Hasil Pekerjaan</div><textarea class="fld-ta" id="et-eval-result" placeholder="Apa yang diselesaikan?" style="min-height:55px"></textarea></div>
-        <div class="fld">
-          <div class="fld-lbl">Sesuai target?</div>
-          <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap">
-            <button class="eval-badge" id="et-ontarget-yes" onclick="setEvalTarget('task','yes')">✓ Ya</button>
-            <button class="eval-badge" id="et-ontarget-partial" onclick="setEvalTarget('task','partial')">~ Sebagian</button>
-            <button class="eval-badge" id="et-ontarget-no" onclick="setEvalTarget('task','no')">✕ Tidak</button>
-          </div>
-        </div>
-        <div class="fld"><div class="fld-lbl">Kendala</div><textarea class="fld-ta" id="et-eval-obstacle" placeholder="Hambatan?" style="min-height:45px"></textarea></div>
-        <div class="fld"><div class="fld-lbl">Lesson Learned</div><textarea class="fld-ta" id="et-eval-lesson" placeholder="Apa yang bisa diperbaiki?" style="min-height:45px"></textarea></div>
-        <div class="fld">
-          <div class="fld-lbl">Rating</div>
-          <div style="display:flex;gap:4px;margin-top:5px" id="et-eval-rating">
-            <button class="eval-star" onclick="setEvalRating('task',1)">⭐</button>
-            <button class="eval-star" onclick="setEvalRating('task',2)">⭐</button>
-            <button class="eval-star" onclick="setEvalRating('task',3)">⭐</button>
-            <button class="eval-star" onclick="setEvalRating('task',4)">⭐</button>
-            <button class="eval-star" onclick="setEvalRating('task',5)">⭐</button>
-          </div>
-        </div>
+        <div style="font-size:11px;color:var(--mist);background:var(--ag2);border:1px solid rgba(124,111,255,.15);border-radius:var(--rs);padding:8px 12px;margin-bottom:10px">📊 Isi setelah task selesai</div>
+        <div class="fld"><div class="fld-lbl">Hasil</div><textarea class="fld-ta" id="et-eval-result" placeholder="Apa yang diselesaikan?" style="min-height:55px"></textarea></div>
+        <div class="fld"><div class="fld-lbl">Sesuai target?</div><div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap"><button class="eval-badge" id="et-ontarget-yes" onclick="setEvalTarget('task','yes')">✓ Ya</button><button class="eval-badge" id="et-ontarget-partial" onclick="setEvalTarget('task','partial')">~ Sebagian</button><button class="eval-badge" id="et-ontarget-no" onclick="setEvalTarget('task','no')">✕ Tidak</button></div></div>
+        <div class="fld"><div class="fld-lbl">Kendala</div><textarea class="fld-ta" id="et-eval-obstacle" style="min-height:45px"></textarea></div>
+        <div class="fld"><div class="fld-lbl">Lesson Learned</div><textarea class="fld-ta" id="et-eval-lesson" style="min-height:45px"></textarea></div>
+        <div class="fld"><div class="fld-lbl">Rating</div><div style="display:flex;gap:4px;margin-top:5px" id="et-eval-rating"><button class="eval-star" onclick="setEvalRating('task',1)">⭐</button><button class="eval-star" onclick="setEvalRating('task',2)">⭐</button><button class="eval-star" onclick="setEvalRating('task',3)">⭐</button><button class="eval-star" onclick="setEvalRating('task',4)">⭐</button><button class="eval-star" onclick="setEvalRating('task',5)">⭐</button></div></div>
       </div>
       <div class="fld-row">
         <div class="fld"><div class="fld-lbl">Status</div>
@@ -1653,57 +1600,20 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 
     <!-- Edit Delegation -->
     <div id="edit-deleg-fields" style="display:none">
-      <div class="modal-tabs">
-        <button class="modal-tab active" onclick="switchEditTab('deleg','info',this)">📋 Info</button>
-        <button class="modal-tab" onclick="switchEditTab('deleg','eval',this)">📊 Evaluasi</button>
-      </div>
+      <div class="modal-tabs"><button class="modal-tab active" onclick="switchEditTab('deleg','info',this)">📋 Info</button><button class="modal-tab" onclick="switchEditTab('deleg','eval',this)">📊 Evaluasi</button></div>
       <div class="modal-tab-content active" id="deleg-tab-info">
         <div class="fld"><div class="fld-lbl">Nama Task</div><input class="fld-in" id="ed-name" placeholder="Task yang didelegasikan..."></div>
-        <div class="fld-row">
-          <div class="fld"><div class="fld-lbl">Dikerjakan Oleh</div><input class="fld-in" id="ed-person" placeholder="Nama / posisi"></div>
-          <div class="fld"><div class="fld-lbl">Due Date</div><input class="fld-in" id="ed-due" type="date"></div>
-        </div>
-        <div class="fld-row">
-          <div class="fld"><div class="fld-lbl">Status</div>
-            <select class="fld-sel" id="ed-status">
-              <option value="todo">Belum Mulai</option>
-              <option value="inprogress">In Progress</option>
-              <option value="done">Selesai</option>
-            </select>
-          </div>
-          <div class="fld"><div class="fld-lbl">Prioritas</div>
-            <select class="fld-sel" id="ed-prio">
-              <option value="high">🔴 High</option>
-              <option value="medium">🟡 Medium</option>
-              <option value="low">🟢 Low</option>
-            </select>
-          </div>
-        </div>
+        <div class="fld-row"><div class="fld"><div class="fld-lbl">Dikerjakan Oleh</div><input class="fld-in" id="ed-person" placeholder="Nama / posisi"></div><div class="fld"><div class="fld-lbl">Due Date</div><input class="fld-in" id="ed-due" type="date"></div></div>
+        <div class="fld-row"><div class="fld"><div class="fld-lbl">Status</div><select class="fld-sel" id="ed-status"><option value="todo">Belum Mulai</option><option value="inprogress">In Progress</option><option value="done">Selesai</option></select></div><div class="fld"><div class="fld-lbl">Prioritas</div><select class="fld-sel" id="ed-prio"><option value="high">🔴 High</option><option value="medium">🟡 Medium</option><option value="low">🟢 Low</option></select></div></div>
         <div class="fld"><div class="fld-lbl">Catatan</div><textarea class="fld-ta" id="ed-notes" placeholder="Instruksi atau konteks..."></textarea></div>
       </div>
       <div class="modal-tab-content" id="deleg-tab-eval">
         <div style="font-size:11px;color:var(--mist);background:var(--ag2);border:1px solid rgba(124,111,255,.15);border-radius:var(--rs);padding:8px 12px;margin-bottom:10px">📊 Isi setelah delegasi selesai</div>
-        <div class="fld"><div class="fld-lbl">Hasil</div><textarea class="fld-ta" id="ed-eval-result" placeholder="Output yang diterima?" style="min-height:50px"></textarea></div>
-        <div class="fld">
-          <div class="fld-lbl">Sesuai target?</div>
-          <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap">
-            <button class="eval-badge" id="ed-ontarget-yes" onclick="setEvalTarget('deleg','yes')">✓ Ya</button>
-            <button class="eval-badge" id="ed-ontarget-partial" onclick="setEvalTarget('deleg','partial')">~ Sebagian</button>
-            <button class="eval-badge" id="ed-ontarget-no" onclick="setEvalTarget('deleg','no')">✕ Tidak</button>
-          </div>
-        </div>
-        <div class="fld"><div class="fld-lbl">Kendala</div><textarea class="fld-ta" id="ed-eval-obstacle" placeholder="Hambatan?" style="min-height:45px"></textarea></div>
-        <div class="fld"><div class="fld-lbl">Feedback untuk Pelaksana</div><textarea class="fld-ta" id="ed-eval-lesson" placeholder="Catatan ke depan?" style="min-height:45px"></textarea></div>
-        <div class="fld">
-          <div class="fld-lbl">Rating</div>
-          <div style="display:flex;gap:4px;margin-top:5px" id="ed-eval-rating">
-            <button class="eval-star" onclick="setEvalRating('deleg',1)">⭐</button>
-            <button class="eval-star" onclick="setEvalRating('deleg',2)">⭐</button>
-            <button class="eval-star" onclick="setEvalRating('deleg',3)">⭐</button>
-            <button class="eval-star" onclick="setEvalRating('deleg',4)">⭐</button>
-            <button class="eval-star" onclick="setEvalRating('deleg',5)">⭐</button>
-          </div>
-        </div>
+        <div class="fld"><div class="fld-lbl">Hasil</div><textarea class="fld-ta" id="ed-eval-result" style="min-height:50px"></textarea></div>
+        <div class="fld"><div class="fld-lbl">Sesuai target?</div><div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap"><button class="eval-badge" id="ed-ontarget-yes" onclick="setEvalTarget('deleg','yes')">✓ Ya</button><button class="eval-badge" id="ed-ontarget-partial" onclick="setEvalTarget('deleg','partial')">~ Sebagian</button><button class="eval-badge" id="ed-ontarget-no" onclick="setEvalTarget('deleg','no')">✕ Tidak</button></div></div>
+        <div class="fld"><div class="fld-lbl">Kendala</div><textarea class="fld-ta" id="ed-eval-obstacle" style="min-height:45px"></textarea></div>
+        <div class="fld"><div class="fld-lbl">Feedback</div><textarea class="fld-ta" id="ed-eval-lesson" style="min-height:45px"></textarea></div>
+        <div class="fld"><div class="fld-lbl">Rating</div><div style="display:flex;gap:4px;margin-top:5px" id="ed-eval-rating"><button class="eval-star" onclick="setEvalRating('deleg',1)">⭐</button><button class="eval-star" onclick="setEvalRating('deleg',2)">⭐</button><button class="eval-star" onclick="setEvalRating('deleg',3)">⭐</button><button class="eval-star" onclick="setEvalRating('deleg',4)">⭐</button><button class="eval-star" onclick="setEvalRating('deleg',5)">⭐</button></div></div>
       </div>
       <div class="fld-row">
         <div class="fld"><div class="fld-lbl">Dikerjakan Oleh</div><input class="fld-in" id="ed-person" placeholder="Nama / posisi"></div>
@@ -2455,18 +2365,15 @@ window.nav = (v,el) => {
   if(v==='retro') {
     loadRetros();
   }
-  if(v==='scurve') {
+  if(v==='scurve'){
     updateSCNav();
-    // Init ref date picker to today
-    const dp = document.getElementById('sc-ref-date');
-    if (dp && !dp.value) dp.value = TS();
-    if (!scRefDate) { scRefDate = null; if(dp) dp.value = TS(); }
+    var dp=document.getElementById('sc-ref-date');
+    if(dp&&!dp.value)dp.value=TS();
     renderSCurve();
-    loadSCRTL(scCurrentProjectId);
+    setTimeout(function(){loadSCRTL(scCurrentProjectId);},100);
   }
-  // Hide topbar "+ Tambah" on S-Curve (has its own "+ Project" button)
-  const _tbBtn = document.getElementById('topbar-add-btn');
-  if (_tbBtn) _tbBtn.style.display = (v === 'scurve') ? 'none' : '';
+  var _tb=document.getElementById('topbar-add-btn');
+  if(_tb)_tb.style.display=(v==='scurve')?'none':'';
   renderAll();
 };
 
@@ -3999,16 +3906,10 @@ function loadAllSubtasks() {
 // ══════════════════════════════════════════════
 let scInterval = 'week';
 let scCurrentProjectId = '__global__';
-let scRefDate = null; // null = use today
-
-function getSCRefDate() { return scRefDate || TS(); }
-window.onSCRefDateChange = function(val) { scRefDate = val || null; renderSCurve(); };
-window.resetSCRefDate = function() {
-  scRefDate = null;
-  const dp = document.getElementById('sc-ref-date');
-  if (dp) dp.value = TS();
-  renderSCurve();
-};
+let scRefDate = null;
+function getSCRefDate(){return scRefDate||TS();}
+window.onSCRefDateChange=function(v){scRefDate=v||null;renderSCurve();};
+window.resetSCRefDate=function(){scRefDate=null;var dp=document.getElementById('sc-ref-date');if(dp)dp.value=TS();renderSCurve();};
 let scItemUnsubs = [];
 let scEditingItemId = null;
 let scEditingProjectId = null;
@@ -4149,15 +4050,13 @@ function formatPeriodKey(date, interval) {
   return y+'-'+m;
 }
 
-function getTodayPeriodIndex(periods) {
-  // Use scRefDate if set, otherwise use actual today
-  const refStr = getSCRefDate();
-  const ref = localMidnight(refStr);
-  for (let i = 0; i < periods.length; i++) {
-    if (ref >= periods[i].start && ref <= periods[i].end) return i;
-    if (ref < periods[i].start) return i - 1;
+function getTodayPeriodIndex(periods){
+  const ref=localMidnight(getSCRefDate());
+  for(let i=0;i<periods.length;i++){
+    if(ref>=periods[i].start&&ref<=periods[i].end)return i;
+    if(ref<periods[i].start)return i-1;
   }
-  return periods.length - 1;
+  return periods.length-1;
 }
 
 // ── CALCULATE PLANNED CURVE ─────────────────────
@@ -4280,8 +4179,7 @@ function drawSCurve(periods, planned, actual, todayIdx) {
     ctx.fillStyle = amberClr;
     ctx.font = '9px Inter, sans-serif';
     ctx.textAlign = 'center';
-    const refLabel = getSCRefDate() === TS() ? 'TODAY' : FMT(getSCRefDate());
-    ctx.fillText(refLabel, tx, PAD.top - 6);
+    ctx.fillText('TODAY', tx, PAD.top - 6);
   }
 
   // ── PLANNED CURVE ──
@@ -4450,54 +4348,29 @@ function renderSCurve() {
   // Draw chart - use double RAF to ensure layout is complete
   requestAnimationFrame(() => requestAnimationFrame(() => drawSCurve(periods, planned, actual, todayIdx)));
 
-  // Status bar — filter actuals UP TO ref date
-  const refDate = getSCRefDate();
-  const refIdx  = todayIdx; // already computed using getSCRefDate()
-
-  // Find latest actual on or before ref date
-  const lastActualPt = actual.reduce((acc, v, i) => {
-    if (v === null) return acc;
-    // Only include periods whose end date <= refDate
-    const pEnd = periods[i] ? localDateStr(periods[i].end) : '';
-    if (pEnd <= refDate) return { i, v };
-    return acc;
-  }, null);
-
-  // Planned at ref date
-  const plannedAtRef = (refIdx >= 0 && refIdx < planned.length)
-    ? planned[refIdx]
-    : (refIdx >= planned.length ? planned[planned.length-1] : 0);
-
+  // Status bar
+  const lastActualPt = actual.reduce((acc, v, i) => v !== null ? { i, v } : acc, null);
   const statusBar = document.getElementById('sc-status-bar');
-  const isRefToday = refDate === TS();
-  const refLabel   = isRefToday ? 'Hari Ini' : FMT(refDate);
-
-  if (lastActualPt !== null) {
-    const actualVal = lastActualPt.v;
-    const dev       = Math.round((actualVal - plannedAtRef) * 10) / 10;
-    const isAhead   = dev >= 0;
-    const devColor  = isAhead ? 'var(--lime)' : 'var(--rose)';
-    statusBar.innerHTML =
-      '<div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:8px 14px;display:flex;gap:14px;flex-wrap:wrap;align-items:center">' +
-      (isRefToday ? '' : '<div style="font-size:10px;padding:3px 10px;border-radius:10px;background:var(--amberd);border:1px solid rgba(217,119,6,.3);color:var(--amber);font-weight:600">📅 ' + refDate + '</div>') +
-      '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Rencana ' + refLabel + '</div>' +
-      '<div style="font-size:20px;font-weight:700;font-family:JetBrains Mono,monospace;color:var(--accent2)">' + plannedAtRef.toFixed(1) + '%</div></div>' +
-      '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Aktual s/d ' + refLabel + '</div>' +
-      '<div style="font-size:20px;font-weight:700;font-family:JetBrains Mono,monospace;color:var(--lime)">' + actualVal.toFixed(1) + '%</div></div>' +
-      '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Deviasi</div>' +
-      '<div style="font-size:20px;font-weight:700;font-family:JetBrains Mono,monospace;color:' + devColor + '">' + (dev >= 0 ? '+' : '') + dev.toFixed(1) + '%</div></div>' +
-      '<div style="display:flex;align-items:center">' +
-      '<div style="padding:6px 14px;border-radius:20px;background:' + (isAhead?'var(--limed)':'var(--rosed)') + ';border:1px solid ' + (isAhead?'rgba(168,255,87,.3)':'rgba(255,94,136,.3)') + ';color:' + devColor + ';font-weight:700;font-size:13px">' +
-      (isAhead ? '▲ AHEAD OF SCHEDULE' : '▼ BEHIND SCHEDULE') +
-      '</div></div></div>';
+  if (lastActualPt) {
+    const dev = lastActualPt.v - planned[lastActualPt.i];
+    const isAhead = dev >= 0;
+    const devColor = isAhead ? 'var(--lime)' : 'var(--rose)';
+    statusBar.innerHTML = `
+      <div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:8px 14px;display:flex;gap:16px;flex-wrap:wrap">
+        <div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Planned Now</div>
+          <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--accent2)">${planned[lastActualPt.i].toFixed(1)}%</div></div>
+        <div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Actual</div>
+          <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--lime)">${lastActualPt.v.toFixed(1)}%</div></div>
+        <div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Deviasi</div>
+          <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:${devColor}">${dev >= 0 ? '+' : ''}${dev.toFixed(1)}%</div></div>
+        <div style="display:flex;align-items:center">
+          <div style="padding:6px 14px;border-radius:20px;background:${isAhead?'var(--limed)':'var(--rosed)'};border:1px solid ${isAhead?'rgba(168,255,87,.3)':'rgba(255,94,136,.3)'};color:${devColor};font-weight:700;font-size:13px">
+            ${isAhead ? '▲ AHEAD OF SCHEDULE' : '▼ BEHIND SCHEDULE'}
+          </div>
+        </div>
+      </div>`;
   } else {
-    statusBar.innerHTML =
-      '<div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:8px 14px;display:flex;gap:12px;align-items:center">' +
-      (isRefToday ? '' : '<div style="font-size:10px;padding:3px 10px;border-radius:10px;background:var(--amberd);border:1px solid rgba(217,119,6,.3);color:var(--amber);font-weight:600">📅 ' + refDate + '</div>') +
-      '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Rencana ' + refLabel + '</div>' +
-      '<div style="font-size:20px;font-weight:700;font-family:JetBrains Mono,monospace;color:var(--accent2)">' + plannedAtRef.toFixed(1) + '%</div></div>' +
-      '<div style="font-size:12px;color:var(--fog)">— Belum ada aktual s/d ' + refLabel + '</div>' +
-      '</div>';
+    statusBar.innerHTML = '<span style="font-size:12px;color:var(--fog)">Belum ada input progress aktual</span>';
   }
 
   renderWBSList(projId, items, proj);
@@ -4602,12 +4475,11 @@ function renderActualInputs(projId, items, actuals, periods) {
   const el = document.getElementById('sc-actual-input-list');
   if (!el) return;
 
-  const isItem = scActualTab === 'item';
-  const tabHtml =
-    '<div style="display:flex;gap:3px;margin-bottom:10px;background:var(--bg3);border-radius:var(--rs);padding:3px">' +
-    '<button onclick="window.scActualTab=\'item\';window.renderSCurve()" style="flex:1;padding:6px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;background:' + (isItem?'var(--bg2)':'transparent') + ';color:' + (isItem?'var(--snow)':'var(--fog)') + '">Per Item Pekerjaan</button>' +
-    '<button onclick="window.scActualTab=\'period\';window.renderSCurve()" style="flex:1;padding:6px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;background:' + (!isItem?'var(--bg2)':'transparent') + ';color:' + (!isItem?'var(--snow)':'var(--fog)') + '">Per Periode</button>' +
-    '</div>';
+  const isItemTab = scActualTab === 'item';
+  const tabHtml = '<div style="display:flex;gap:3px;margin-bottom:10px;background:var(--bg3);border-radius:var(--rs);padding:2px">'
+    + '<button onclick="window.scActualTab=\'item\';window.renderSCurve()" style="flex:1;padding:6px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;transition:all .15s;background:'+(isItemTab?'var(--bg2)':'transparent')+';color:'+(isItemTab?'var(--snow)':'var(--fog)')+'">Per Item Pekerjaan</button>'
+    + '<button onclick="window.scActualTab=\'period\';window.renderSCurve()" style="flex:1;padding:6px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;transition:all .15s;background:'+(!isItemTab?'var(--bg2)':'transparent')+';color:'+(!isItemTab?'var(--snow)':'var(--fog)')+'">Per Periode</button>'
+    + '</div>';
 
   if (scActualTab === 'item') {
     renderItemActualInputs(projId, items, el, tabHtml);
@@ -4615,187 +4487,297 @@ function renderActualInputs(projId, items, actuals, periods) {
   }
 
   if (periods.length === 0) {
-    el.innerHTML = tabHtml + '<div style="color:var(--fog);font-size:12px;padding:8px 0">Set start/finish date project untuk generate periode</div>';
+    el.innerHTML = '<div style="color:var(--fog);font-size:12px;padding:8px 0">Set start/finish date project untuk generate periode</div>';
     return;
   }
 
   const todayIdx = getTodayPeriodIndex(periods);
-  const showPeriods = scInterval === 'day' ? periods : periods.slice(Math.max(0,todayIdx-3), Math.max(0,todayIdx-3)+12);
+  let showPeriods;
+  if (scInterval === 'day') {
+    showPeriods = periods;
+  } else {
+    const showFrom = Math.max(0, todayIdx - 3);
+    showPeriods = periods.slice(showFrom, showFrom + 12);
+  }
 
-  // Build rows using a container div with event delegation
-  const rowsHtml = showPeriods.map(p => {
-    const act  = actuals.find(a => a.id === p.key);
-    const cum  = act ? act.cumProgress : '';
-    const note = act ? (act.note||'') : '';
+  el.innerHTML = showPeriods.map(p => {
+    const actual = actuals.find(a => a.id === p.key);
+    const cum    = actual ? actual.cumProgress : '';
+    const note   = actual ? (actual.note || '') : '';
     const isPast = p.end < todayMidnight();
     const isNow  = !isPast && p.start <= todayMidnight();
-    const lbl  = p.label.replace('\n',' ');
-    const bdrClr = isNow ? 'var(--amber)' : 'var(--line)';
-    const lblClr = isNow ? 'var(--amber)' : isPast ? 'var(--mist)' : 'var(--fog)';
-    return `<div style="padding:8px 0;border-bottom:1px solid var(--line)">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-        <div style="flex:1;font-size:11px;font-weight:500;color:${lblClr}">${isNow?'▶ ':''}${lbl}</div>
-        <span style="font-size:10px;color:var(--fog)">%</span>
-        <input type="number" min="0" max="100" step="0.1"
-          class="sc-period-input"
-          data-proj="${projId}" data-key="${p.key}" data-note-id="scnote-${p.key}"
-          value="${cum!==''?cum:''}" placeholder="0"
-          style="width:65px;background:var(--bg3);border:1px solid ${bdrClr};border-radius:var(--rs);padding:4px 7px;color:var(--snow);font-size:12px;font-family:JetBrains Mono,monospace;outline:none;text-align:center">
-        <span style="color:${cum?'var(--lime)':'transparent'}">✓</span>
-      </div>
-      <input type="text" id="scnote-${p.key}"
-        class="sc-note-input" data-proj="${projId}" data-key="${p.key}" data-cum-class="sc-period-input"
-        value="${note}" placeholder="Catatan progress..."
-        style="width:100%;background:transparent;border:none;border-bottom:1px dashed var(--line);padding:2px 0;color:var(--fog);font-size:10px;outline:none">
-    </div>`;
+    const labelClean = p.label.replace('\n',' ');
+    return '<div style="padding:8px 0;border-bottom:1px solid var(--line)">'
+      + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">'
+      + '<div style="flex:1;font-size:11px;font-weight:500;color:'+(isNow?'var(--amber)':isPast?'var(--mist)':'var(--fog)')+'">'+( isNow?'▶ ':'')+labelClean+'</div>'
+      + '<span style="font-size:10px;color:var(--fog)">%</span>'
+      + '<input type="number" min="0" max="100" step="0.1" value="'+cum+'" placeholder="0" id="cum-'+p.key+'"'
+      + ' style="width:65px;background:var(--bg3);border:1px solid '+(isNow?'var(--amber)':'var(--line)')+';border-radius:var(--rs);padding:4px 7px;color:var(--snow);font-size:12px;font-family:JetBrains Mono,monospace;outline:none;text-align:center"'
+      + ' onchange="saveActualInput(\''+projId+'\',\''+p.key+'\',this.value,(document.getElementById(\'note-'+p.key+'\'))||{value:\'\'}).value||\'\')"'
+      + ' onfocus="this.style.borderColor=\'var(--accent)\'"'
+      + ' onblur="this.style.borderColor=\''+(isNow?'var(--amber)':'var(--line)')+'\'">'
+      + (cum ? '<span style="color:var(--lime)">✓</span>' : '<span style="color:transparent">✓</span>')
+      + '</div>'
+      + '<input type="text" id="note-'+p.key+'" value="'+note+'" placeholder="Catatan progress..."'
+      + ' style="width:100%;background:transparent;border:none;border-bottom:1px dashed var(--line);padding:2px 0;color:var(--fog);font-size:10px;outline:none"'
+      + ' onchange="saveActualInput(\''+projId+'\',\''+p.key+'\',(document.getElementById(\'cum-'+p.key+'\')||{value:0}).value,this.value)">'
+      + '</div>';
   }).join('');
-
-  el.innerHTML = tabHtml + '<div>' + rowsHtml + '</div>';
-
-  // Attach events via delegation (no inline handlers = no quote issues)
-  el.querySelectorAll('.sc-period-input').forEach(inp => {
-    inp.addEventListener('focus', function() { this.style.borderColor='var(--accent)'; });
-    inp.addEventListener('blur',  function() {
-      const noteEl = document.getElementById('scnote-' + this.dataset.key);
-      saveActualInput(this.dataset.proj, this.dataset.key, this.value, noteEl ? noteEl.value : '');
-    });
-    inp.addEventListener('change', function() {
-      const noteEl = document.getElementById('scnote-' + this.dataset.key);
-      saveActualInput(this.dataset.proj, this.dataset.key, this.value, noteEl ? noteEl.value : '');
-    });
-  });
-  el.querySelectorAll('.sc-note-input').forEach(inp => {
-    inp.addEventListener('change', function() {
-      const cumEl = el.querySelector(`.sc-period-input[data-key="${this.dataset.key}"]`);
-      saveActualInput(this.dataset.proj, this.dataset.key, cumEl ? cumEl.value : 0, this.value);
-    });
-  });
 }
 
-// ── PER-ITEM ACTUAL INPUT GRID ────────────────────────────────────────────────
+// ── AUTO-COMPUTE CUMULATIVE FROM ITEM ACTUALS ────────────────────────────────
+async function autoComputeActuals(projId) {
+  const items       = D.scItems[projId] || [];
+  const itemActuals = D.scItemActuals[projId] || {};
+  const totalWeight = items.reduce((s,it) => s + (parseFloat(it.weight)||0), 0) || 100;
+  const proj        = D.scProjects.find(p => p.id === projId);
+  if (!proj || !proj.startDate || !proj.finishDate) return;
+
+  // Build sorted list of all dates in project range
+  const dates = [];
+  let cur = localMidnight(proj.startDate);
+  const end = localMidnight(proj.finishDate);
+  while (cur <= end) {
+    dates.push(localDateStr(cur));
+    cur.setDate(cur.getDate()+1);
+  }
+
+  // For each date: cumulative = sum of (latest known % per item × weight)
+  // "Latest known %" = most recent entry on or before this date
+  for (const dateStr of dates) {
+    let cumTotal = 0;
+    // Cell value = direct % contribution to project total
+    // Cumulative = sum all daily contributions up to this date
+    for (const d of dates) {
+      if (d > dateStr) break;
+      items.forEach(item => {
+        const dayData = itemActuals[d];
+        if (dayData && dayData[item.id] !== undefined) {
+          cumTotal += parseFloat(dayData[item.id]) || 0;
+        }
+      });
+    }
+    const cum = Math.min(100, Math.round(cumTotal * 100) / 100);
+    if (cum === 0) continue; // skip zero dates
+
+    // Save to scActuals
+    const existing = (D.scActuals[projId]||[]).find(a => a.id === dateStr);
+    if (!existing || Math.abs((existing.cumProgress||0) - cum) > 0.01) {
+      await saveSCurveActual(uid, projId, dateStr, { cumProgress: cum });
+      if (!D.scActuals[projId]) D.scActuals[projId] = [];
+      if (existing) existing.cumProgress = cum;
+      else D.scActuals[projId].push({ id: dateStr, cumProgress: cum });
+    }
+  }
+}
+
+function getLatestItemPct(itemActuals, itemId, upToDate) {
+  // Find the most recent date <= upToDate that has a value for this item
+  let latestDate = '';
+  let best = 0;
+  for (const [date, dayItems] of Object.entries(itemActuals)) {
+    if (date <= upToDate && dayItems[itemId] !== undefined && date >= latestDate) {
+      latestDate = date;
+      best = dayItems[itemId];
+    }
+  }
+  return best;
+}
+
+async function saveActualInput(projId, periodKey, value, note) {
+  const cum = parseFloat(value) || 0;
+  const data = { cumProgress: cum };
+  if (note !== undefined) data.note = note;
+  await saveSCurveActual(uid, projId, periodKey, data);
+  if (!D.scActuals[projId]) D.scActuals[projId] = [];
+  const existing = D.scActuals[projId].find(a => a.id === periodKey);
+  if (existing) { existing.cumProgress = cum; if (note !== undefined) existing.note = note; }
+  else D.scActuals[projId].push({ id: periodKey, cumProgress: cum, note: note||'' });
+  renderSCurve();
+  toast('Progress disimpan ✓');
+}
+window.saveActualInput = saveActualInput;
+
+// ── PER-ITEM ACTUAL INPUT ─────────────────────────────────────────────────────
 function renderItemActualInputs(projId, items, el, tabHtml) {
   if (items.length === 0) {
     el.innerHTML = tabHtml + '<div class="empty"><div class="empty-sub">Belum ada item WBS</div></div>';
     return;
   }
-  const proj = D.scProjects.find(p => p.id === projId);
+
+  const proj        = D.scProjects.find(p => p.id === projId);
   const itemActuals = D.scItemActuals[projId] || {};
   const dates = [];
   if (proj && proj.startDate && proj.finishDate) {
     let cur = localMidnight(proj.startDate);
     const end = localMidnight(proj.finishDate);
-    while (cur <= end) { dates.push(localDateStr(cur)); cur.setDate(cur.getDate()+1); }
+    while (cur <= end) {
+      dates.push(localDateStr(cur));
+      cur.setDate(cur.getDate() + 1);
+    }
   }
+
   const today = TS();
   const dayNames = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+
   function getItemPlanned(item, date) {
     if (item.startDate && item.finishDate) {
-      const iStart=localMidnight(item.startDate), iEnd=localMidnight(item.finishDate);
-      const dur=Math.round((iEnd-iStart)/86400000)+1, d=localMidnight(date);
-      if (d>=iStart && d<=iEnd) return Math.round((parseFloat(item.weight)||0)/dur*100)/100;
+      const iStart = localMidnight(item.startDate);
+      const iEnd   = localMidnight(item.finishDate);
+      const dur    = Math.round((iEnd - iStart) / 86400000) + 1;
+      const d      = localMidnight(date);
+      if (d >= iStart && d <= iEnd) {
+        return Math.round((parseFloat(item.weight)||0) / dur * 100) / 100;
+      }
     }
     return 0;
   }
+
   function getItemActual(item, date) {
-    const day=itemActuals[date];
-    return (day && day[item.id]!==undefined) ? day[item.id] : '';
+    const day = itemActuals[date];
+    return (day && day[item.id] !== undefined) ? day[item.id] : '';
   }
-  function getDailyTotal(date) { return Math.round(items.reduce((s,it)=>s+(parseFloat(getItemActual(it,date))||0),0)*100)/100; }
-  function getCumTotal(upTo) { let s=0; dates.forEach(d=>{if(d<=upTo)s+=getDailyTotal(d);}); return Math.round(s*100)/100; }
-  function getPlanDayTotal(date) { return Math.round(items.reduce((s,it)=>s+getItemPlanned(it,date),0)*100)/100; }
-  function getPlanCum(upTo) { let s=0; dates.forEach(d=>{if(d<=upTo)s+=getPlanDayTotal(d);}); return Math.round(s*100)/100; }
 
-  const cats={};
-  items.forEach(it=>{const c=it.category||'Lainnya';if(!cats[c])cats[c]=[];cats[c].push(it);});
-  const PC='var(--accent2)',AC='var(--lime)',BC='var(--rose)',colW=56;
+  function getPlanDayTotal(date) {
+    return Math.round(items.reduce((s,it) => s + getItemPlanned(it, date), 0) * 100) / 100;
+  }
+  function getActualDayTotal(date) {
+    return Math.round(items.reduce((s,it) => s + (parseFloat(getItemActual(it,date))||0), 0) * 100) / 100;
+  }
+  function getPlanCum(upTo) {
+    let s = 0; dates.forEach(d => { if (d <= upTo) s += getPlanDayTotal(d); }); return Math.round(s*100)/100;
+  }
+  function getActualCum(upTo) {
+    let s = 0; dates.forEach(d => { if (d <= upTo) s += getActualDayTotal(d); }); return Math.round(s*100)/100;
+  }
 
-  let rows=tabHtml;
-  rows+='<div style="font-size:11px;color:var(--fog);margin-bottom:8px;padding:7px 10px;background:var(--bg3);border-radius:var(--rs);border-left:3px solid var(--accent)">Isi baris <b style="color:var(--lime)">A (Aktual)</b>. Baris <b style="color:var(--accent2)">R (Rencana)</b> otomatis. Enter untuk simpan.</div>';
-  rows+='<div style="overflow-x:auto;overflow-y:auto;max-height:500px"><table style="border-collapse:collapse;font-size:11px;min-width:max-content;width:100%">';
-  rows+='<thead><tr style="position:sticky;top:0;z-index:10;background:var(--bg2)">';
-  rows+='<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--line);min-width:180px;position:sticky;left:0;background:var(--bg2);z-index:11;font-size:10px;color:var(--fog)">ITEM</th>';
-  rows+='<th style="padding:4px;border-bottom:2px solid var(--line);color:var(--fog);font-size:10px;text-align:center;min-width:45px">BOBOT</th>';
-  rows+='<th style="padding:4px;border-bottom:2px solid var(--line);color:var(--fog);font-size:10px;min-width:28px;text-align:center">P/A</th>';
-  dates.forEach(function(d){
-    const isToday=d===today,dt=localMidnight(d);
-    rows+='<th style="padding:4px 3px;border-bottom:2px solid '+(isToday?'var(--amber)':'var(--line)')+';color:'+(isToday?'var(--amber)':'var(--fog)')+';font-size:9px;text-align:center;min-width:'+colW+'px;font-weight:'+(isToday?700:500)+'"><div>'+dt.getDate()+'/'+(dt.getMonth()+1)+'</div><div style="font-size:8px;opacity:.7">'+dayNames[dt.getDay()]+'</div></th>';
+  const cats = {};
+  items.forEach(it => { const c = it.category||'Lainnya'; if(!cats[c]) cats[c]=[]; cats[c].push(it); });
+
+  const colW = 56;
+  const PC = 'var(--accent2)', AC = 'var(--lime)', BC = 'var(--rose)';
+
+  let rows = tabHtml;
+  rows += '<div style="font-size:11px;color:var(--fog);margin-bottom:8px;padding:7px 10px;background:var(--bg3);border-radius:var(--rs);border-left:3px solid var(--accent)">Isi baris <b style="color:var(--lime)">A (Aktual)</b>. Baris <b style="color:var(--accent2)">R (Rencana)</b> otomatis. Enter untuk simpan.</div>';
+  rows += '<div style="overflow-x:auto;overflow-y:auto;max-height:500px" id="sc-grid-wrap">';
+  rows += '<table id="sc-grid" style="border-collapse:collapse;font-size:11px;min-width:max-content;width:100%">';
+
+  // Header
+  rows += '<thead><tr style="position:sticky;top:0;z-index:10;background:var(--bg2)">';
+  rows += '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--line);min-width:180px;position:sticky;left:0;background:var(--bg2);z-index:11;font-size:10px;color:var(--fog);letter-spacing:1px">ITEM</th>';
+  rows += '<th style="padding:4px;border-bottom:2px solid var(--line);color:var(--fog);font-size:10px;text-align:center;min-width:45px">BOBOT</th>';
+  rows += '<th style="padding:4px;border-bottom:2px solid var(--line);color:var(--fog);font-size:10px;min-width:28px;text-align:center">P/A</th>';
+  dates.forEach(function(d) {
+    const isToday = d === today;
+    const dt = localMidnight(d);
+    rows += '<th style="padding:4px 3px;border-bottom:2px solid ' + (isToday?'var(--amber)':'var(--line)') + ';color:' + (isToday?'var(--amber)':'var(--fog)') + ';font-size:9px;text-align:center;min-width:' + colW + 'px;font-weight:' + (isToday?700:500) + '">';
+    rows += '<div>' + dt.getDate() + '/' + (dt.getMonth()+1) + '</div>';
+    rows += '<div style="font-size:8px;opacity:.7">' + dayNames[dt.getDay()] + '</div></th>';
   });
-  rows+='</tr></thead><tbody>';
+  rows += '</tr></thead><tbody>';
 
   for (const cat in cats) {
-    rows+='<tr style="background:var(--bg3)"><td colspan="'+(dates.length+3)+'" style="padding:5px 10px;font-size:9px;color:var(--accent2);font-weight:700;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--line)">'+cat+'</td></tr>';
-    cats[cat].forEach(function(item){
-      const w=parseFloat(item.weight)||0;
-      rows+='<tr style="background:rgba(124,111,255,.03)">';
-      rows+='<td rowspan="2" style="padding:4px 10px;border-bottom:2px solid var(--line2);color:var(--snow);font-size:11px;position:sticky;left:0;background:var(--bg2);z-index:5;vertical-align:middle;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+item.name+'">'+item.name+'</td>';
-      rows+='<td rowspan="2" style="padding:4px;border-bottom:2px solid var(--line2);text-align:center;color:'+PC+';font-family:JetBrains Mono,monospace;font-weight:600;font-size:10px;vertical-align:middle">'+w+'%</td>';
-      rows+='<td style="padding:3px 4px;border-bottom:1px dashed var(--line);text-align:center;font-size:9px;font-weight:700;color:'+PC+'">R</td>';
-      dates.forEach(function(d){
-        const plan=getItemPlanned(item,d),isToday=d===today;
-        rows+='<td style="padding:2px 3px;border-bottom:1px dashed var(--line);border-left:1px solid '+(isToday?'rgba(255,184,48,.3)':'var(--line)')+';text-align:center;color:'+PC+';font-size:11px;font-family:JetBrains Mono,monospace">'+(plan>0?plan.toFixed(2)+'%':'-')+'</td>';
+    rows += '<tr style="background:var(--bg3)"><td colspan="' + (dates.length+3) + '" style="padding:5px 10px;font-size:9px;color:var(--accent2);font-weight:700;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--line)">' + cat + '</td></tr>';
+
+    cats[cat].forEach(function(item) {
+      const w = parseFloat(item.weight) || 0;
+
+      // Rencana row
+      rows += '<tr style="background:rgba(124,111,255,.03)">';
+      rows += '<td rowspan="2" style="padding:4px 10px;border-bottom:2px solid var(--line2);color:var(--snow);font-size:11px;position:sticky;left:0;background:var(--bg2);z-index:5;vertical-align:middle;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + item.name + '">' + item.name + '</td>';
+      rows += '<td rowspan="2" style="padding:4px;border-bottom:2px solid var(--line2);text-align:center;color:' + PC + ';font-family:JetBrains Mono,monospace;font-weight:600;font-size:10px;vertical-align:middle">' + w + '%</td>';
+      rows += '<td style="padding:3px 4px;border-bottom:1px dashed var(--line);text-align:center;font-size:9px;font-weight:700;color:' + PC + '">R</td>';
+      dates.forEach(function(d) {
+        const plan = getItemPlanned(item, d);
+        const isToday = d === today;
+        rows += '<td style="padding:2px 3px;border-bottom:1px dashed var(--line);border-left:1px solid ' + (isToday?'rgba(255,184,48,.3)':'var(--line)') + ';text-align:center;color:' + PC + ';font-size:11px;font-family:JetBrains Mono,monospace">';
+        rows += plan > 0 ? plan.toFixed(2) + '%' : '-';
+        rows += '</td>';
       });
-      rows+='</tr><tr>';
-      rows+='<td style="padding:3px 4px;border-bottom:2px solid var(--line2);text-align:center;font-size:9px;font-weight:700;color:'+AC+'">A</td>';
-      dates.forEach(function(d){
-        const val=getItemActual(item,d),numVal=parseFloat(val)||0;
-        const plan=getItemPlanned(item,d),isToday=d===today,hasVal=val!==''&&numVal>0;
-        const ahead=hasVal&&plan>0&&numVal>=plan,behind=hasVal&&plan>0&&numVal<plan;
-        const cellBg=ahead?'rgba(168,255,87,.12)':behind?'rgba(255,94,136,.1)':hasVal?'rgba(124,111,255,.08)':'transparent';
-        const bdrClr=ahead?'var(--lime)':behind?'var(--rose)':isToday?'rgba(255,184,48,.5)':'#333348';
-        const txtClr=ahead?'var(--lime)':behind?'var(--rose)':hasVal?'var(--snow)':'var(--fog)';
-        rows+='<td style="padding:2px 3px;border-bottom:2px solid var(--line2);border-left:1px solid '+(isToday?'rgba(255,184,48,.3)':'var(--line)')+';text-align:center"><input type="number" min="0" max="'+(w*1.5)+'" step="0.01" value="'+(hasVal?numVal:'')+'" data-proj="'+projId+'" data-item="'+item.id+'" data-date="'+d+'" style="width:'+(colW-8)+'px;background:'+cellBg+';border:1px solid '+bdrClr+';border-radius:3px;padding:3px 2px;color:'+txtClr+';font-size:11px;font-family:JetBrains Mono,monospace;outline:none;text-align:center;font-weight:'+(hasVal?700:400)+'" class="sc-actual-input"></td>';
+      rows += '</tr>';
+
+      // Aktual row
+      rows += '<tr>';
+      rows += '<td style="padding:3px 4px;border-bottom:2px solid var(--line2);text-align:center;font-size:9px;font-weight:700;color:' + AC + '">A</td>';
+      dates.forEach(function(d) {
+        const val    = getItemActual(item, d);
+        const numVal = parseFloat(val) || 0;
+        const plan   = getItemPlanned(item, d);
+        const isToday = d === today;
+        const hasVal = val !== '' && numVal > 0;
+        const behind = hasVal && plan > 0 && numVal < plan;
+        const ahead  = hasVal && plan > 0 && numVal >= plan;
+        const cellBg = ahead ? 'rgba(168,255,87,.12)' : behind ? 'rgba(255,94,136,.1)' : hasVal ? 'rgba(124,111,255,.08)' : 'transparent';
+        const bdrClr = ahead ? 'var(--lime)' : behind ? 'var(--rose)' : isToday ? 'rgba(255,184,48,.5)' : '#333348';
+        const txtClr = ahead ? 'var(--lime)' : behind ? 'var(--rose)' : hasVal ? 'var(--snow)' : 'var(--fog)';
+        rows += '<td style="padding:2px 3px;border-bottom:2px solid var(--line2);border-left:1px solid ' + (isToday?'rgba(255,184,48,.3)':'var(--line)') + ';text-align:center">';
+        rows += '<input type="number" min="0" max="' + (w*1.5) + '" step="0.01"';
+        rows += ' value="' + (hasVal ? numVal : '') + '"';
+        rows += ' data-proj="' + projId + '" data-item="' + item.id + '" data-date="' + d + '"';
+        rows += ' style="width:' + (colW-8) + 'px;background:' + cellBg + ';border:1px solid ' + bdrClr + ';border-radius:3px;padding:3px 2px;color:' + txtClr + ';font-size:11px;font-family:JetBrains Mono,monospace;outline:none;text-align:center;font-weight:' + (hasVal?700:400) + '"';
+        rows += ' class="sc-actual-input">';
+        rows += '</td>';
       });
-      rows+='</tr>';
+      rows += '</tr>';
     });
   }
-  // Summary rows
-  rows+='<tr style="background:var(--bg3)"><td style="padding:6px 10px;border-top:2px solid var(--line);font-weight:700;color:'+PC+';font-size:11px;position:sticky;left:0;background:var(--bg3);z-index:5">Rencana Harian</td><td style="border-top:2px solid var(--line)"></td><td style="border-top:2px solid var(--line)"></td>';
-  dates.forEach(function(d){const pt=getPlanDayTotal(d);rows+='<td style="padding:5px 3px;border-top:2px solid var(--line);text-align:center;font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:'+PC+'">'+(pt>0?pt.toFixed(2)+'%':'-')+'</td>';});
-  rows+='</tr><tr style="background:var(--bg2)"><td style="padding:5px 10px;border-top:1px solid var(--line);font-weight:700;color:'+AC+';font-size:11px;position:sticky;left:0;background:var(--bg2);z-index:5">Aktual Harian</td><td style="border-top:1px solid var(--line)"></td><td style="border-top:1px solid var(--line)"></td>';
-  dates.forEach(function(d){const at=getDailyTotal(d);rows+='<td style="padding:5px 3px;border-top:1px solid var(--line);text-align:center;font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:'+(at>0?AC:'var(--fog)')+'">'+(at>0?at.toFixed(2)+'%':'-')+'</td>';});
-  rows+='</tr><tr style="background:var(--bg3)"><td style="padding:5px 10px;border-top:1px solid var(--line);font-weight:600;color:'+PC+';font-size:11px;position:sticky;left:0;background:var(--bg3);z-index:5">Kum. Rencana</td><td style="border-top:1px solid var(--line)"></td><td style="border-top:1px solid var(--line)"></td>';
-  dates.forEach(function(d){const pc=getPlanCum(d);rows+='<td style="padding:4px 3px;border-top:1px solid var(--line);text-align:center;font-family:JetBrains Mono,monospace;font-size:11px;color:'+PC+'">'+(pc>0?pc.toFixed(2)+'%':'-')+'</td>';});
-  rows+='</tr><tr style="background:var(--bg2)"><td style="padding:5px 10px;border-top:2px solid var(--line2);font-weight:700;color:'+AC+';font-size:11px;position:sticky;left:0;background:var(--bg2);z-index:5">Kum. Aktual</td><td style="border-top:2px solid var(--line2)"></td><td style="border-top:2px solid var(--line2)"></td>';
-  dates.forEach(function(d){
-    const ac=getCumTotal(d),pc=getPlanCum(d),dev=ac>0?Math.round((ac-pc)*100)/100:null,dc=dev!==null?(dev>=0?AC:BC):'transparent';
-    rows+='<td style="padding:4px 3px;border-top:2px solid var(--line2);text-align:center">';
-    if(ac>0){rows+='<div style="font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:'+AC+'">'+ac.toFixed(2)+'%</div>';if(dev!==null)rows+='<div style="font-size:9px;font-weight:700;color:'+dc+'">'+(dev>=0?'+':'')+dev.toFixed(2)+'%</div>';}
+
+  // Rencana Harian
+  rows += '<tr style="background:var(--bg3);position:sticky;bottom:56px"><td style="padding:6px 10px;border-top:2px solid var(--line);font-weight:700;color:' + PC + ';font-size:11px;position:sticky;left:0;background:var(--bg3);z-index:5">Rencana Harian</td><td style="border-top:2px solid var(--line)"></td><td style="border-top:2px solid var(--line)"></td>';
+  dates.forEach(function(d) { const pt=getPlanDayTotal(d); rows+='<td style="padding:5px 3px;border-top:2px solid var(--line);text-align:center;font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:'+PC+'">'+(pt>0?pt.toFixed(2)+'%':'-')+'</td>'; });
+  rows += '</tr>';
+
+  // Aktual Harian
+  rows += '<tr style="background:var(--bg2);position:sticky;bottom:42px"><td style="padding:5px 10px;border-top:1px solid var(--line);font-weight:700;color:'+AC+';font-size:11px;position:sticky;left:0;background:var(--bg2);z-index:5">Aktual Harian</td><td style="border-top:1px solid var(--line)"></td><td style="border-top:1px solid var(--line)"></td>';
+  dates.forEach(function(d) { const at=getActualDayTotal(d); rows+='<td style="padding:5px 3px;border-top:1px solid var(--line);text-align:center;font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:'+(at>0?AC:'var(--fog)')+'">'+(at>0?at.toFixed(2)+'%':'-')+'</td>'; });
+  rows += '</tr>';
+
+  // Kum Rencana
+  rows += '<tr style="background:var(--bg3)"><td style="padding:5px 10px;border-top:1px solid var(--line);font-weight:600;color:'+PC+';font-size:11px;position:sticky;left:0;background:var(--bg3);z-index:5">Kum. Rencana</td><td style="border-top:1px solid var(--line)"></td><td style="border-top:1px solid var(--line)"></td>';
+  dates.forEach(function(d) { const pc=getPlanCum(d); rows+='<td style="padding:4px 3px;border-top:1px solid var(--line);text-align:center;font-family:JetBrains Mono,monospace;font-size:11px;color:'+PC+'">'+(pc>0?pc.toFixed(2)+'%':'-')+'</td>'; });
+  rows += '</tr>';
+
+  // Kum Aktual + deviasi
+  rows += '<tr style="background:var(--bg2);position:sticky;bottom:0"><td style="padding:5px 10px;border-top:2px solid var(--line2);font-weight:700;color:'+AC+';font-size:11px;position:sticky;left:0;background:var(--bg2);z-index:5">Kum. Aktual</td><td style="border-top:2px solid var(--line2)"></td><td style="border-top:2px solid var(--line2)"></td>';
+  dates.forEach(function(d) {
+    const ac=getActualCum(d); const pc=getPlanCum(d);
+    const dev = ac>0 ? Math.round((ac-pc)*100)/100 : null;
+    const dc = dev!==null ? (dev>=0?AC:BC) : 'transparent';
+    rows += '<td style="padding:4px 3px;border-top:2px solid var(--line2);text-align:center">';
+    if(ac>0){ rows+='<div style="font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:'+AC+'">'+ac.toFixed(2)+'%</div>'; if(dev!==null) rows+='<div style="font-size:9px;font-weight:700;color:'+dc+'">'+(dev>=0?'+':'')+dev.toFixed(2)+'%</div>'; }
     else rows+='<span style="color:var(--fog)">-</span>';
-    rows+='</td>';
+    rows += '</td>';
   });
-  rows+='</tr></tbody></table></div>';
-  el.innerHTML=rows;
-  el.querySelectorAll('.sc-actual-input').forEach(function(inp){
-    inp.addEventListener('focus',function(){this.style.borderColor='var(--accent)';this.style.background='var(--bg3)';this.select();});
-    inp.addEventListener('change',function(){window.onItemDailyChange(this.dataset.proj,this.dataset.item,this.dataset.date,this.value);});
-    inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();window.onItemDailyChange(this.dataset.proj,this.dataset.item,this.dataset.date,this.value);const inputs=Array.from(el.querySelectorAll('.sc-actual-input'));const i=inputs.indexOf(this);if(i<inputs.length-1)inputs[i+1].focus();}});
+  rows += '</tr>';
+
+  rows += '</tbody></table></div>';
+  el.innerHTML = rows;
+
+  // Attach events via delegation (no inline handlers)
+  el.querySelectorAll('.sc-actual-input').forEach(function(inp) {
+    inp.addEventListener('focus', function() {
+      this.style.borderColor = 'var(--accent)';
+      this.style.background  = 'var(--bg3)';
+      this.select();
+    });
+    inp.addEventListener('change', function() {
+      window.onItemDailyChange(this.dataset.proj, this.dataset.item, this.dataset.date, this.value);
+    });
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        window.onItemDailyChange(this.dataset.proj, this.dataset.item, this.dataset.date, this.value);
+        // Move focus to next input
+        const inputs = Array.from(el.querySelectorAll('.sc-actual-input'));
+        const idx = inputs.indexOf(this);
+        if (idx < inputs.length - 1) inputs[idx+1].focus();
+      }
+    });
   });
 }
 
-async function autoComputeActuals(projId) {
-  const items=D.scItems[projId]||[],itemActuals=D.scItemActuals[projId]||{};
-  const proj=D.scProjects.find(p=>p.id===projId);
-  if(!proj||!proj.startDate||!proj.finishDate)return;
-  const dates=[];
-  let cur=localMidnight(proj.startDate);
-  const end=localMidnight(proj.finishDate);
-  while(cur<=end){dates.push(localDateStr(cur));cur.setDate(cur.getDate()+1);}
-  for(const dateStr of dates){
-    let cum=0;
-    for(const d of dates){
-      if(d>dateStr)break;
-      items.forEach(item=>{const dd=itemActuals[d];if(dd&&dd[item.id]!==undefined)cum+=parseFloat(dd[item.id])||0;});
-    }
-    cum=Math.min(100,Math.round(cum*100)/100);
-    if(cum===0)continue;
-    const ex=(D.scActuals[projId]||[]).find(a=>a.id===dateStr);
-    if(!ex||Math.abs((ex.cumProgress||0)-cum)>0.01){
-      await saveSCurveActual(uid,projId,dateStr,{cumProgress:cum});
-      if(!D.scActuals[projId])D.scActuals[projId]=[];
-      if(ex)ex.cumProgress=cum;else D.scActuals[projId].push({id:dateStr,cumProgress:cum});
-    }
-  }
-}
+// ── PER-ITEM ACTUAL INPUT GRID ────────────────────────────────────────────────
+
 
 
 window.onItemDailyChange = async function(projId, itemId, dateStr, value) {
@@ -4808,129 +4790,38 @@ window.onItemDailyChange = async function(projId, itemId, dateStr, value) {
   await autoComputeActuals(projId);
   renderSCurve();
 };
+
+
 // ── EVAL TAB JS ───────────────────────────────
 let evalTargetTask='',evalTargetDeleg='',evalRatingTask=0,evalRatingDeleg=0;
-window.switchEditTab=function(type,tab,el){
-  const k=type==='task'?'task':'deleg';
-  const wrap=document.getElementById('edit-'+k+'-fields');
-  if(!wrap)return;
-  wrap.querySelectorAll('.modal-tab').forEach(b=>b.classList.remove('active'));
-  wrap.querySelectorAll('.modal-tab-content').forEach(c=>c.classList.remove('active'));
-  el.classList.add('active');
-  const tc=document.getElementById(k+'-tab-'+tab);
-  if(tc)tc.classList.add('active');
-};
-window.setEvalTarget=function(type,val){
-  const p=type==='task'?'et':'ed';
-  if(type==='task')evalTargetTask=val;else evalTargetDeleg=val;
-  ['yes','partial','no'].forEach(v=>{
-    const b=document.getElementById(p+'-ontarget-'+v);
-    if(b){b.className='eval-badge';if(v===val)b.className+=' active-'+v;}
-  });
-};
-window.setEvalRating=function(type,val){
-  const p=type==='task'?'et':'ed';
-  if(type==='task')evalRatingTask=val;else evalRatingDeleg=val;
-  const c=document.getElementById(p+'-eval-rating');
-  if(c)c.querySelectorAll('.eval-star').forEach((b,i)=>b.classList.toggle('active',i<val));
-};
-function loadEvalFields(type,data){
-  const p=type==='task'?'et':'ed',ev=(data&&data.eval)||{};
-  const r=document.getElementById(p+'-eval-result');
-  const o=document.getElementById(p+'-eval-obstacle');
-  const l=document.getElementById(p+'-eval-lesson');
-  if(r)r.value=ev.result||'';
-  if(o)o.value=ev.obstacle||'';
-  if(l)l.value=ev.lesson||'';
-  if(type==='task'){evalTargetTask=ev.onTarget||'';evalRatingTask=ev.rating||0;}
-  else{evalTargetDeleg=ev.onTarget||'';evalRatingDeleg=ev.rating||0;}
-  if(ev.onTarget)window.setEvalTarget(type,ev.onTarget);
-  else['yes','partial','no'].forEach(v=>{const b=document.getElementById(p+'-ontarget-'+v);if(b)b.className='eval-badge';});
-  if(ev.rating)window.setEvalRating(type,ev.rating);
-  else{const c=document.getElementById(p+'-eval-rating');if(c)c.querySelectorAll('.eval-star').forEach(b=>b.classList.remove('active'));}
-  const wrap=document.getElementById('edit-'+(type==='task'?'task':'deleg')+'-fields');
-  if(wrap){wrap.querySelectorAll('.modal-tab').forEach((b,i)=>b.classList.toggle('active',i===0));wrap.querySelectorAll('.modal-tab-content').forEach((c,i)=>c.classList.toggle('active',i===0));}
-}
-function getEvalData(type){
-  const p=type==='task'?'et':'ed';
-  const r=document.getElementById(p+'-eval-result');
-  const o=document.getElementById(p+'-eval-obstacle');
-  const l=document.getElementById(p+'-eval-lesson');
-  return{result:r?r.value.trim():'',obstacle:o?o.value.trim():'',lesson:l?l.value.trim():'',onTarget:type==='task'?evalTargetTask:evalTargetDeleg,rating:type==='task'?evalRatingTask:evalRatingDeleg};
-}
+window.switchEditTab=function(type,tab,el){var k=type==='task'?'task':'deleg';var wrap=document.getElementById('edit-'+k+'-fields');if(!wrap)return;wrap.querySelectorAll('.modal-tab').forEach(function(b){b.classList.remove('active');});wrap.querySelectorAll('.modal-tab-content').forEach(function(c){c.classList.remove('active');});el.classList.add('active');var tc=document.getElementById(k+'-tab-'+tab);if(tc)tc.classList.add('active');};
+window.setEvalTarget=function(type,val){var p=type==='task'?'et':'ed';if(type==='task')evalTargetTask=val;else evalTargetDeleg=val;['yes','partial','no'].forEach(function(v){var b=document.getElementById(p+'-ontarget-'+v);if(b){b.className='eval-badge';if(v===val)b.className+=' active-'+v;}});};
+window.setEvalRating=function(type,val){var p=type==='task'?'et':'ed';if(type==='task')evalRatingTask=val;else evalRatingDeleg=val;var c=document.getElementById(p+'-eval-rating');if(c)c.querySelectorAll('.eval-star').forEach(function(b,i){b.classList.toggle('active',i<val);});};
+function loadEvalFields(type,data){var p=type==='task'?'et':'ed';var ev=(data&&data.eval)||{};var r=document.getElementById(p+'-eval-result');var o=document.getElementById(p+'-eval-obstacle');var l=document.getElementById(p+'-eval-lesson');if(r)r.value=ev.result||'';if(o)o.value=ev.obstacle||'';if(l)l.value=ev.lesson||'';if(type==='task'){evalTargetTask=ev.onTarget||'';evalRatingTask=ev.rating||0;}else{evalTargetDeleg=ev.onTarget||'';evalRatingDeleg=ev.rating||0;}if(ev.onTarget)window.setEvalTarget(type,ev.onTarget);else['yes','partial','no'].forEach(function(v){var b=document.getElementById(p+'-ontarget-'+v);if(b)b.className='eval-badge';});if(ev.rating)window.setEvalRating(type,ev.rating);else{var c=document.getElementById(p+'-eval-rating');if(c)c.querySelectorAll('.eval-star').forEach(function(b){b.classList.remove('active');});}var wrap=document.getElementById('edit-'+(type==='task'?'task':'deleg')+'-fields');if(wrap){wrap.querySelectorAll('.modal-tab').forEach(function(b,i){b.classList.toggle('active',i===0);});wrap.querySelectorAll('.modal-tab-content').forEach(function(c,i){c.classList.toggle('active',i===0);});}}
+function getEvalData(type){var p=type==='task'?'et':'ed';var r=document.getElementById(p+'-eval-result');var o=document.getElementById(p+'-eval-obstacle');var l=document.getElementById(p+'-eval-lesson');return{result:r?r.value.trim():'',obstacle:o?o.value.trim():'',lesson:l?l.value.trim():'',onTarget:type==='task'?evalTargetTask:evalTargetDeleg,rating:type==='task'?evalRatingTask:evalRatingDeleg};}
 
-// ── S-CURVE MODAL FUNCTIONS ───────────────────
+// ── SC MODALS ─────────────────────────────────
 let scEditProjId=null,scEditItemProjId=null,scEditItemId=null;
-window.openSCProjectModal=function(projId){
-  scEditProjId=projId||null;
-  const proj=projId?D.scProjects.find(p=>p.id===projId):null;
-  document.getElementById('sc-project-modal-title').textContent=proj?'✎ Edit Project':'◬ Project S-Curve Baru';
-  document.getElementById('sc-proj-name').value=proj?(proj.name||''):'';
-  document.getElementById('sc-proj-start').value=proj?(proj.startDate||''):TS();
-  document.getElementById('sc-proj-end').value=proj?(proj.finishDate||''):'';
-  document.getElementById('sc-proj-budget').value=proj?(proj.budget||''):'';
-  document.getElementById('sc-proj-currency').value=proj?(proj.currency||'IDR'):'IDR';
-  document.getElementById('sc-proj-desc').value=proj?(proj.desc||''):'';
-  document.getElementById('sc-project-modal-ov').classList.add('open');
-};
+window.openSCProjectModal=function(projId){scEditProjId=projId||null;var proj=projId?D.scProjects.find(function(p){return p.id===projId;}):null;document.getElementById('sc-project-modal-title').textContent=proj?'✎ Edit Project':'◬ Project S-Curve Baru';document.getElementById('sc-proj-name').value=proj?(proj.name||''):'';document.getElementById('sc-proj-start').value=proj?(proj.startDate||''):TS();document.getElementById('sc-proj-end').value=proj?(proj.finishDate||''):'';document.getElementById('sc-proj-budget').value=proj?(proj.budget||''):'';document.getElementById('sc-proj-currency').value=proj?(proj.currency||'IDR'):'IDR';document.getElementById('sc-proj-desc').value=proj?(proj.desc||''):'';document.getElementById('sc-project-modal-ov').classList.add('open');};
 window.closeSCProjectModal=function(){document.getElementById('sc-project-modal-ov').classList.remove('open');};
-window.saveSCProject=async function(){
-  const name=document.getElementById('sc-proj-name').value.trim();
-  if(!name){toast('Nama project wajib diisi',true);return;}
-  const id=scEditProjId||'sc_'+Date.now().toString(36);
-  const data={name,startDate:document.getElementById('sc-proj-start').value,finishDate:document.getElementById('sc-proj-end').value,budget:document.getElementById('sc-proj-budget').value,currency:document.getElementById('sc-proj-currency').value||'IDR',desc:document.getElementById('sc-proj-desc').value.trim()};
-  await saveSCurveProject(uid,id,data);closeSCProjectModal();toast('Project disimpan ✓');
-  if(!scEditProjId)setTimeout(()=>{const s=document.getElementById('sc-project-sel');if(s){s.value=id;window.onSCProjectChange(id);}},600);
-};
-window.openSCItemModal=function(projId,itemId){
-  projId=projId||scCurrentProjectId;
-  if(projId==='__global__'){toast('Pilih project terlebih dahulu',true);return;}
-  scEditItemProjId=projId;scEditItemId=itemId||null;
-  const item=itemId?(D.scItems[projId]||[]).find(i=>i.id===itemId):null;
-  document.getElementById('sc-item-modal-title').textContent=item?'✎ Edit Item WBS':'+ Item WBS Baru';
-  document.getElementById('sc-item-name').value=item?(item.name||''):'';
-  document.getElementById('sc-item-weight').value=item?(item.weight||''):'';
-  document.getElementById('sc-item-value').value=item?(item.value||''):'';
-  document.getElementById('sc-item-start').value=item?(item.startDate||''):'';
-  document.getElementById('sc-item-finish').value=item?(item.finishDate||''):'';
-  document.getElementById('sc-item-cat').value=item?(item.category||''):'';
-  document.getElementById('sc-item-del-btn').style.display=item?'block':'none';
-  document.getElementById('sc-item-modal-ov').classList.add('open');
-};
+window.saveSCProject=async function(){var name=document.getElementById('sc-proj-name').value.trim();if(!name){toast('Nama project wajib diisi',true);return;}var id=scEditProjId||'sc_'+Date.now().toString(36);var data={name:name,startDate:document.getElementById('sc-proj-start').value,finishDate:document.getElementById('sc-proj-end').value,budget:document.getElementById('sc-proj-budget').value,currency:document.getElementById('sc-proj-currency').value||'IDR',desc:document.getElementById('sc-proj-desc').value.trim()};await saveSCurveProject(uid,id,data);closeSCProjectModal();toast('Project disimpan ✓');if(!scEditProjId)setTimeout(function(){var s=document.getElementById('sc-project-sel');if(s){s.value=id;window.onSCProjectChange(id);}},600);};
+window.openSCItemModal=function(projId,itemId){projId=projId||scCurrentProjectId;if(projId==='__global__'){toast('Pilih project terlebih dahulu',true);return;}scEditItemProjId=projId;scEditItemId=itemId||null;var item=itemId?(D.scItems[projId]||[]).find(function(i){return i.id===itemId;}):null;document.getElementById('sc-item-modal-title').textContent=item?'✎ Edit Item WBS':'+ Item WBS Baru';document.getElementById('sc-item-name').value=item?(item.name||''):'';document.getElementById('sc-item-weight').value=item?(item.weight||''):'';document.getElementById('sc-item-value').value=item?(item.value||''):'';document.getElementById('sc-item-start').value=item?(item.startDate||''):'';document.getElementById('sc-item-finish').value=item?(item.finishDate||''):'';document.getElementById('sc-item-cat').value=item?(item.category||''):'';document.getElementById('sc-item-del-btn').style.display=item?'block':'none';document.getElementById('sc-item-modal-ov').classList.add('open');};
 window.closeSCItemModal=function(){document.getElementById('sc-item-modal-ov').classList.remove('open');};
-window.saveSCItem=async function(){
-  const name=document.getElementById('sc-item-name').value.trim();
-  if(!name){toast('Nama item wajib diisi',true);return;}
-  const weight=parseFloat(document.getElementById('sc-item-weight').value)||0;
-  const value=parseFloat(document.getElementById('sc-item-value').value)||0;
-  const id=scEditItemId||'sci_'+Date.now().toString(36);
-  const data={name,weight,value,startDate:document.getElementById('sc-item-start').value,finishDate:document.getElementById('sc-item-finish').value,category:document.getElementById('sc-item-cat').value.trim()};
-  if(!scEditItemId)data.createdAt=Date.now();
-  await saveSCurveItem(uid,scEditItemProjId,id,data);closeSCItemModal();toast('Item disimpan ✓');
-};
-window.deleteSCProj=async function(projId){
-  if(!confirm('Hapus project S-Curve ini?'))return;
-  await deleteSCurveProject(uid,projId);scCurrentProjectId='__global__';toast('Project dihapus');
-};
-window.deleteSCItemCurrent=async function(projId,itemId){
-  projId=projId||scEditItemProjId;itemId=itemId||scEditItemId;
-  if(!confirm('Hapus item WBS ini?'))return;
-  await deleteSCurveItem(uid,projId,itemId);closeSCItemModal();toast('Item dihapus');
-};
+window.saveSCItem=async function(){var name=document.getElementById('sc-item-name').value.trim();if(!name){toast('Nama item wajib diisi',true);return;}var weight=parseFloat(document.getElementById('sc-item-weight').value)||0;var value=parseFloat(document.getElementById('sc-item-value').value)||0;var id=scEditItemId||'sci_'+Date.now().toString(36);var data={name:name,weight:weight,value:value,startDate:document.getElementById('sc-item-start').value,finishDate:document.getElementById('sc-item-finish').value,category:document.getElementById('sc-item-cat').value.trim()};if(!scEditItemId)data.createdAt=Date.now();await saveSCurveItem(uid,scEditItemProjId,id,data);closeSCItemModal();toast('Item disimpan ✓');};
+window.deleteSCProj=async function(projId){if(!confirm('Hapus project?'))return;await deleteSCurveProject(uid,projId);scCurrentProjectId='__global__';toast('Project dihapus');};
+window.deleteSCItemCurrent=async function(projId,itemId){projId=projId||scEditItemProjId;itemId=itemId||scEditItemId;if(!confirm('Hapus item WBS?'))return;await deleteSCurveItem(uid,projId,itemId);closeSCItemModal();toast('Item dihapus');};
 window.editCurrentSCProject=function(){window.openSCProjectModal(scCurrentProjectId);};
 window.deleteCurrentSCProject=function(){window.deleteSCProj(scCurrentProjectId);};
 window.handleTopbarAdd=function(){if(curView==='scurve')window.openSCProjectModal();else window.openModal();};
 
+// ── SC RTL ────────────────────────────────────
+function saveSCRTL(){var projId=scCurrentProjectId;if(!projId||projId==='__global__')return;var proj=D.scProjects.find(function(p){return p.id===projId;});if(!proj)return;var data={highlight:(document.getElementById('sc-rtl-highlight')||{}).value||'',action:(document.getElementById('sc-rtl-action')||{}).value||'',target:(document.getElementById('sc-rtl-target')||{}).value||''};proj.rtl=data;saveSCurveProject(uid,projId,Object.assign({},proj,{rtl:data}));}
+function loadSCRTL(projId){var proj=D.scProjects.find(function(p){return p.id===projId;});var rtl=(proj&&proj.rtl)||{};var h=document.getElementById('sc-rtl-highlight');var a=document.getElementById('sc-rtl-action');var t=document.getElementById('sc-rtl-target');if(h)h.value=rtl.highlight||'';if(a)a.value=rtl.action||'';if(t)t.value=rtl.target||'';}
+
 // ── THEME TOGGLE ──────────────────────────────
-function toggleTheme(){
-  const isLight=document.documentElement.classList.toggle('light');
-  localStorage.setItem('theme',isLight?'light':'dark');
-  const btn=document.querySelector('[onclick="toggleTheme()"]');
-  if(btn)btn.textContent=isLight?'☀️':'🌙';
-}
+function toggleTheme(){var isLight=document.documentElement.classList.toggle('light');localStorage.setItem('theme',isLight?'light':'dark');var btn=document.querySelector('[onclick="toggleTheme()"]');if(btn)btn.textContent=isLight?'☀️':'🌙';}
 window.toggleTheme=toggleTheme;
 (function(){if(localStorage.getItem('theme')==='light')document.documentElement.classList.add('light');})();
-
 
 // ── S-CURVE PDF EXPORT ────────────────────────────────────────────────────────
 window.exportSCurvePDF = function() {
@@ -4938,304 +4829,270 @@ window.exportSCurvePDF = function() {
   const proj   = D.scProjects.find(p => p.id === projId);
   if (!proj || projId === '__global__') { toast('Pilih project terlebih dahulu', true); return; }
 
+  const modal = document.createElement('div');
+  modal.id = 'sc-export-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center';
+  const today = TS();
+  modal.innerHTML = '<div style="background:var(--bg2);border:1px solid var(--line2);border-radius:12px;padding:22px;width:340px;max-width:95vw">'
+    + '<div style="font-size:14px;font-weight:700;color:var(--snow);margin-bottom:4px">Export Report PDF</div>'
+    + '<div style="font-size:11px;color:var(--fog);margin-bottom:16px">' + (proj.name||'') + '</div>'
+    + '<div class="fld"><div class="fld-lbl">Tanggal referensi report</div>'
+    + '<input class="fld-in" type="date" id="sc-export-date" value="' + today + '">'
+    + '<div style="font-size:10px;color:var(--fog);margin-top:4px">Plan dihitung s/d tanggal ini. Actual dari data yang sudah diinput.</div></div>'
+    + '<div style="display:flex;gap:8px;margin-top:16px">'
+    + '<button onclick="document.getElementById(\'sc-export-modal\').remove()" style="flex:1;padding:9px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:12px">Batal</button>'
+    + '<button onclick="generateSCurvePDF(document.getElementById(\'sc-export-date\').value)" style="flex:2;padding:9px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:12px;font-weight:600">&#11015; Generate PDF</button>'
+    + '</div></div>';
+  document.body.appendChild(modal);
+  modal.addEventListener('click', function(e) { if(e.target===modal) modal.remove(); });
+};
+
+window.generateSCurvePDF = function(exportDate) {
+  document.getElementById('sc-export-modal') && document.getElementById('sc-export-modal').remove();
+  const projId = scCurrentProjectId;
+  const proj   = D.scProjects.find(p => p.id === projId);
+  if (!proj) return;
+
   const items    = D.scItems[projId]   || [];
   const actuals  = D.scActuals[projId] || [];
   const iActuals = D.scItemActuals[projId] || {};
-  const refDate  = getSCRefDate();
-  const today    = TS();
+  const refDate  = exportDate || getSCRefDate();
+  const rtl      = proj.rtl || {};
 
-  const periods = generatePeriods(proj.startDate, proj.finishDate, 'day');
-  const planned = calcPlannedCurve(items, periods);
-  const todayIdx = getTodayPeriodIndex(periods);
+  const allPeriods = generatePeriods(proj.startDate, proj.finishDate, 'day');
 
-  const plannedAtRef = (todayIdx >= 0 && todayIdx < planned.length)
-    ? planned[todayIdx]
-    : (todayIdx >= planned.length ? planned[planned.length-1] : 0);
+  // Plan cumulative at date: sum item contributions up to date
+  function getPlanCumAtDate(upTo) {
+    let cum = 0;
+    allPeriods.forEach(function(p) {
+      if (p.key > upTo) return;
+      items.forEach(function(item) {
+        if (!item.startDate||!item.finishDate) return;
+        if (p.key < item.startDate||p.key > item.finishDate) return;
+        const dur = Math.round((localMidnight(item.finishDate)-localMidnight(item.startDate))/86400000)+1;
+        cum += (parseFloat(item.weight)||0)/dur;
+      });
+    });
+    return Math.round(cum*100)/100;
+  }
 
-  const refActual = actuals
-    .filter(a => a.id <= refDate && a.cumProgress)
-    .sort((a,b) => b.id.localeCompare(a.id))[0];
-  const actualVal = refActual ? refActual.cumProgress : 0;
-  const dev = Math.round((actualVal - plannedAtRef) * 10) / 10;
-  const isBehind = dev < 0;
+  // Actual cumulative from item actuals (what user actually typed)
+  function getActualCumAtDate(upTo) {
+    let cum = 0, hasAny = false;
+    Object.keys(iActuals).sort().forEach(function(d) {
+      if (d > upTo) return;
+      items.forEach(function(item) {
+        var dd = iActuals[d];
+        if (dd && dd[item.id] !== undefined) { cum += parseFloat(dd[item.id])||0; hasAny=true; }
+      });
+    });
+    if (!hasAny) {
+      var pa = actuals.filter(function(a){return a.id<=upTo&&a.cumProgress!=null;}).sort(function(a,b){return b.id.localeCompare(a.id);})[0];
+      if (pa) return {val:pa.cumProgress,hasData:true};
+    }
+    return {val:Math.round(cum*100)/100,hasData:hasAny};
+  }
+
+  function getItemPlanAtDate(item, upTo) {
+    if (!item.startDate||!item.finishDate) return 0;
+    const dur = Math.round((localMidnight(item.finishDate)-localMidnight(item.startDate))/86400000)+1;
+    let cum = 0;
+    allPeriods.forEach(function(p) {
+      if (p.key>upTo||p.key<item.startDate||p.key>item.finishDate) return;
+      cum += (parseFloat(item.weight)||0)/dur;
+    });
+    return Math.round(cum*100)/100;
+  }
+
+  function getItemActualAtDate(itemId, upTo) {
+    let cum=0,hasAny=false;
+    Object.keys(iActuals).sort().forEach(function(d) {
+      if (d>upTo) return;
+      if (iActuals[d]&&iActuals[d][itemId]!==undefined){cum+=parseFloat(iActuals[d][itemId])||0;hasAny=true;}
+    });
+    return {val:Math.round(cum*100)/100,hasData:hasAny};
+  }
+
+  const planAtRef   = getPlanCumAtDate(refDate);
+  const actualRes   = getActualCumAtDate(refDate);
+  const hasActual   = actualRes.hasData;
+  const actualVal   = hasActual ? actualRes.val : null;
+  const dev         = hasActual ? Math.round((actualVal-planAtRef)*10)/10 : null;
+  const isBehind    = dev!==null&&dev<0;
 
   const projStart = localMidnight(proj.startDate);
   const projEnd   = localMidnight(proj.finishDate);
-  const totalDays = Math.round((projEnd - projStart) / 86400000) + 1;
-  const refDay    = Math.round((localMidnight(refDate) - projStart) / 86400000) + 1;
-  const remDays   = Math.max(0, totalDays - refDay);
+  const totalDays = Math.round((projEnd-projStart)/86400000)+1;
+  const refDay    = Math.round((localMidnight(refDate)-projStart)/86400000)+1;
+  const remDays   = Math.max(0,totalDays-refDay);
 
-  function getItemActualByDate(itemId, upTo) {
-    let cum = 0;
-    Object.keys(iActuals).sort().forEach(d => {
-      if (d <= upTo && iActuals[d] && iActuals[d][itemId] !== undefined)
-        cum += parseFloat(iActuals[d][itemId]) || 0;
+  // WBS rows
+  var wbsRows = items.map(function(item) {
+    var planPct = getItemPlanAtDate(item,refDate);
+    var actRes  = getItemActualAtDate(item.id,refDate);
+    var actPct  = actRes.hasData ? actRes.val : null;
+    var itemDev = actPct!==null ? Math.round((actPct-planPct)*10)/10 : null;
+    var iS = item.startDate ? item.startDate.slice(5).replace('-','/') : '-';
+    var iE = item.finishDate ? item.finishDate.slice(5).replace('-','/') : '-';
+    var devClr = itemDev===null?'#9ca3af':itemDev>0?'#16a34a':itemDev<0?'#dc2626':'#6b7280';
+    var planBar = Math.min(100,planPct/(parseFloat(item.weight)||1)*100);
+    var actBar  = actPct!==null?Math.min(100,actPct/(parseFloat(item.weight)||1)*100):0;
+    return '<tr>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid #e5e7eb"><div style="font-size:11px;font-weight:600;color:#111">'+item.name+'</div><div style="font-size:10px;color:#9ca3af">'+(item.category||'-')+'</div></td>'
+      +'<td style="padding:7px 8px;border-bottom:1px solid #e5e7eb;text-align:center;font-family:monospace;font-size:11px;color:#6366f1;font-weight:600">'+(parseFloat(item.weight)||0)+'%</td>'
+      +'<td style="padding:7px 8px;border-bottom:1px solid #e5e7eb;text-align:center">'
+        +'<div style="font-family:monospace;font-size:11px;font-weight:600;color:#4f46e5">'+planPct.toFixed(1)+'%</div>'
+        +'<div style="height:3px;background:#e0e7ff;border-radius:2px;margin-top:3px;overflow:hidden"><div style="height:100%;width:'+planBar.toFixed(0)+'%;background:#6366f1;border-radius:2px"></div></div>'
+      +'</td>'
+      +'<td style="padding:7px 8px;border-bottom:1px solid #e5e7eb;text-align:center">'
+        +(actPct!==null
+          ? '<div style="font-family:monospace;font-size:11px;font-weight:600;color:#16a34a">'+actPct.toFixed(1)+'%</div><div style="height:3px;background:#dcfce7;border-radius:2px;margin-top:3px;overflow:hidden"><div style="height:100%;width:'+actBar.toFixed(0)+'%;background:#16a34a;border-radius:2px"></div></div>'
+          : '<div style="font-size:11px;color:#9ca3af">&#8212;</div>')
+      +'</td>'
+      +'<td style="padding:7px 8px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:10px;color:#6b7280;font-family:monospace">'+iS+'-'+iE+'</td>'
+      +'<td style="padding:7px 8px;border-bottom:1px solid #e5e7eb;text-align:center;font-family:monospace;font-size:11px;font-weight:700;color:'+devClr+'">'
+        +(itemDev!==null?(itemDev===0?'0.0':itemDev>0?'+'+itemDev.toFixed(1):itemDev.toFixed(1))+'%':'&#8212;')
+      +'</td>'
+      +'</tr>';
+  }).join('');
+
+  // SVG S-Curve
+  var svgW=720,svgH=150,padL=32,padR=8,padT=14,padB=22;
+  var cW=svgW-padL-padR,cH=svgH-padT-padB,n=allPeriods.length;
+  function px(i){return padL+(i/Math.max(n-1,1))*cW;}
+  function py(v){return padT+cH-(v/100)*cH;}
+
+  var planVals=[];var cumPlan=0;
+  allPeriods.forEach(function(p){
+    items.forEach(function(item){
+      if(!item.startDate||!item.finishDate)return;
+      if(p.key<item.startDate||p.key>item.finishDate)return;
+      var dur=Math.round((localMidnight(item.finishDate)-localMidnight(item.startDate))/86400000)+1;
+      cumPlan+=(parseFloat(item.weight)||0)/dur;
     });
-    return Math.round(cum * 100) / 100;
-  }
-  function getItemPlannedByDate(item, upTo) {
-    if (!item.startDate || !item.finishDate) return 0;
-    const iS = localMidnight(item.startDate), iE = localMidnight(item.finishDate);
-    const dur = Math.round((iE - iS) / 86400000) + 1;
-    let cum = 0, d = new Date(iS);
-    while (d <= iE) {
-      const ds = localDateStr(d);
-      if (ds <= upTo) cum += (parseFloat(item.weight)||0) / dur;
-      d.setDate(d.getDate()+1);
-    }
-    return Math.round(cum * 100) / 100;
-  }
-
-  const wbsRows = items.map(item => {
-    const planPct = getItemPlannedByDate(item, refDate);
-    const actPct  = getItemActualByDate(item.id, refDate);
-    const itemDev = Math.round((actPct - planPct) * 10) / 10;
-    const iS = item.startDate ? item.startDate.slice(5).replace('-','/') : '-';
-    const iE = item.finishDate ? item.finishDate.slice(5).replace('-','/') : '-';
-    const devClr = itemDev > 0 ? '#16a34a' : itemDev < 0 ? '#dc2626' : '#6b7280';
-    const planBar = Math.min(100, planPct / (parseFloat(item.weight)||1) * 100);
-    const actBar  = Math.min(100, actPct  / (parseFloat(item.weight)||1) * 100);
-    return `
-      <tr>
-        <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb">
-          <div style="font-size:11px;font-weight:600;color:#111">${item.name}</div>
-          <div style="font-size:10px;color:#9ca3af">${item.category||'-'}</div>
-        </td>
-        <td style="padding:7px 8px;border-bottom:1px solid #e5e7eb;text-align:center;font-family:monospace;font-size:11px;color:#6366f1;font-weight:600">${parseFloat(item.weight)||0}%</td>
-        <td style="padding:7px 8px;border-bottom:1px solid #e5e7eb;text-align:center">
-          <div style="font-family:monospace;font-size:11px;font-weight:600;color:#4f46e5">${planPct.toFixed(1)}%</div>
-          <div style="height:3px;background:#e0e7ff;border-radius:2px;margin-top:3px;overflow:hidden">
-            <div style="height:100%;width:${planBar}%;background:#6366f1;border-radius:2px"></div>
-          </div>
-        </td>
-        <td style="padding:7px 8px;border-bottom:1px solid #e5e7eb;text-align:center">
-          <div style="font-family:monospace;font-size:11px;font-weight:600;color:${actPct>0?'#16a34a':'#9ca3af'}">${actPct.toFixed(1)}%</div>
-          <div style="height:3px;background:#dcfce7;border-radius:2px;margin-top:3px;overflow:hidden">
-            <div style="height:100%;width:${actBar}%;background:#16a34a;border-radius:2px"></div>
-          </div>
-        </td>
-        <td style="padding:7px 8px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:10px;color:#6b7280;font-family:monospace">${iS}-${iE}</td>
-        <td style="padding:7px 8px;border-bottom:1px solid #e5e7eb;text-align:center;font-family:monospace;font-size:11px;font-weight:700;color:${devClr}">${itemDev===0?'0.0':itemDev>0?'+'+itemDev.toFixed(1):itemDev.toFixed(1)}%</td>
-      </tr>`;
-  }).join('');
-
-  // RTL data from project
-  const rtl = proj.rtl || {};
-
-  // Behind items for highlight (auto)
-  const behindItems = items
-    .map(it => ({ name: it.name, dev: Math.round((getItemActualByDate(it.id,refDate)-getItemPlannedByDate(it,refDate))*10)/10 }))
-    .filter(it => it.dev < 0).sort((a,b) => a.dev - b.dev);
-
-  // S-Curve data points for line chart via SVG
-  const svgW = 720, svgH = 140, padL = 30, padR = 10, padT = 10, padB = 20;
-  const chartW = svgW - padL - padR, chartH = svgH - padT - padB;
-  const n = periods.length;
-
-  function px(i) { return padL + (i / Math.max(n-1,1)) * chartW; }
-  function py(v) { return padT + chartH - (v/100) * chartH; }
-
-  // Planned polyline
-  const planPts = planned.map((v,i) => `${px(i).toFixed(1)},${py(v).toFixed(1)}`).join(' ');
-  // Planned fill area
-  const planArea = `${px(0).toFixed(1)},${py(0).toFixed(1)} ` + planPts + ` ${px(n-1).toFixed(1)},${py(0).toFixed(1)}`;
-
-  // Actual polyline (only non-null)
-  const actPts = [];
-  periods.forEach((p,i) => {
-    const a = actuals.find(x => x.id === p.key);
-    if (a && a.cumProgress) actPts.push({ x: px(i), y: py(a.cumProgress), v: a.cumProgress });
+    planVals.push(Math.round(cumPlan*100)/100);
   });
-  const actLine = actPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-  const actArea = actPts.length ? `${actPts[0].x.toFixed(1)},${py(0).toFixed(1)} ` + actLine + ` ${actPts[actPts.length-1].x.toFixed(1)},${py(0).toFixed(1)}` : '';
 
-  // Ref date line
-  const refIdx = periods.findIndex(p => p.key === refDate);
-  const refX = refIdx >= 0 ? px(refIdx).toFixed(1) : null;
+  var actPtsSvg=[];var cumAct=0;
+  allPeriods.forEach(function(p,i){
+    var dayHas=false;
+    items.forEach(function(item){var dd=iActuals[p.key];if(dd&&dd[item.id]!==undefined){cumAct+=parseFloat(dd[item.id])||0;dayHas=true;}});
+    if(actPtsSvg.length>0||dayHas)actPtsSvg.push({x:px(i),y:py(Math.round(cumAct*100)/100),hasData:dayHas,key:p.key});
+  });
+  while(actPtsSvg.length&&!actPtsSvg[actPtsSvg.length-1].hasData)actPtsSvg.pop();
 
-  // X axis labels (show ~6 evenly spaced)
-  const step = Math.ceil(n / 6);
-  const xLabels = periods.filter((_,i) => i % step === 0 || i === n-1).map((p,_,arr) => {
-    const i = periods.indexOf(p);
-    return `<text x="${px(i).toFixed(1)}" y="${(svgH-3).toFixed(1)}" font-size="8" text-anchor="middle" fill="#9ca3af">${p.key.slice(8)}/${p.key.slice(5,7)}</text>`;
+  var planPts=planVals.map(function(v,i){return px(i).toFixed(1)+','+py(v).toFixed(1);}).join(' ');
+  var planArea=px(0).toFixed(1)+','+py(0).toFixed(1)+' '+planPts+' '+px(n-1).toFixed(1)+','+py(0).toFixed(1);
+  var actLine=actPtsSvg.map(function(p){return p.x.toFixed(1)+','+p.y.toFixed(1);}).join(' ');
+  var actArea=actPtsSvg.length?actPtsSvg[0].x.toFixed(1)+','+py(0).toFixed(1)+' '+actLine+' '+actPtsSvg[actPtsSvg.length-1].x.toFixed(1)+','+py(0).toFixed(1):'';
+  var refIdx=allPeriods.findIndex(function(p){return p.key===refDate;});
+  var refX=refIdx>=0?px(refIdx).toFixed(1):null;
+  var step=Math.max(1,Math.ceil(n/8));
+  var xLbls=allPeriods.filter(function(_,i){return i%step===0||i===n-1;}).map(function(p){var i=allPeriods.indexOf(p);return '<text x="'+px(i).toFixed(1)+'" y="'+(svgH-4).toFixed(1)+'" font-size="8" text-anchor="middle" fill="#9ca3af">'+p.key.slice(8)+'/'+p.key.slice(5,7)+'</text>';}).join('');
+  var yLbls=[0,25,50,75,100].map(function(v){return '<text x="'+(padL-3).toFixed(1)+'" y="'+(py(v)+3).toFixed(1)+'" font-size="8" text-anchor="end" fill="#9ca3af">'+v+'</text><line x1="'+padL+'" y1="'+py(v).toFixed(1)+'" x2="'+(svgW-padR).toFixed(1)+'" y2="'+py(v).toFixed(1)+'" stroke="#e5e7eb" stroke-width="0.5"/>';}).join('');
+
+  var scSvg = '<svg width="'+svgW+'" height="'+svgH+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">'
+    +yLbls+xLbls
+    +'<polygon points="'+planArea+'" fill="rgba(99,102,241,0.07)"/>'
+    +'<polyline points="'+planPts+'" fill="none" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="5,3"/>'
+    +(actArea?'<polygon points="'+actArea+'" fill="rgba(22,163,74,0.08)"/>':'')
+    +(actLine?'<polyline points="'+actLine+'" fill="none" stroke="#16a34a" stroke-width="2"/>':'')
+    +actPtsSvg.filter(function(p){return p.hasData;}).map(function(p){return '<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="2.5" fill="#16a34a"/>';}).join('')
+    +(refX?'<line x1="'+refX+'" y1="'+padT+'" x2="'+refX+'" y2="'+(svgH-padB).toFixed(1)+'" stroke="#d97706" stroke-width="1.5" stroke-dasharray="3,2"/><text x="'+refX+'" y="'+(padT-2).toFixed(1)+'" font-size="8" text-anchor="middle" fill="#d97706">'+refDate.slice(8)+'/'+refDate.slice(5,7)+'</text>':'')
+    +'</svg>';
+
+  // Status
+  var statusBadge = !hasActual
+    ? '<div style="display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb">Belum ada data aktual</div>'
+    : '<div style="display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:'+(isBehind?'#fef2f2':'#f0fdf4')+';color:'+(isBehind?'#dc2626':'#16a34a')+';border:1px solid '+(isBehind?'#fecaca':'#bbf7d0')+'">'+(isBehind?'&#9660; Behind':'&#9650; Ahead')+'</div>';
+
+  // Behind items for highlight fallback
+  var behindItems=items.map(function(it){var pl=getItemPlanAtDate(it,refDate);var ac=getItemActualAtDate(it.id,refDate);return{name:it.name,dev:ac.hasData?Math.round((ac.val-pl)*10)/10:null};}).filter(function(it){return it.dev!==null&&it.dev<0;}).sort(function(a,b){return a.dev-b.dev;});
+
+  // Analysis section
+  var highlightHtml = rtl.highlight
+    ? '<div style="font-size:11px;color:#374151;line-height:1.6">'+rtl.highlight.split('\n').join('<br>')+'</div>'
+    : behindItems.slice(0,4).map(function(it){return '<div style="font-size:11px;color:#374151;margin-bottom:3px;display:flex;justify-content:space-between"><span>'+it.name+'</span><span style="color:#dc2626;font-family:monospace">'+it.dev.toFixed(1)+'%</span></div>';}).join('') || '<div style="font-size:11px;color:#9ca3af">-</div>';
+
+  var actionHtml = rtl.action
+    ? rtl.action.split('\n').filter(Boolean).map(function(l){return '<div style="font-size:11px;color:#374151;margin-bottom:4px">'+l+'</div>';}).join('')
+    : '<div style="font-size:11px;color:#9ca3af;font-style:italic">Belum diisi</div>';
+
+  var analysisSection = !hasActual ? '' : isBehind
+    ? '<div style="margin-top:16px;border:1px solid #fecaca;border-radius:8px;overflow:hidden">'
+      +'<div style="background:#fef2f2;padding:8px 14px;border-bottom:1px solid #fecaca"><div style="font-size:10px;font-weight:700;color:#991b1b;text-transform:uppercase;letter-spacing:.5px">Analisis keterlambatan &amp; rencana tindak lanjut</div></div>'
+      +'<div style="background:#fff;padding:12px 14px"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">'
+      +'<div style="padding:10px 12px;border-radius:6px;border:1px solid #fee2e2"><div style="font-size:9px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Highlight</div>'+highlightHtml+'</div>'
+      +'<div style="padding:10px 12px;border-radius:6px;border:1px solid #fde68a"><div style="font-size:9px;font-weight:700;color:#d97706;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Rencana tindak lanjut</div>'+actionHtml+'</div>'
+      +'<div style="padding:10px 12px;border-radius:6px;border:1px solid #e9d5ff"><div style="font-size:9px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Target</div>'
+      +'<div style="font-size:11px;color:#374151;margin-bottom:4px;display:flex;justify-content:space-between"><span>Sisa durasi</span><b>'+remDays+' hari</b></div>'
+      +'<div style="font-size:11px;color:#374151;margin-bottom:4px;display:flex;justify-content:space-between"><span>Perlu kejar</span><b style="color:#dc2626">'+Math.abs(dev).toFixed(1)+'%</b></div>'
+      +'<div style="font-size:11px;color:#374151;margin-bottom:'+(rtl.target?8:0)+'px;display:flex;justify-content:space-between"><span>Rate/hari</span><b>'+(remDays>0?(Math.abs(dev)/remDays).toFixed(2):'-')+'%</b></div>'
+      +(rtl.target?'<div style="font-size:11px;color:#374151;border-top:1px dashed #e5e7eb;padding-top:6px">'+rtl.target+'</div>':'')
+      +'</div></div></div></div>'
+    : '<div style="margin-top:16px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px">'
+      +'<div style="font-size:11px;font-weight:700;color:#15803d;margin-bottom:3px">&#10003; Ahead of schedule +'+Math.abs(dev).toFixed(1)+'%</div>'
+      +(rtl.action?'<div style="font-size:11px;color:#374151">'+rtl.action+'</div>':'')
+      +'</div>';
+
+  // KPI
+  var kpiCards = [
+    ['Rencana s/d '+refDate.slice(8)+'/'+refDate.slice(5,7), planAtRef.toFixed(1)+'%', '#4f46e5'],
+    ['Aktual tercapai', hasActual?actualVal.toFixed(1)+'%':'&#8212;', '#16a34a'],
+    ['Deviasi', dev!==null?(dev>=0?'+':'')+dev.toFixed(1)+'%':'&#8212;', dev===null?'#9ca3af':isBehind?'#dc2626':'#16a34a'],
+    ['Sisa durasi', remDays+' hari', '#6b7280'],
+  ].map(function(arr){
+    return '<div style="background:#f9fafb;border-radius:6px;padding:9px 11px;border:1px solid #e5e7eb"><div style="font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">'+arr[0]+'</div><div style="font-size:19px;font-weight:700;color:'+arr[2]+';font-family:monospace;line-height:1">'+arr[1]+'</div></div>';
   }).join('');
 
-  // Y axis labels
-  const yLabels = [0,25,50,75,100].map(v =>
-    `<text x="${(padL-3).toFixed(1)}" y="${(py(v)+3).toFixed(1)}" font-size="8" text-anchor="end" fill="#9ca3af">${v}</text>
-     <line x1="${padL}" y1="${py(v).toFixed(1)}" x2="${(svgW-padR).toFixed(1)}" y2="${py(v).toFixed(1)}" stroke="#e5e7eb" stroke-width="0.5"/>`
-  ).join('');
+  var html = '<!DOCTYPE html>\n<html lang="id"><head><meta charset="UTF-8">'
+    +'<title>S-Curve Report</title>'
+    +'<style>@page{margin:12mm 10mm}body{font-family:-apple-system,Segoe UI,sans-serif;color:#111;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>'
+    +'</head><body><div style="max-width:760px;margin:0 auto;padding:0 0 24px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:10px;margin-bottom:14px;border-bottom:2px solid #e5e7eb">'
+      +'<div><div style="font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Progress Report &#8212; S-Curve</div>'
+      +'<div style="font-size:16px;font-weight:700;color:#111;margin-bottom:2px">'+(proj.name||'')+'</div>'
+      +'<div style="font-size:11px;color:#6b7280">'+(proj.startDate||'-')+' s/d '+(proj.finishDate||'-')+' &middot; '+totalDays+' hari</div></div>'
+      +'<div style="text-align:right"><div style="font-size:10px;color:#9ca3af;margin-bottom:5px">Ref: '+refDate+' &middot; Hari ke-'+refDay+'</div>'+statusBadge+'</div>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">'+kpiCards+'</div>'
+    +'<div style="margin-bottom:14px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px">'
+      +'<div style="font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">S-Curve &#8212; Planned vs Actual</div>'
+      +scSvg
+      +'<div style="display:flex;gap:14px;font-size:10px;color:#6b7280;margin-top:4px">'
+      +'<span><svg width="16" height="8" style="vertical-align:middle;margin-right:4px"><line x1="0" y1="4" x2="16" y2="4" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="4,2"/></svg>Planned</span>'
+      +'<span><svg width="16" height="8" style="vertical-align:middle;margin-right:4px"><line x1="0" y1="4" x2="16" y2="4" stroke="#16a34a" stroke-width="2"/></svg>Actual</span>'
+      +'<span><svg width="8" height="10" style="vertical-align:middle;margin-right:4px"><line x1="4" y1="0" x2="4" y2="10" stroke="#d97706" stroke-width="1.5" stroke-dasharray="2,2"/></svg>Ref date</span>'
+      +'</div></div>'
+    +'<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">'
+      +'<div style="background:#f3f4f6;padding:7px 10px;border-bottom:1px solid #e5e7eb"><div style="font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px">Rincian item pekerjaan (WBS)</div></div>'
+      +'<table style="width:100%;border-collapse:collapse">'
+      +'<thead><tr style="background:#f9fafb">'
+      +'<th style="padding:6px 10px;text-align:left;font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Item</th>'
+      +'<th style="padding:6px 8px;text-align:center;font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Bobot</th>'
+      +'<th style="padding:6px 8px;text-align:center;font-size:9px;color:#6366f1;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Rencana</th>'
+      +'<th style="padding:6px 8px;text-align:center;font-size:9px;color:#16a34a;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Aktual</th>'
+      +'<th style="padding:6px 8px;text-align:center;font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Periode</th>'
+      +'<th style="padding:6px 8px;text-align:center;font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Deviasi</th>'
+      +'</tr></thead>'
+      +'<tbody>'+wbsRows+'</tbody>'
+      +'<tfoot><tr style="background:#f3f4f6">'
+      +'<td style="padding:7px 10px;font-size:11px;font-weight:700;color:#111">Total</td>'
+      +'<td style="padding:7px 8px;text-align:center;font-family:monospace;font-size:11px;font-weight:700;color:#6366f1">100%</td>'
+      +'<td style="padding:7px 8px;text-align:center;font-family:monospace;font-size:11px;font-weight:700;color:#4f46e5">'+planAtRef.toFixed(1)+'%</td>'
+      +'<td style="padding:7px 8px;text-align:center;font-family:monospace;font-size:11px;font-weight:700;color:'+(hasActual?'#16a34a':'#9ca3af')+'">'+(hasActual?actualVal.toFixed(1)+'%':'&#8212;')+'</td>'
+      +'<td></td>'
+      +'<td style="padding:7px 8px;text-align:center;font-family:monospace;font-size:11px;font-weight:700;color:'+(dev===null?'#9ca3af':isBehind?'#dc2626':'#16a34a')+'">'+(dev!==null?(dev>=0?'+':'')+dev.toFixed(1)+'%':'&#8212;')+'</td>'
+      +'</tr></tfoot></table></div>'
+    +analysisSection
+    +'</div>'
+    +'<scr'+'ipt>window.onload=function(){window.print();}<\/scr'+'ipt>'
+    +'</body></html>';
 
-  const scSvg = `<svg width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
-    ${yLabels}
-    ${xLabels}
-    ${planArea ? `<polygon points="${planArea}" fill="rgba(99,102,241,0.08)"/>` : ''}
-    <polyline points="${planPts}" fill="none" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="4,3"/>
-    ${actArea ? `<polygon points="${actArea}" fill="rgba(22,163,74,0.08)"/>` : ''}
-    ${actLine ? `<polyline points="${actLine}" fill="none" stroke="#16a34a" stroke-width="2"/>` : ''}
-    ${actPts.map(p=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="#16a34a"/>`).join('')}
-    ${refX ? `<line x1="${refX}" y1="${padT}" x2="${refX}" y2="${(svgH-padB).toFixed(1)}" stroke="#d97706" stroke-width="1.5" stroke-dasharray="3,2"/>
-              <text x="${refX}" y="${(padT-2).toFixed(1)}" font-size="8" text-anchor="middle" fill="#d97706">${refDate.slice(8)}/${refDate.slice(5,7)}</text>` : ''}
-  </svg>`;
-
-  // RTL / analisis section - auto highlights but manual note placeholder
-  const behindSection = isBehind ? `
-    <div style="margin-top:18px;border:1px solid #fecaca;border-radius:8px;overflow:hidden">
-      <div style="background:#fef2f2;padding:9px 14px;border-bottom:1px solid #fecaca">
-        <div style="font-size:10px;font-weight:700;color:#991b1b;text-transform:uppercase;letter-spacing:.5px">Analisis keterlambatan &amp; rencana tindak lanjut</div>
-      </div>
-      <div style="background:#fff;padding:12px 14px">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-
-          <div style="padding:10px 12px;border-radius:6px;border:1px solid #fee2e2">
-            <div style="font-size:9px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Highlight</div>
-            ${rtl.highlight
-              ? `<div style="font-size:11px;color:#374151;line-height:1.6">${rtl.highlight.replace(/\n/g,'<br>')}</div>`
-              : behindItems.slice(0,4).map(it=>`<div style="font-size:11px;color:#374151;margin-bottom:3px;display:flex;justify-content:space-between"><span>${it.name}</span><span style="color:#dc2626;font-family:monospace">${it.dev.toFixed(1)}%</span></div>`).join('')}
-          </div>
-
-          <div style="padding:10px 12px;border-radius:6px;border:1px solid #fde68a">
-            <div style="font-size:9px;font-weight:700;color:#d97706;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Rencana tindak lanjut</div>
-            ${rtl.action
-              ? rtl.action.split('\n').filter(Boolean).map((l,i)=>`<div style="font-size:11px;color:#374151;margin-bottom:4px">${l}</div>`).join('')
-              : '<div style="font-size:11px;color:#9ca3af;font-style:italic">Belum diisi</div>'}
-          </div>
-
-          <div style="padding:10px 12px;border-radius:6px;border:1px solid #e9d5ff">
-            <div style="font-size:9px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Target</div>
-            <div style="font-size:11px;color:#374151;margin-bottom:4px;display:flex;justify-content:space-between"><span>Sisa durasi</span><b>${remDays} hari</b></div>
-            <div style="font-size:11px;color:#374151;margin-bottom:4px;display:flex;justify-content:space-between"><span>Perlu catch-up</span><b style="color:#dc2626">${Math.abs(dev).toFixed(1)}%</b></div>
-            <div style="font-size:11px;color:#374151;display:flex;justify-content:space-between"><span>Rate/hari</span><b>${remDays>0?(Math.abs(dev)/remDays).toFixed(2):'-'}%</b></div>
-            ${rtl.target ? `<div style="margin-top:8px;border-top:1px dashed #e5e7eb;padding-top:6px;font-size:11px;color:#374151">${rtl.target}</div>` : `<div style="margin-top:8px;border-top:1px dashed #e5e7eb;padding-top:6px;font-size:11px;color:#6b7280">Target selesai: <b>${proj.finishDate||'-'}</b></div>`}
-          </div>
-
-        </div>
-      </div>
-    </div>` : `
-    <div style="margin-top:18px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;display:flex;align-items:center;gap:10px">
-      <span style="font-size:16px">&#10003;</span>
-      <div>
-        <div style="font-size:11px;font-weight:700;color:#15803d">Ahead of schedule</div>
-        <div style="font-size:11px;color:#374151">Progress aktual melebihi rencana sebesar <b>+${Math.abs(dev).toFixed(1)}%</b>. Pertahankan momentum dan pastikan kualitas terjaga.</div>
-      </div>
-    </div>`;
-
-  const html = `<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<title>S-Curve Report — ${proj.name}</title>
-<style>
-  @page{margin:12mm 10mm}
-  body{font-family:-apple-system,'Segoe UI',sans-serif;color:#111;background:#fff;font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  @media print{.no-print{display:none!important}}
-</style>
-</head>
-<body>
-<div style="max-width:760px;margin:0 auto;padding:0 0 24px">
-
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:10px;margin-bottom:14px;border-bottom:2px solid #e5e7eb">
-    <div>
-      <div style="font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Progress Report — S-Curve</div>
-      <div style="font-size:16px;font-weight:700;color:#111;margin-bottom:2px">${proj.name}</div>
-      <div style="font-size:11px;color:#6b7280">${proj.startDate||'-'} s/d ${proj.finishDate||'-'} &nbsp;&middot;&nbsp; ${totalDays} hari</div>
-    </div>
-    <div style="text-align:right">
-      <div style="font-size:10px;color:#9ca3af;margin-bottom:3px">Ref: ${refDate} &nbsp;&middot;&nbsp; Hari ke-${refDay}</div>
-      <div style="display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:${isBehind?'#fef2f2':'#f0fdf4'};color:${isBehind?'#dc2626':'#16a34a'};border:1px solid ${isBehind?'#fecaca':'#bbf7d0'}">
-        ${isBehind?'&#9660; Behind':'&#9650; Ahead'}
-      </div>
-    </div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
-    ${[
-      ['Rencana s/d hari ini',plannedAtRef.toFixed(1)+'%','#4f46e5'],
-      ['Aktual tercapai',actualVal.toFixed(1)+'%','#16a34a'],
-      ['Deviasi',(dev>=0?'+':'')+dev.toFixed(1)+'%',isBehind?'#dc2626':'#16a34a'],
-      ['Sisa durasi',remDays+' hari','#6b7280'],
-    ].map(([l,v,c])=>`<div style="background:#f9fafb;border-radius:6px;padding:9px 11px;border:1px solid #e5e7eb">
-      <div style="font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">${l}</div>
-      <div style="font-size:19px;font-weight:700;color:${c};font-family:monospace;line-height:1">${v}</div>
-    </div>`).join('')}
-  </div>
-
-  <div style="margin-bottom:16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px">
-    <div style="font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">S-Curve — Planned vs Actual</div>
-    ${scSvg}
-    <div style="display:flex;gap:14px;font-size:10px;color:#6b7280;margin-top:4px">
-      <span><span style="display:inline-block;width:16px;height:2px;background:#6366f1;border-radius:1px;vertical-align:middle;margin-right:4px;border-top:1px dashed #6366f1"></span>Planned</span>
-      <span><span style="display:inline-block;width:16px;height:2px;background:#16a34a;border-radius:1px;vertical-align:middle;margin-right:4px"></span>Actual</span>
-      <span><span style="display:inline-block;width:2px;height:10px;background:#d97706;vertical-align:middle;margin-right:4px"></span>Ref date</span>
-    </div>
-  </div>
-
-  <div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:0">
-    <div style="background:#f3f4f6;padding:7px 10px;border-bottom:1px solid #e5e7eb">
-      <div style="font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px">Rincian item pekerjaan (WBS)</div>
-    </div>
-    <table style="width:100%;border-collapse:collapse">
-      <thead>
-        <tr style="background:#f9fafb">
-          <th style="padding:6px 10px;text-align:left;font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Item</th>
-          <th style="padding:6px 8px;text-align:center;font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Bobot</th>
-          <th style="padding:6px 8px;text-align:center;font-size:9px;color:#6366f1;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Rencana</th>
-          <th style="padding:6px 8px;text-align:center;font-size:9px;color:#16a34a;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Aktual</th>
-          <th style="padding:6px 8px;text-align:center;font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Periode</th>
-          <th style="padding:6px 8px;text-align:center;font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Deviasi</th>
-        </tr>
-      </thead>
-      <tbody>${wbsRows}</tbody>
-      <tfoot>
-        <tr style="background:#f3f4f6">
-          <td style="padding:7px 10px;font-size:11px;font-weight:700;color:#111">Total</td>
-          <td style="padding:7px 8px;text-align:center;font-family:monospace;font-size:11px;font-weight:700;color:#6366f1">100%</td>
-          <td style="padding:7px 8px;text-align:center;font-family:monospace;font-size:11px;font-weight:700;color:#4f46e5">${plannedAtRef.toFixed(1)}%</td>
-          <td style="padding:7px 8px;text-align:center;font-family:monospace;font-size:11px;font-weight:700;color:${actualVal>0?'#16a34a':'#9ca3af'}">${actualVal.toFixed(1)}%</td>
-          <td></td>
-          <td style="padding:7px 8px;text-align:center;font-family:monospace;font-size:11px;font-weight:700;color:${isBehind?'#dc2626':'#16a34a'}">${dev>=0?'+':''}${dev.toFixed(1)}%</td>
-        </tr>
-      </tfoot>
-    </table>
-  </div>
-
-  ${behindSection}
-
-</div>
-<scr` + `ipt>window.onload=()=>{window.print();}<\/scr` + `ipt>
-</body>
-</html>`;
-
-  const win = window.open('', '_blank');
+  var win = window.open('','_blank');
   win.document.write(html);
   win.document.close();
 };
-
-// ── SC RTL (Analisis & Tindak Lanjut) ────────────────────────────────────────
-function saveSCRTL() {
-  const projId = scCurrentProjectId;
-  if (!projId || projId === '__global__') return;
-  const data = {
-    highlight: (document.getElementById('sc-rtl-highlight')||{}).value || '',
-    action:    (document.getElementById('sc-rtl-action')||{}).value    || '',
-    target:    (document.getElementById('sc-rtl-target')||{}).value    || '',
-  };
-  saveSCurveProject(uid, projId, { ...((D.scProjects.find(p=>p.id===projId))||{}), rtl: data });
-  if (!D.scProjects.find(p=>p.id===projId)) return;
-  const proj = D.scProjects.find(p=>p.id===projId);
-  if (proj) proj.rtl = data;
-}
-
-function loadSCRTL(projId) {
-  const proj = D.scProjects.find(p => p.id === projId);
-  const rtl  = (proj && proj.rtl) || {};
-  const h = document.getElementById('sc-rtl-highlight');
-  const a = document.getElementById('sc-rtl-action');
-  const t = document.getElementById('sc-rtl-target');
-  if (h) h.value = rtl.highlight || '';
-  if (a) a.value = rtl.action    || '';
-  if (t) t.value = rtl.target    || '';
-}
 
 </script>
 </body>
