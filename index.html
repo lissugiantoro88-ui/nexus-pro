@@ -2443,6 +2443,9 @@ window.nav = (v,el) => {
     if (!scRefDate) { scRefDate = null; if(dp) dp.value = TS(); }
     renderSCurve();
   }
+  // Hide topbar "+ Tambah" on S-Curve (has its own "+ Project" button)
+  const _tbBtn = document.getElementById('topbar-add-btn');
+  if (_tbBtn) _tbBtn.style.display = (v === 'scurve') ? 'none' : '';
   renderAll();
 };
 
