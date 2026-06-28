@@ -4392,18 +4392,10 @@ function renderSCurve() {
   });
   actualCumAtRef = Math.round(actualCumAtRef * 100) / 100;
 
-  // Fallback: if no per-item actuals, use cumProgress from Per Periode input
-  const refActualPt = !hasActualData
-    ? actual.reduce((acc, v, i) => {
-        if (v === null) return acc;
-        const pKey = periods[i] ? periods[i].key : '';
-        if (pKey <= refDate) return { i, v };
-        return acc;
-      }, null)
-    : null;
-
-  const finalActual  = hasActualData ? actualCumAtRef : (refActualPt ? refActualPt.v : null);
-  const hasAnyActual = finalActual !== null;
+  // Only use per-item actuals - do NOT fall back to D.scActuals
+  // (D.scActuals may have stale carried-forward data)
+  const finalActual  = hasActualData ? actualCumAtRef : null;
+  const hasAnyActual = hasActualData;
 
   const statusBar = document.getElementById('sc-status-bar');
   const refLabel  = isRefToday ? 'Hari Ini' : refDate.slice(8)+'/'+refDate.slice(5,7);
