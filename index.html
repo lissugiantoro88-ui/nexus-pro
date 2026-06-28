@@ -4928,15 +4928,15 @@ window.generateSCurvePDF = function(exportDate) {
 
   // Actual cumulative from item actuals (what user actually typed)
   function getActualCumAtDate(upTo) {
+    // Iterate project daily dates only (same as grid) to avoid stale/out-of-range data
     let cum = 0, hasAny = false;
-    Object.keys(iActuals).sort().forEach(function(d) {
-      if (d > upTo) return;
+    allPeriods.forEach(function(p) {
+      if (p.key > upTo) return;
       items.forEach(function(item) {
-        var dd = iActuals[d];
+        var dd = iActuals[p.key];
         if (dd && dd[item.id] !== undefined) { cum += parseFloat(dd[item.id])||0; hasAny=true; }
       });
     });
-    // No fallback to D.scActuals - only use per-item input data
     return {val:Math.round(cum*100)/100,hasData:hasAny};
   }
 
@@ -4952,10 +4952,15 @@ window.generateSCurvePDF = function(exportDate) {
   }
 
   function getItemActualAtDate(itemId, upTo) {
+    // Iterate project daily dates only (same as grid) to avoid stale/out-of-range data
     let cum=0,hasAny=false;
-    Object.keys(iActuals).sort().forEach(function(d) {
-      if (d>upTo) return;
-      if (iActuals[d]&&iActuals[d][itemId]!==undefined){cum+=parseFloat(iActuals[d][itemId])||0;hasAny=true;}
+    allPeriods.forEach(function(p) {
+      if (p.key > upTo) return;
+      var dd = iActuals[p.key];
+      if (dd && dd[itemId] !== undefined) {
+        cum += parseFloat(dd[itemId]) || 0;
+        hasAny = true;
+      }
     });
     return {val:Math.round(cum*100)/100,hasData:hasAny};
   }
