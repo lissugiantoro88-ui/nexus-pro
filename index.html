@@ -4936,10 +4936,7 @@ window.generateSCurvePDF = function(exportDate) {
         if (dd && dd[item.id] !== undefined) { cum += parseFloat(dd[item.id])||0; hasAny=true; }
       });
     });
-    if (!hasAny) {
-      var pa = actuals.filter(function(a){return a.id<=upTo&&a.cumProgress!=null;}).sort(function(a,b){return b.id.localeCompare(a.id);})[0];
-      if (pa) return {val:pa.cumProgress,hasData:true};
-    }
+    // No fallback to D.scActuals - only use per-item input data
     return {val:Math.round(cum*100)/100,hasData:hasAny};
   }
 
