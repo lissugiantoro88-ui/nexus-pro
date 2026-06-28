@@ -4913,6 +4913,7 @@ function toggleTheme(){
 window.toggleTheme=toggleTheme;
 (function(){if(localStorage.getItem('theme')==='light')document.documentElement.classList.add('light');})();
 
+
 // ── S-CURVE PDF EXPORT ────────────────────────────────────────────────────────
 window.exportSCurvePDF = function() {
   const projId = scCurrentProjectId;
@@ -4924,19 +4925,15 @@ window.exportSCurvePDF = function() {
   const iActuals = D.scItemActuals[projId] || {};
   const refDate  = getSCRefDate();
   const today    = TS();
-  const isToday  = refDate === today;
 
-  // Build periods
   const periods = generatePeriods(proj.startDate, proj.finishDate, 'day');
   const planned = calcPlannedCurve(items, periods);
   const todayIdx = getTodayPeriodIndex(periods);
 
-  // Planned at ref
   const plannedAtRef = (todayIdx >= 0 && todayIdx < planned.length)
     ? planned[todayIdx]
     : (todayIdx >= planned.length ? planned[planned.length-1] : 0);
 
-  // Latest actual at/before ref
   const refActual = actuals
     .filter(a => a.id <= refDate && a.cumProgress)
     .sort((a,b) => b.id.localeCompare(a.id))[0];
@@ -4944,14 +4941,12 @@ window.exportSCurvePDF = function() {
   const dev = Math.round((actualVal - plannedAtRef) * 10) / 10;
   const isBehind = dev < 0;
 
-  // Duration info
   const projStart = localMidnight(proj.startDate);
   const projEnd   = localMidnight(proj.finishDate);
   const totalDays = Math.round((projEnd - projStart) / 86400000) + 1;
   const refDay    = Math.round((localMidnight(refDate) - projStart) / 86400000) + 1;
   const remDays   = Math.max(0, totalDays - refDay);
 
-  // WBS rows
   function getItemActualByDate(itemId, upTo) {
     let cum = 0;
     Object.keys(iActuals).sort().forEach(d => {
@@ -4964,8 +4959,7 @@ window.exportSCurvePDF = function() {
     if (!item.startDate || !item.finishDate) return 0;
     const iS = localMidnight(item.startDate), iE = localMidnight(item.finishDate);
     const dur = Math.round((iE - iS) / 86400000) + 1;
-    let cum = 0;
-    let d = new Date(iS);
+    let cum = 0, d = new Date(iS);
     while (d <= iE) {
       const ds = localDateStr(d);
       if (ds <= upTo) cum += (parseFloat(item.weight)||0) / dur;
@@ -4978,87 +4972,131 @@ window.exportSCurvePDF = function() {
     const planPct = getItemPlannedByDate(item, refDate);
     const actPct  = getItemActualByDate(item.id, refDate);
     const itemDev = Math.round((actPct - planPct) * 10) / 10;
-    const iS = item.startDate ? item.startDate.slice(5).replace('-','/') : '—';
-    const iE = item.finishDate ? item.finishDate.slice(5).replace('-','/') : '—';
-    const devClr = itemDev >= 0 ? '#16a34a' : '#dc2626';
-    const barPct = Math.min(100, actPct / (parseFloat(item.weight)||1) * 100);
+    const iS = item.startDate ? item.startDate.slice(5).replace('-','/') : '-';
+    const iE = item.finishDate ? item.finishDate.slice(5).replace('-','/') : '-';
+    const devClr = itemDev > 0 ? '#16a34a' : itemDev < 0 ? '#dc2626' : '#6b7280';
+    const planBar = Math.min(100, planPct / (parseFloat(item.weight)||1) * 100);
+    const actBar  = Math.min(100, actPct  / (parseFloat(item.weight)||1) * 100);
     return `
       <tr>
         <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb">
           <div style="font-size:11px;font-weight:600;color:#111">${item.name}</div>
-          <div style="font-size:10px;color:#9ca3af;margin-top:1px">${item.category||'—'}</div>
+          <div style="font-size:10px;color:#9ca3af">${item.category||'-'}</div>
         </td>
         <td style="padding:7px 8px;border-bottom:1px solid #e5e7eb;text-align:center;font-family:monospace;font-size:11px;color:#6366f1;font-weight:600">${parseFloat(item.weight)||0}%</td>
         <td style="padding:7px 8px;border-bottom:1px solid #e5e7eb;text-align:center">
-          <div style="font-family:monospace;font-size:11px;font-weight:600;color:${actPct>0?'#16a34a':'#9ca3af'}">${actPct.toFixed(1)}%</div>
-          <div style="height:3px;background:#e5e7eb;border-radius:2px;margin-top:3px;overflow:hidden">
-            <div style="height:100%;width:${barPct}%;background:#16a34a;border-radius:2px"></div>
+          <div style="font-family:monospace;font-size:11px;font-weight:600;color:#4f46e5">${planPct.toFixed(1)}%</div>
+          <div style="height:3px;background:#e0e7ff;border-radius:2px;margin-top:3px;overflow:hidden">
+            <div style="height:100%;width:${planBar}%;background:#6366f1;border-radius:2px"></div>
           </div>
         </td>
-        <td style="padding:7px 8px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:10px;color:#6b7280;font-family:monospace">${iS}–${iE}</td>
-        <td style="padding:7px 8px;border-bottom:1px solid #e5e7eb;text-align:center;font-family:monospace;font-size:11px;font-weight:700;color:${devClr}">${itemDev===0?'±0':itemDev>0?'+'+itemDev.toFixed(1):itemDev.toFixed(1)}%</td>
+        <td style="padding:7px 8px;border-bottom:1px solid #e5e7eb;text-align:center">
+          <div style="font-family:monospace;font-size:11px;font-weight:600;color:${actPct>0?'#16a34a':'#9ca3af'}">${actPct.toFixed(1)}%</div>
+          <div style="height:3px;background:#dcfce7;border-radius:2px;margin-top:3px;overflow:hidden">
+            <div style="height:100%;width:${actBar}%;background:#16a34a;border-radius:2px"></div>
+          </div>
+        </td>
+        <td style="padding:7px 8px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:10px;color:#6b7280;font-family:monospace">${iS}-${iE}</td>
+        <td style="padding:7px 8px;border-bottom:1px solid #e5e7eb;text-align:center;font-family:monospace;font-size:11px;font-weight:700;color:${devClr}">${itemDev===0?'0.0':itemDev>0?'+'+itemDev.toFixed(1):itemDev.toFixed(1)}%</td>
       </tr>`;
   }).join('');
 
-  // Behind section
+  // Behind items for highlight
   const behindItems = items
-    .map(it => {
-      const pl = getItemPlannedByDate(it, refDate);
-      const ac = getItemActualByDate(it.id, refDate);
-      return { name: it.name, dev: Math.round((ac-pl)*10)/10 };
-    })
-    .filter(it => it.dev < 0)
-    .sort((a,b) => a.dev - b.dev);
+    .map(it => ({ name: it.name, dev: Math.round((getItemActualByDate(it.id,refDate)-getItemPlannedByDate(it,refDate))*10)/10 }))
+    .filter(it => it.dev < 0).sort((a,b) => a.dev - b.dev);
 
+  // S-Curve data points for line chart via SVG
+  const svgW = 720, svgH = 140, padL = 30, padR = 10, padT = 10, padB = 20;
+  const chartW = svgW - padL - padR, chartH = svgH - padT - padB;
+  const n = periods.length;
+
+  function px(i) { return padL + (i / Math.max(n-1,1)) * chartW; }
+  function py(v) { return padT + chartH - (v/100) * chartH; }
+
+  // Planned polyline
+  const planPts = planned.map((v,i) => `${px(i).toFixed(1)},${py(v).toFixed(1)}`).join(' ');
+  // Planned fill area
+  const planArea = `${px(0).toFixed(1)},${py(0).toFixed(1)} ` + planPts + ` ${px(n-1).toFixed(1)},${py(0).toFixed(1)}`;
+
+  // Actual polyline (only non-null)
+  const actPts = [];
+  periods.forEach((p,i) => {
+    const a = actuals.find(x => x.id === p.key);
+    if (a && a.cumProgress) actPts.push({ x: px(i), y: py(a.cumProgress), v: a.cumProgress });
+  });
+  const actLine = actPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const actArea = actPts.length ? `${actPts[0].x.toFixed(1)},${py(0).toFixed(1)} ` + actLine + ` ${actPts[actPts.length-1].x.toFixed(1)},${py(0).toFixed(1)}` : '';
+
+  // Ref date line
+  const refIdx = periods.findIndex(p => p.key === refDate);
+  const refX = refIdx >= 0 ? px(refIdx).toFixed(1) : null;
+
+  // X axis labels (show ~6 evenly spaced)
+  const step = Math.ceil(n / 6);
+  const xLabels = periods.filter((_,i) => i % step === 0 || i === n-1).map((p,_,arr) => {
+    const i = periods.indexOf(p);
+    return `<text x="${px(i).toFixed(1)}" y="${(svgH-3).toFixed(1)}" font-size="8" text-anchor="middle" fill="#9ca3af">${p.key.slice(8)}/${p.key.slice(5,7)}</text>`;
+  }).join('');
+
+  // Y axis labels
+  const yLabels = [0,25,50,75,100].map(v =>
+    `<text x="${(padL-3).toFixed(1)}" y="${(py(v)+3).toFixed(1)}" font-size="8" text-anchor="end" fill="#9ca3af">${v}</text>
+     <line x1="${padL}" y1="${py(v).toFixed(1)}" x2="${(svgW-padR).toFixed(1)}" y2="${py(v).toFixed(1)}" stroke="#e5e7eb" stroke-width="0.5"/>`
+  ).join('');
+
+  const scSvg = `<svg width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+    ${yLabels}
+    ${xLabels}
+    ${planArea ? `<polygon points="${planArea}" fill="rgba(99,102,241,0.08)"/>` : ''}
+    <polyline points="${planPts}" fill="none" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="4,3"/>
+    ${actArea ? `<polygon points="${actArea}" fill="rgba(22,163,74,0.08)"/>` : ''}
+    ${actLine ? `<polyline points="${actLine}" fill="none" stroke="#16a34a" stroke-width="2"/>` : ''}
+    ${actPts.map(p=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="#16a34a"/>`).join('')}
+    ${refX ? `<line x1="${refX}" y1="${padT}" x2="${refX}" y2="${(svgH-padB).toFixed(1)}" stroke="#d97706" stroke-width="1.5" stroke-dasharray="3,2"/>
+              <text x="${refX}" y="${(padT-2).toFixed(1)}" font-size="8" text-anchor="middle" fill="#d97706">${refDate.slice(8)}/${refDate.slice(5,7)}</text>` : ''}
+  </svg>`;
+
+  // RTL / analisis section - auto highlights but manual note placeholder
   const behindSection = isBehind ? `
-    <div style="margin-top:20px;border-radius:8px;overflow:hidden;border:1px solid #fecaca">
-      <div style="background:#fef2f2;padding:10px 14px;border-bottom:1px solid #fecaca">
-        <div style="font-size:11px;font-weight:700;color:#991b1b;text-transform:uppercase;letter-spacing:.5px">Analisis keterlambatan &amp; tindak lanjut</div>
+    <div style="margin-top:18px;border:1px solid #fecaca;border-radius:8px;overflow:hidden">
+      <div style="background:#fef2f2;padding:9px 14px;border-bottom:1px solid #fecaca">
+        <div style="font-size:10px;font-weight:700;color:#991b1b;text-transform:uppercase;letter-spacing:.5px">Analisis keterlambatan &amp; rencana tindak lanjut</div>
       </div>
-      <div style="background:#fff;padding:14px">
+      <div style="background:#fff;padding:12px 14px">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-          <div style="padding:10px 12px;background:#fef9f9;border-radius:6px;border-left:3px solid #dc2626">
-            <div style="font-size:9px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Highlight</div>
-            ${behindItems.slice(0,3).map(it=>`<div style="font-size:11px;color:#374151;margin-bottom:3px">&#8226; ${it.name} <span style="color:#dc2626;font-family:monospace">(${it.dev.toFixed(1)}%)</span></div>`).join('')}
+
+          <div style="padding:10px 12px;border-radius:6px;border:1px solid #fee2e2">
+            <div style="font-size:9px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Highlight</div>
+            ${behindItems.slice(0,4).map(it=>`<div style="font-size:11px;color:#374151;margin-bottom:3px;display:flex;justify-content:space-between"><span>${it.name}</span><span style="color:#dc2626;font-family:monospace">${it.dev.toFixed(1)}%</span></div>`).join('')}
           </div>
-          <div style="padding:10px 12px;background:#fef9f9;border-radius:6px;border-left:3px solid #d97706">
-            <div style="font-size:9px;font-weight:700;color:#d97706;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Tindak lanjut</div>
-            <div style="font-size:11px;color:#374151;line-height:1.6">
-              &#8226; Akselerasi item paling tertinggal<br>
-              &#8226; Tambah resources jika diperlukan<br>
-              &#8226; Update jadwal dan re-baseline
+
+          <div style="padding:10px 12px;border-radius:6px;border:1px solid #fde68a">
+            <div style="font-size:9px;font-weight:700;color:#d97706;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Tindak lanjut</div>
+            <div style="font-size:11px;color:#6b7280;font-style:italic">[ Diisi oleh penanggung jawab ]</div>
+            <div style="margin-top:8px;border-top:1px dashed #e5e7eb;padding-top:6px">
+              ${[1,2,3].map(i=>`<div style="font-size:11px;color:#374151;margin-bottom:4px">${i}. ___________________________</div>`).join('')}
             </div>
           </div>
-          <div style="padding:10px 12px;background:#fef9f9;border-radius:6px;border-left:3px solid #7c3aed">
-            <div style="font-size:9px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Target catch-up</div>
-            <div style="font-size:11px;color:#374151;line-height:1.6">
-              &#8226; Sisa: <b>${remDays} hari</b><br>
-              &#8226; Perlu catch-up: <b>${Math.abs(dev).toFixed(1)}%</b><br>
-              &#8226; Rate/hari: <b>${remDays>0?(Math.abs(dev)/remDays).toFixed(2):'-'}%</b>
-            </div>
+
+          <div style="padding:10px 12px;border-radius:6px;border:1px solid #e9d5ff">
+            <div style="font-size:9px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Target</div>
+            <div style="font-size:11px;color:#374151;margin-bottom:4px;display:flex;justify-content:space-between"><span>Sisa durasi</span><b>${remDays} hari</b></div>
+            <div style="font-size:11px;color:#374151;margin-bottom:4px;display:flex;justify-content:space-between"><span>Perlu catch-up</span><b style="color:#dc2626">${Math.abs(dev).toFixed(1)}%</b></div>
+            <div style="font-size:11px;color:#374151;display:flex;justify-content:space-between"><span>Rate/hari</span><b>${remDays>0?(Math.abs(dev)/remDays).toFixed(2):'-'}%</b></div>
+            <div style="margin-top:8px;border-top:1px dashed #e5e7eb;padding-top:6px;font-size:11px;color:#6b7280">Target selesai: <b>${proj.finishDate||'-'}</b></div>
           </div>
+
         </div>
       </div>
     </div>` : `
-    <div style="margin-top:20px;padding:12px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px">
-      <div style="font-size:11px;font-weight:700;color:#15803d;margin-bottom:4px">&#x2713; Ahead of schedule</div>
-      <div style="font-size:11px;color:#374151">Progress aktual melebihi rencana sebesar <b>+${Math.abs(dev).toFixed(1)}%</b>. Pertahankan momentum dan pastikan kualitas pekerjaan tetap terjaga.</div>
-    </div>`;
-
-  // S-Curve chart points as simple bar visualization
-  const chartPoints = periods.map((p, i) => {
-    const planH = Math.round((planned[i]||0) * 0.7);
-    const actA  = actuals.find(a => a.id === p.key);
-    const actH  = actA ? Math.round((actA.cumProgress||0) * 0.7) : 0;
-    const isRef = p.key === refDate;
-    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
-      <div style="width:100%;position:relative;height:70px;display:flex;align-items:flex-end;gap:1px">
-        <div style="flex:1;height:${planH}px;background:${isRef?'#4f46e5':'#c7d2fe'};border-radius:1px 1px 0 0;min-height:1px"></div>
-        <div style="flex:1;height:${actH}px;background:${isRef?'#16a34a':'#a3e6b0'};border-radius:1px 1px 0 0;min-height:${actH>0?1:0}px"></div>
+    <div style="margin-top:18px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:16px">&#10003;</span>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#15803d">Ahead of schedule</div>
+        <div style="font-size:11px;color:#374151">Progress aktual melebihi rencana sebesar <b>+${Math.abs(dev).toFixed(1)}%</b>. Pertahankan momentum dan pastikan kualitas terjaga.</div>
       </div>
-      <div style="font-size:8px;color:${isRef?'#d97706':'#9ca3af'};font-weight:${isRef?700:400}">${p.key.slice(8)}/${p.key.slice(5,7)}</div>
     </div>`;
-  }).join('');
 
   const html = `<!DOCTYPE html>
 <html lang="id">
@@ -5066,64 +5104,61 @@ window.exportSCurvePDF = function() {
 <meta charset="UTF-8">
 <title>S-Curve Report — ${proj.name}</title>
 <style>
-  @page { margin: 15mm 12mm; }
-  body { font-family: -apple-system, 'Segoe UI', sans-serif; color: #111; background: #fff; font-size: 12px; }
-  @media print { .no-print { display:none!important; } }
+  @page{margin:12mm 10mm}
+  body{font-family:-apple-system,'Segoe UI',sans-serif;color:#111;background:#fff;font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @media print{.no-print{display:none!important}}
 </style>
 </head>
 <body>
-<div style="max-width:800px;margin:0 auto;padding:0 0 30px">
+<div style="max-width:760px;margin:0 auto;padding:0 0 24px">
 
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:12px;margin-bottom:16px;border-bottom:2px solid #e5e7eb">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:10px;margin-bottom:14px;border-bottom:2px solid #e5e7eb">
     <div>
-      <div style="font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Progress Report — S-Curve</div>
-      <div style="font-size:17px;font-weight:700;color:#111;margin-bottom:3px">${proj.name}</div>
-      <div style="font-size:11px;color:#6b7280">${proj.startDate||'—'} s/d ${proj.finishDate||'—'} &nbsp;&#183;&nbsp; Durasi ${totalDays} hari</div>
+      <div style="font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Progress Report — S-Curve</div>
+      <div style="font-size:16px;font-weight:700;color:#111;margin-bottom:2px">${proj.name}</div>
+      <div style="font-size:11px;color:#6b7280">${proj.startDate||'-'} s/d ${proj.finishDate||'-'} &nbsp;&middot;&nbsp; ${totalDays} hari</div>
     </div>
     <div style="text-align:right">
-      <div style="font-size:10px;color:#9ca3af;margin-bottom:4px">Tanggal referensi</div>
-      <div style="font-size:13px;font-weight:700;color:#111;font-family:monospace">${refDate}</div>
-      <div style="margin-top:6px;display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:${isBehind?'#fef2f2':'#f0fdf4'};color:${isBehind?'#dc2626':'#16a34a'};border:1px solid ${isBehind?'#fecaca':'#bbf7d0'}">
-        ${isBehind?'▼ BEHIND SCHEDULE':'▲ AHEAD OF SCHEDULE'}
+      <div style="font-size:10px;color:#9ca3af;margin-bottom:3px">Ref: ${refDate} &nbsp;&middot;&nbsp; Hari ke-${refDay}</div>
+      <div style="display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:${isBehind?'#fef2f2':'#f0fdf4'};color:${isBehind?'#dc2626':'#16a34a'};border:1px solid ${isBehind?'#fecaca':'#bbf7d0'}">
+        ${isBehind?'&#9660; Behind':'&#9650; Ahead'}
       </div>
     </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
     ${[
-      ['Rencana s/d '+refDate.slice(8)+'/'+refDate.slice(5,7), plannedAtRef.toFixed(1)+'%', '#4f46e5'],
-      ['Aktual tercapai', actualVal.toFixed(1)+'%', '#16a34a'],
-      ['Deviasi', (dev>=0?'+':'')+dev.toFixed(1)+'%', isBehind?'#dc2626':'#16a34a'],
-      ['Sisa durasi', remDays+' hari', '#6b7280'],
-    ].map(([l,v,c])=>`<div style="background:#f9fafb;border-radius:8px;padding:10px 12px;border:1px solid #e5e7eb">
-      <div style="font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${l}</div>
-      <div style="font-size:20px;font-weight:700;color:${c};font-family:monospace;line-height:1">${v}</div>
+      ['Rencana s/d hari ini',plannedAtRef.toFixed(1)+'%','#4f46e5'],
+      ['Aktual tercapai',actualVal.toFixed(1)+'%','#16a34a'],
+      ['Deviasi',(dev>=0?'+':'')+dev.toFixed(1)+'%',isBehind?'#dc2626':'#16a34a'],
+      ['Sisa durasi',remDays+' hari','#6b7280'],
+    ].map(([l,v,c])=>`<div style="background:#f9fafb;border-radius:6px;padding:9px 11px;border:1px solid #e5e7eb">
+      <div style="font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">${l}</div>
+      <div style="font-size:19px;font-weight:700;color:${c};font-family:monospace;line-height:1">${v}</div>
     </div>`).join('')}
   </div>
 
-  <div style="margin-bottom:20px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px">
-    <div style="font-size:10px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">S-Curve — Planned vs Actual</div>
-    <div style="display:flex;align-items:flex-end;gap:1px;height:82px;padding-bottom:20px;position:relative">
-      ${chartPoints}
-      <div style="position:absolute;bottom:18px;left:0;right:0;height:1px;background:#e5e7eb"></div>
-    </div>
+  <div style="margin-bottom:16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px">
+    <div style="font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">S-Curve — Planned vs Actual</div>
+    ${scSvg}
     <div style="display:flex;gap:14px;font-size:10px;color:#6b7280;margin-top:4px">
-      <span><span style="display:inline-block;width:10px;height:10px;background:#c7d2fe;border-radius:1px;margin-right:4px;vertical-align:middle"></span>Planned</span>
-      <span><span style="display:inline-block;width:10px;height:10px;background:#a3e6b0;border-radius:1px;margin-right:4px;vertical-align:middle"></span>Actual</span>
-      <span><span style="display:inline-block;width:10px;height:10px;background:#d97706;border-radius:1px;margin-right:4px;vertical-align:middle"></span>Ref date</span>
+      <span><span style="display:inline-block;width:16px;height:2px;background:#6366f1;border-radius:1px;vertical-align:middle;margin-right:4px;border-top:1px dashed #6366f1"></span>Planned</span>
+      <span><span style="display:inline-block;width:16px;height:2px;background:#16a34a;border-radius:1px;vertical-align:middle;margin-right:4px"></span>Actual</span>
+      <span><span style="display:inline-block;width:2px;height:10px;background:#d97706;vertical-align:middle;margin-right:4px"></span>Ref date</span>
     </div>
   </div>
 
-  <div style="margin-bottom:0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
-    <div style="background:#f3f4f6;padding:8px 10px;border-bottom:1px solid #e5e7eb">
-      <div style="font-size:10px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px">Rincian item pekerjaan (WBS)</div>
+  <div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:0">
+    <div style="background:#f3f4f6;padding:7px 10px;border-bottom:1px solid #e5e7eb">
+      <div style="font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px">Rincian item pekerjaan (WBS)</div>
     </div>
     <table style="width:100%;border-collapse:collapse">
       <thead>
         <tr style="background:#f9fafb">
-          <th style="padding:6px 10px;text-align:left;font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Item pekerjaan</th>
+          <th style="padding:6px 10px;text-align:left;font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Item</th>
           <th style="padding:6px 8px;text-align:center;font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Bobot</th>
-          <th style="padding:6px 8px;text-align:center;font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Aktual</th>
+          <th style="padding:6px 8px;text-align:center;font-size:9px;color:#6366f1;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Plan s/d ref</th>
+          <th style="padding:6px 8px;text-align:center;font-size:9px;color:#16a34a;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Aktual</th>
           <th style="padding:6px 8px;text-align:center;font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Periode</th>
           <th style="padding:6px 8px;text-align:center;font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Deviasi</th>
         </tr>
@@ -5133,6 +5168,7 @@ window.exportSCurvePDF = function() {
         <tr style="background:#f3f4f6">
           <td style="padding:7px 10px;font-size:11px;font-weight:700;color:#111">Total</td>
           <td style="padding:7px 8px;text-align:center;font-family:monospace;font-size:11px;font-weight:700;color:#6366f1">100%</td>
+          <td style="padding:7px 8px;text-align:center;font-family:monospace;font-size:11px;font-weight:700;color:#4f46e5">${plannedAtRef.toFixed(1)}%</td>
           <td style="padding:7px 8px;text-align:center;font-family:monospace;font-size:11px;font-weight:700;color:${actualVal>0?'#16a34a':'#9ca3af'}">${actualVal.toFixed(1)}%</td>
           <td></td>
           <td style="padding:7px 8px;text-align:center;font-family:monospace;font-size:11px;font-weight:700;color:${isBehind?'#dc2626':'#16a34a'}">${dev>=0?'+':''}${dev.toFixed(1)}%</td>
@@ -5143,13 +5179,8 @@ window.exportSCurvePDF = function() {
 
   ${behindSection}
 
-  <div style="margin-top:20px;padding-top:10px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
-    <div style="font-size:9px;color:#9ca3af">Generated by NEXUS PRO &nbsp;&#183;&nbsp; ${new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'})}</div>
-    <div style="font-size:9px;color:#9ca3af">Referensi: ${refDate} &nbsp;&#183;&nbsp; Hari ke-${refDay} dari ${totalDays}</div>
-  </div>
-
 </div>
-<scr\ipt>window.onload=()=>{window.print();}<\/scr\ipt>
+<scr` + `ipt>window.onload=()=>{window.print();}<\/scr` + `ipt>
 </body>
 </html>`;
 
