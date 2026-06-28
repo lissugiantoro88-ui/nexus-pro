@@ -99,7 +99,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 #auth-name-field{display:none;}
 
 /* ── SIDEBAR ── */
-.sidebar{width:var(--sw);background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;flex-shrink:0;z-index:10;overflow:hidden;}
+.sidebar{width:var(--sw);background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;flex-shrink:0;z-index:10;}
 .sb-logo{padding:16px 16px 12px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;}
 .logo-mark{font-size:16px;font-weight:700;letter-spacing:4px;color:var(--white);}
 .logo-sub{font-size:9px;color:var(--fog);letter-spacing:1.5px;margin-top:2px;font-family:'JetBrains Mono',monospace;}
@@ -785,6 +785,20 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 }
 @keyframes slideDown{from{top:-60px;opacity:0;}to{top:14px;opacity:1;}}
 
+
+/* ── EVAL TAB IN MODAL ── */
+.modal-tabs{display:flex;gap:2px;margin-bottom:14px;background:var(--bg3);border-radius:var(--rs);padding:3px;}
+.modal-tab{flex:1;padding:7px;border:none;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;background:transparent;color:var(--fog);}
+.modal-tab.active{background:var(--bg2);color:var(--snow);box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.modal-tab-content{display:none;}
+.modal-tab-content.active{display:block;}
+.eval-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--line2);background:transparent;color:var(--fog);transition:all .15s;font-family:'Inter',sans-serif;}
+.eval-badge.active-yes{background:rgba(22,163,74,.15);color:var(--lime);border-color:rgba(22,163,74,.3);}
+.eval-badge.active-no{background:var(--rosed);color:var(--rose);border-color:rgba(225,29,72,.3);}
+.eval-badge.active-partial{background:var(--amberd);color:var(--amber);border-color:rgba(217,119,6,.3);}
+.eval-star{width:28px;height:28px;border-radius:5px;border:1px solid var(--line2);background:transparent;cursor:pointer;font-size:14px;transition:all .15s;}
+.eval-star.active{background:var(--amberd);border-color:var(--amber);}
+
 /* ── TOAST / LOADING ── */
 .toast{position:fixed;bottom:18px;right:18px;background:var(--bg3);border:1px solid var(--line2);border-radius:var(--rs);padding:9px 14px;font-size:12px;color:var(--snow);z-index:200;transform:translateY(60px);opacity:0;transition:all .25s;display:flex;align-items:center;gap:7px;}
 .toast.show{transform:translateY(0);opacity:1;}
@@ -1388,6 +1402,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 
       <!-- Top bar: project selector + controls -->
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <div>
+          <div class="view-title">S-Curve</div>
+          <div class="view-sub">Progress tracking — Planned vs Actual</div>
+        </div>
         <div style="flex:1;min-width:0"></div>
         <select class="fld-sel" id="sc-project-sel" style="max-width:200px;font-size:12px" onchange="onSCProjectChange(this.value)">
           <option value="__global__">🌐 Global</option>
@@ -1521,25 +1539,55 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 
     <!-- Edit Task -->
     <div id="edit-task-fields" style="display:none">
-      <div class="fld"><div class="fld-lbl">Nama Task</div><input class="fld-in" id="et-name" placeholder="Nama task..."></div>
-      <div class="fld-row">
-        <div class="fld"><div class="fld-lbl">Status</div>
-          <select class="fld-sel" id="et-status">
-            <option value="todo">To Do</option><option value="inprogress">In Progress</option>
-            <option value="review">Review</option><option value="done">Done</option>
-          </select>
+      <div class="modal-tabs">
+        <button class="modal-tab active" onclick="switchEditTab('task','info',this)">📋 Info</button>
+        <button class="modal-tab" onclick="switchEditTab('task','eval',this)">📊 Evaluasi</button>
+      </div>
+      <div class="modal-tab-content active" id="task-tab-info">
+        <div class="fld"><div class="fld-lbl">Nama Task</div><input class="fld-in" id="et-name" placeholder="Nama task..."></div>
+        <div class="fld-row">
+          <div class="fld"><div class="fld-lbl">Status</div>
+            <select class="fld-sel" id="et-status">
+              <option value="todo">To Do</option><option value="inprogress">In Progress</option>
+              <option value="review">Review</option><option value="done">Done</option>
+            </select>
+          </div>
+          <div class="fld"><div class="fld-lbl">Prioritas</div>
+            <select class="fld-sel" id="et-prio">
+              <option value="high">🔴 High</option><option value="medium">🟡 Medium</option><option value="low">🟢 Low</option>
+            </select>
+          </div>
         </div>
-        <div class="fld"><div class="fld-lbl">Prioritas</div>
-          <select class="fld-sel" id="et-prio">
-            <option value="high">🔴 High</option><option value="medium">🟡 Medium</option><option value="low">🟢 Low</option>
-          </select>
+        <div class="fld-row">
+          <div class="fld"><div class="fld-lbl">Due Date</div><input class="fld-in" id="et-due" type="date"></div>
+          <div class="fld"><div class="fld-lbl">Kategori</div><input class="fld-in" id="et-cat" placeholder="e.g. Pekerjaan, Pribadi"></div>
+        </div>
+        <div class="fld"><div class="fld-lbl">Catatan</div><textarea class="fld-ta" id="et-notes" placeholder="Detail tambahan..."></textarea></div>
+      </div>
+      <div class="modal-tab-content" id="task-tab-eval">
+        <div style="font-size:11px;color:var(--mist);background:var(--ag2);border:1px solid rgba(124,111,255,.15);border-radius:var(--rs);padding:10px 12px;margin-bottom:12px">📊 Isi setelah task selesai untuk evaluasi & pembelajaran</div>
+        <div class="fld"><div class="fld-lbl">Hasil Pekerjaan</div><textarea class="fld-ta" id="et-eval-result" placeholder="Apa yang berhasil diselesaikan?" style="min-height:65px"></textarea></div>
+        <div class="fld">
+          <div class="fld-lbl">Apakah sesuai target?</div>
+          <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+            <button class="eval-badge" id="et-ontarget-yes" onclick="setEvalTarget('task','yes')">✓ Ya</button>
+            <button class="eval-badge" id="et-ontarget-partial" onclick="setEvalTarget('task','partial')">~ Sebagian</button>
+            <button class="eval-badge" id="et-ontarget-no" onclick="setEvalTarget('task','no')">✕ Tidak</button>
+          </div>
+        </div>
+        <div class="fld"><div class="fld-lbl">Kendala</div><textarea class="fld-ta" id="et-eval-obstacle" placeholder="Hambatan yang dihadapi?..." style="min-height:55px"></textarea></div>
+        <div class="fld"><div class="fld-lbl">Lesson Learned</div><textarea class="fld-ta" id="et-eval-lesson" placeholder="Apa yang bisa diperbaiki ke depannya?..." style="min-height:55px"></textarea></div>
+        <div class="fld">
+          <div class="fld-lbl">Rating Hasil</div>
+          <div style="display:flex;gap:4px;margin-top:6px" id="et-eval-rating">
+            <button class="eval-star" onclick="setEvalRating('task',1)" title="1">⭐</button>
+            <button class="eval-star" onclick="setEvalRating('task',2)" title="2">⭐</button>
+            <button class="eval-star" onclick="setEvalRating('task',3)" title="3">⭐</button>
+            <button class="eval-star" onclick="setEvalRating('task',4)" title="4">⭐</button>
+            <button class="eval-star" onclick="setEvalRating('task',5)" title="5">⭐</button>
+          </div>
         </div>
       </div>
-      <div class="fld-row">
-        <div class="fld"><div class="fld-lbl">Due Date</div><input class="fld-in" id="et-due" type="date"></div>
-        <div class="fld"><div class="fld-lbl">Kategori</div><input class="fld-in" id="et-cat" placeholder="e.g. Pekerjaan, Pribadi"></div>
-      </div>
-      <div class="fld"><div class="fld-lbl">Catatan</div><textarea class="fld-ta" id="et-notes" placeholder="Detail tambahan..."></textarea></div>
     </div>
 
     <!-- Edit Habit -->
@@ -1557,6 +1605,54 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 
     <!-- Edit Delegation -->
     <div id="edit-deleg-fields" style="display:none">
+      <div class="modal-tabs">
+        <button class="modal-tab active" onclick="switchEditTab('deleg','info',this)">📋 Info</button>
+        <button class="modal-tab" onclick="switchEditTab('deleg','eval',this)">📊 Evaluasi</button>
+      </div>
+      <div class="modal-tab-content active" id="deleg-tab-info">
+        <div class="fld"><div class="fld-lbl">Nama Task</div><input class="fld-in" id="ed-name" placeholder="Task yang didelegasikan..."></div>
+        <div class="fld-row">
+          <div class="fld"><div class="fld-lbl">Dikerjakan Oleh</div><input class="fld-in" id="ed-person" placeholder="Nama / posisi"></div>
+          <div class="fld"><div class="fld-lbl">Due Date</div><input class="fld-in" id="ed-due" type="date"></div>
+        </div>
+        <div class="fld-row">
+          <div class="fld"><div class="fld-lbl">Status</div>
+            <select class="fld-sel" id="ed-status">
+              <option value="todo">Belum Mulai</option><option value="inprogress">In Progress</option><option value="done">Selesai</option>
+            </select>
+          </div>
+          <div class="fld"><div class="fld-lbl">Prioritas</div>
+            <select class="fld-sel" id="ed-prio">
+              <option value="high">🔴 High</option><option value="medium">🟡 Medium</option><option value="low">🟢 Low</option>
+            </select>
+          </div>
+        </div>
+        <div class="fld"><div class="fld-lbl">Catatan</div><textarea class="fld-ta" id="ed-notes" placeholder="Detail delegasi..."></textarea></div>
+      </div>
+      <div class="modal-tab-content" id="deleg-tab-eval">
+        <div style="font-size:11px;color:var(--mist);background:var(--ag2);border:1px solid rgba(124,111,255,.15);border-radius:var(--rs);padding:10px 12px;margin-bottom:12px">📊 Evaluasi hasil delegasi setelah selesai</div>
+        <div class="fld"><div class="fld-lbl">Hasil Pekerjaan</div><textarea class="fld-ta" id="ed-eval-result" placeholder="Output yang diterima?..." style="min-height:65px"></textarea></div>
+        <div class="fld">
+          <div class="fld-lbl">Apakah sesuai target?</div>
+          <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+            <button class="eval-badge" id="ed-ontarget-yes" onclick="setEvalTarget('deleg','yes')">✓ Ya</button>
+            <button class="eval-badge" id="ed-ontarget-partial" onclick="setEvalTarget('deleg','partial')">~ Sebagian</button>
+            <button class="eval-badge" id="ed-ontarget-no" onclick="setEvalTarget('deleg','no')">✕ Tidak</button>
+          </div>
+        </div>
+        <div class="fld"><div class="fld-lbl">Kendala</div><textarea class="fld-ta" id="ed-eval-obstacle" placeholder="Hambatan dari pelaksana?..." style="min-height:55px"></textarea></div>
+        <div class="fld"><div class="fld-lbl">Feedback untuk Pelaksana</div><textarea class="fld-ta" id="ed-eval-lesson" placeholder="Catatan untuk pelaksana ke depannya?..." style="min-height:55px"></textarea></div>
+        <div class="fld">
+          <div class="fld-lbl">Rating Hasil</div>
+          <div style="display:flex;gap:4px;margin-top:6px" id="ed-eval-rating">
+            <button class="eval-star" onclick="setEvalRating('deleg',1)">⭐</button>
+            <button class="eval-star" onclick="setEvalRating('deleg',2)">⭐</button>
+            <button class="eval-star" onclick="setEvalRating('deleg',3)">⭐</button>
+            <button class="eval-star" onclick="setEvalRating('deleg',4)">⭐</button>
+            <button class="eval-star" onclick="setEvalRating('deleg',5)">⭐</button>
+          </div>
+        </div>
+      </div>id="edit-deleg-fields" style="display:none">
       <div class="fld"><div class="fld-lbl">Nama Task</div><input class="fld-in" id="ed-name" placeholder="Task yang didelegasikan..."></div>
       <div class="fld-row">
         <div class="fld"><div class="fld-lbl">Dikerjakan Oleh</div><input class="fld-in" id="ed-person" placeholder="Nama / posisi"></div>
@@ -2209,8 +2305,6 @@ onAuth(user => {
       }
     });
     document.getElementById('sb-username').textContent=user.displayName||'User';
-    const avatar=document.getElementById('sb-avatar');
-    if(avatar){const n=user.displayName||user.email||'U';avatar.textContent=n[0].toUpperCase();}
     document.getElementById('sb-useremail').textContent=user.email;
     document.getElementById('t-due').value=TS();
     document.getElementById('d-due').value=TS();
@@ -2314,9 +2408,6 @@ window.nav = (v,el) => {
     updateSCNav();
     renderSCurve();
   }
-  // Show topbar add button only on non-scurve views
-  const topbarBtn = document.getElementById('topbar-add-btn');
-  if(topbarBtn) topbarBtn.style.display = (v==='scurve') ? 'none' : '';
   renderAll();
 };
 
@@ -3997,34 +4088,42 @@ function getTodayPeriodIndex(periods) {
 // ── CALCULATE PLANNED CURVE ─────────────────────
 function calcPlannedCurve(items, periods) {
   if (periods.length === 0) return [];
-  // Use LINEAR distribution: bobot dibagi rata per hari dalam durasi item
-  // Ini menghasilkan angka yang sama persis dengan format PDF
+  const totalWeight = items.reduce((s,it) => s + (parseFloat(it.weight)||0), 0) || 100;
   const planned = new Array(periods.length).fill(0);
 
   items.forEach(item => {
-    const w = parseFloat(item.weight) || 0;
-    if (!item.startDate || !item.finishDate) return;
+    const w = (parseFloat(item.weight)||0) / totalWeight * 100;
+    if (!item.startDate || !item.finishDate) {
+      // No dates: spread evenly
+      periods.forEach((_,i) => planned[i] += w / periods.length);
+      return;
+    }
     const iStart = localMidnight(item.startDate);
     const iEnd   = localMidnight(item.finishDate);
-    // Durasi = jumlah hari inklusif
-    const iDur = Math.round((iEnd - iStart) / 86400000) + 1;
-    const wPerDay = w / iDur; // bobot per hari (linear)
+    const iDur   = Math.max(1, (iEnd - iStart) / 86400000);
 
     periods.forEach((p, idx) => {
-      const oStart = new Date(Math.max(iStart.getTime(), p.start.getTime()));
-      const oEnd   = new Date(Math.min(iEnd.getTime(),   p.end.getTime()));
+      const oStart = new Date(Math.max(iStart, p.start));
+      const oEnd   = new Date(Math.min(iEnd, p.end));
       if (oEnd < oStart) return;
-      const days = Math.round((oEnd - oStart) / 86400000) + 1;
-      planned[idx] += wPerDay * days;
+      const overlap  = Math.max(0, (oEnd - oStart) / 86400000 + 1);
+      const midProg  = ((oStart - iStart) / 86400000 + overlap / 2) / iDur;
+      // Bell curve: more work in middle → creates S-shape when cumulated
+      const bell     = Math.exp(-Math.pow((midProg - 0.5) * 3.5, 2) / 2);
+      planned[idx]  += w * (overlap / iDur) * (0.3 + 0.7 * bell);
     });
   });
 
-  // Round each period value
-  planned.forEach((v, i) => { planned[i] = Math.round(v * 100) / 100; });
+  // Normalize so total = sum of weights %
+  const rawSum = planned.reduce((s,v) => s+v, 0);
+  if (rawSum > 0) {
+    const target = items.reduce((s,it) => s + (parseFloat(it.weight)||0), 0) / totalWeight * 100;
+    planned.forEach((_,i) => planned[i] = planned[i] / rawSum * target);
+  }
 
   // Cumulative sum
   let cum = 0;
-  return planned.map(v => { cum += v; return Math.round(cum * 100) / 100; });
+  return planned.map(v => { cum += v; return Math.min(100, Math.round(cum*10)/10); });
 }
 
 
@@ -4264,7 +4363,6 @@ function renderSCurve() {
 
   const periods   = generatePeriods(proj.startDate, proj.finishDate, scInterval);
   const todayIdx  = getTodayPeriodIndex(periods);
-
   const planned   = calcPlannedCurve(items, periods);
   const actual    = calcActualCurve(actuals, periods);
 
@@ -4276,47 +4374,29 @@ function renderSCurve() {
   // Draw chart - use double RAF to ensure layout is complete
   requestAnimationFrame(() => requestAnimationFrame(() => drawSCurve(periods, planned, actual, todayIdx)));
 
-  // Status bar - compare TODAY's planned vs latest actual
-  const statusBar = document.getElementById('sc-status-bar');
-  const todayStr  = TS();
-
-  // Find today's planned cumulative
-  // todayIdx = index of today in periods array (-1 if before start, periods.length if after end)
-  let todayPlanned = 0;
-  if (planned.length > 0) {
-    if (todayIdx < 0) todayPlanned = 0; // before project start
-    else if (todayIdx >= planned.length) todayPlanned = planned[planned.length-1]; // after end
-    else todayPlanned = planned[todayIdx]; // today is within project
-  }
-
-  // Find latest actual (most recent non-null)
+  // Status bar
   const lastActualPt = actual.reduce((acc, v, i) => v !== null ? { i, v } : acc, null);
-
+  const statusBar = document.getElementById('sc-status-bar');
   if (lastActualPt) {
-    // Deviasi = actual kumulatif terakhir vs target rencana HARI INI
-    // (bukan vs planned di titik aktual, tapi vs planned hari ini)
-    const dev = Math.round((lastActualPt.v - todayPlanned) * 10) / 10;
-    const isAhead  = dev >= 0;
+    const dev = lastActualPt.v - planned[lastActualPt.i];
+    const isAhead = dev >= 0;
     const devColor = isAhead ? 'var(--lime)' : 'var(--rose)';
-    statusBar.innerHTML =
-      '<div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:8px 14px;display:flex;gap:16px;flex-wrap:wrap;align-items:center">' +
-      '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Target Hari Ini</div>' +
-      '<div style="font-size:20px;font-weight:700;font-family:JetBrains Mono,monospace;color:var(--accent2)">' + todayPlanned.toFixed(1) + '%</div></div>' +
-      '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Aktual Terakhir</div>' +
-      '<div style="font-size:20px;font-weight:700;font-family:JetBrains Mono,monospace;color:var(--lime)">' + lastActualPt.v.toFixed(1) + '%</div></div>' +
-      '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Deviasi</div>' +
-      '<div style="font-size:20px;font-weight:700;font-family:JetBrains Mono,monospace;color:' + devColor + '">' + (dev >= 0 ? '+' : '') + dev.toFixed(1) + '%</div></div>' +
-      '<div style="display:flex;align-items:center">' +
-      '<div style="padding:6px 14px;border-radius:20px;background:' + (isAhead?'var(--limed)':'var(--rosed)') + ';border:1px solid ' + (isAhead?'rgba(168,255,87,.3)':'rgba(255,94,136,.3)') + ';color:' + devColor + ';font-weight:700;font-size:13px">' +
-      (isAhead ? '▲ AHEAD OF SCHEDULE' : '▼ BEHIND SCHEDULE') +
-      '</div></div></div>';
+    statusBar.innerHTML = `
+      <div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:8px 14px;display:flex;gap:16px;flex-wrap:wrap">
+        <div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Planned Now</div>
+          <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--accent2)">${planned[lastActualPt.i].toFixed(1)}%</div></div>
+        <div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Actual</div>
+          <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--lime)">${lastActualPt.v.toFixed(1)}%</div></div>
+        <div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Deviasi</div>
+          <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:${devColor}">${dev >= 0 ? '+' : ''}${dev.toFixed(1)}%</div></div>
+        <div style="display:flex;align-items:center">
+          <div style="padding:6px 14px;border-radius:20px;background:${isAhead?'var(--limed)':'var(--rosed)'};border:1px solid ${isAhead?'rgba(168,255,87,.3)':'rgba(255,94,136,.3)'};color:${devColor};font-weight:700;font-size:13px">
+            ${isAhead ? '▲ AHEAD OF SCHEDULE' : '▼ BEHIND SCHEDULE'}
+          </div>
+        </div>
+      </div>`;
   } else {
-    statusBar.innerHTML =
-      '<div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:8px 14px;display:flex;gap:12px;align-items:center">' +
-      '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Target Hari Ini</div>' +
-      '<div style="font-size:20px;font-weight:700;font-family:JetBrains Mono,monospace;color:var(--accent2)">' + todayPlanned.toFixed(1) + '%</div></div>' +
-      '<div style="font-size:12px;color:var(--fog)">— Belum ada input aktual</div>' +
-      '</div>';
+    statusBar.innerHTML = '<span style="font-size:12px;color:var(--fog)">Belum ada input progress aktual</span>';
   }
 
   renderWBSList(projId, items, proj);
@@ -4433,7 +4513,7 @@ function renderActualInputs(projId, items, actuals, periods) {
   }
 
   if (periods.length === 0) {
-    el.innerHTML = tabHtml + '<div style="color:var(--fog);font-size:12px;padding:8px 0">Set start/finish date project untuk generate periode</div>';
+    el.innerHTML = '<div style="color:var(--fog);font-size:12px;padding:8px 0">Set start/finish date project untuk generate periode</div>';
     return;
   }
 
@@ -4446,7 +4526,7 @@ function renderActualInputs(projId, items, actuals, periods) {
     showPeriods = periods.slice(showFrom, showFrom + 12);
   }
 
-  el.innerHTML = tabHtml + '<div>' + showPeriods.map(p => {
+  el.innerHTML = showPeriods.map(p => {
     const actual = actuals.find(a => a.id === p.key);
     const cum    = actual ? actual.cumProgress : '';
     const note   = actual ? (actual.note || '') : '';
@@ -4468,7 +4548,7 @@ function renderActualInputs(projId, items, actuals, periods) {
       + ' style="width:100%;background:transparent;border:none;border-bottom:1px dashed var(--line);padding:2px 0;color:var(--fog);font-size:10px;outline:none"'
       + ' onchange="saveActualInput(\''+projId+'\',\''+p.key+'\',(document.getElementById(\'cum-'+p.key+'\')||{value:0}).value,this.value)">'
       + '</div>';
-  }).join('') + '</div>';
+  }).join('');
 }
 
 // ── AUTO-COMPUTE CUMULATIVE FROM ITEM ACTUALS ────────────────────────────────
@@ -4732,123 +4812,71 @@ window.onItemDailyChange = async function(projId, itemId, dateStr, value) {
   await autoComputeActuals(projId);
   renderSCurve();
 };
-
 // ── S-CURVE MODAL FUNCTIONS ───────────────────
-let scEditProjId = null;
-let scEditItemProjId = null;
-let scEditItemId = null;
+let scEditProjId=null, scEditItemProjId=null, scEditItemId=null;
 
-window.openSCProjectModal = function(projId) {
-  scEditProjId = projId || null;
-  const proj = projId ? D.scProjects.find(p => p.id === projId) : null;
-  document.getElementById('sc-project-modal-title').textContent = proj ? '✎ Edit Project' : '◬ Project S-Curve Baru';
-  document.getElementById('sc-proj-name').value     = proj ? (proj.name||'')     : '';
-  document.getElementById('sc-proj-start').value    = proj ? (proj.startDate||'') : TS();
-  document.getElementById('sc-proj-end').value      = proj ? (proj.finishDate||''): '';
-  document.getElementById('sc-proj-budget').value   = proj ? (proj.budget||'')   : '';
-  document.getElementById('sc-proj-currency').value = proj ? (proj.currency||'IDR'): 'IDR';
-  document.getElementById('sc-proj-desc').value     = proj ? (proj.desc||'')     : '';
+window.openSCProjectModal=function(projId){
+  scEditProjId=projId||null;
+  const proj=projId?D.scProjects.find(p=>p.id===projId):null;
+  document.getElementById('sc-project-modal-title').textContent=proj?'✎ Edit Project':'◬ Project S-Curve Baru';
+  document.getElementById('sc-proj-name').value=proj?(proj.name||''):'';
+  document.getElementById('sc-proj-start').value=proj?(proj.startDate||''):TS();
+  document.getElementById('sc-proj-end').value=proj?(proj.finishDate||''):'';
+  document.getElementById('sc-proj-budget').value=proj?(proj.budget||''):'';
+  document.getElementById('sc-proj-currency').value=proj?(proj.currency||'IDR'):'IDR';
+  document.getElementById('sc-proj-desc').value=proj?(proj.desc||''):'';
   document.getElementById('sc-project-modal-ov').classList.add('open');
 };
-window.closeSCProjectModal = function() {
-  document.getElementById('sc-project-modal-ov').classList.remove('open');
+window.closeSCProjectModal=function(){document.getElementById('sc-project-modal-ov').classList.remove('open');};
+window.saveSCProject=async function(){
+  const name=document.getElementById('sc-proj-name').value.trim();
+  if(!name){toast('Nama project wajib diisi',true);return;}
+  const id=scEditProjId||'sc_'+Date.now().toString(36);
+  const data={name,startDate:document.getElementById('sc-proj-start').value,finishDate:document.getElementById('sc-proj-end').value,budget:document.getElementById('sc-proj-budget').value,currency:document.getElementById('sc-proj-currency').value||'IDR',desc:document.getElementById('sc-proj-desc').value.trim()};
+  await saveSCurveProject(uid,id,data);
+  closeSCProjectModal();toast('Project disimpan ✓');
+  if(!scEditProjId)setTimeout(()=>{const s=document.getElementById('sc-project-sel');if(s){s.value=id;window.onSCProjectChange(id);}},600);
 };
-window.saveSCProject = async function() {
-  const name = document.getElementById('sc-proj-name').value.trim();
-  if (!name) { toast('Nama project wajib diisi', true); return; }
-  const id   = scEditProjId || 'sc_' + Date.now().toString(36);
-  const data = {
-    name,
-    startDate:  document.getElementById('sc-proj-start').value,
-    finishDate: document.getElementById('sc-proj-end').value,
-    budget:     document.getElementById('sc-proj-budget').value,
-    currency:   document.getElementById('sc-proj-currency').value || 'IDR',
-    desc:       document.getElementById('sc-proj-desc').value.trim(),
-  };
-  await saveSCurveProject(uid, id, data);
-  closeSCProjectModal();
-  toast('Project disimpan ✓');
-  if (!scEditProjId) {
-    setTimeout(() => {
-      const sel = document.getElementById('sc-project-sel');
-      if (sel) { sel.value = id; window.onSCProjectChange(id); }
-    }, 600);
-  }
-};
-
-window.openSCItemModal = function(projId, itemId) {
-  projId = projId || scCurrentProjectId;
-  if (projId === '__global__') { toast('Pilih project terlebih dahulu', true); return; }
-  scEditItemProjId = projId;
-  scEditItemId = itemId || null;
-  const item = itemId ? (D.scItems[projId]||[]).find(i => i.id === itemId) : null;
-  document.getElementById('sc-item-modal-title').textContent = item ? '✎ Edit Item WBS' : '+ Item WBS Baru';
-  document.getElementById('sc-item-name').value    = item ? (item.name||'')       : '';
-  document.getElementById('sc-item-weight').value  = item ? (item.weight||'')     : '';
-  document.getElementById('sc-item-value').value   = item ? (item.value||'')      : '';
-  document.getElementById('sc-item-start').value   = item ? (item.startDate||'')  : '';
-  document.getElementById('sc-item-finish').value  = item ? (item.finishDate||'') : '';
-  document.getElementById('sc-item-cat').value     = item ? (item.category||'')   : '';
-  document.getElementById('sc-item-del-btn').style.display = item ? 'block' : 'none';
+window.openSCItemModal=function(projId,itemId){
+  projId=projId||scCurrentProjectId;
+  if(projId==='__global__'){toast('Pilih project terlebih dahulu',true);return;}
+  scEditItemProjId=projId;scEditItemId=itemId||null;
+  const item=itemId?(D.scItems[projId]||[]).find(i=>i.id===itemId):null;
+  document.getElementById('sc-item-modal-title').textContent=item?'✎ Edit Item WBS':'+ Item WBS Baru';
+  document.getElementById('sc-item-name').value=item?(item.name||''):'';
+  document.getElementById('sc-item-weight').value=item?(item.weight||''):'';
+  document.getElementById('sc-item-value').value=item?(item.value||''):'';
+  document.getElementById('sc-item-start').value=item?(item.startDate||''):'';
+  document.getElementById('sc-item-finish').value=item?(item.finishDate||''):'';
+  document.getElementById('sc-item-cat').value=item?(item.category||''):'';
+  document.getElementById('sc-item-del-btn').style.display=item?'block':'none';
   document.getElementById('sc-item-modal-ov').classList.add('open');
 };
-window.closeSCItemModal = function() {
-  document.getElementById('sc-item-modal-ov').classList.remove('open');
+window.closeSCItemModal=function(){document.getElementById('sc-item-modal-ov').classList.remove('open');};
+window.saveSCItem=async function(){
+  const name=document.getElementById('sc-item-name').value.trim();
+  if(!name){toast('Nama item wajib diisi',true);return;}
+  const weight=parseFloat(document.getElementById('sc-item-weight').value)||0;
+  const value=parseFloat(document.getElementById('sc-item-value').value)||0;
+  const id=scEditItemId||'sci_'+Date.now().toString(36);
+  const data={name,weight,value,startDate:document.getElementById('sc-item-start').value,finishDate:document.getElementById('sc-item-finish').value,category:document.getElementById('sc-item-cat').value.trim()};
+  if(!scEditItemId)data.createdAt=Date.now();
+  await saveSCurveItem(uid,scEditItemProjId,id,data);
+  closeSCItemModal();toast('Item disimpan ✓');
 };
-window.saveSCItem = async function() {
-  const name = document.getElementById('sc-item-name').value.trim();
-  if (!name) { toast('Nama item wajib diisi', true); return; }
-  const weight = parseFloat(document.getElementById('sc-item-weight').value) || 0;
-  const value  = parseFloat(document.getElementById('sc-item-value').value)  || 0;
-  const id     = scEditItemId || 'sci_' + Date.now().toString(36);
-  const data = {
-    name, weight, value,
-    startDate:  document.getElementById('sc-item-start').value,
-    finishDate: document.getElementById('sc-item-finish').value,
-    category:   document.getElementById('sc-item-cat').value.trim(),
-  };
-  // Only set createdAt on NEW items, never on edit
-  if (!scEditItemId) data.createdAt = Date.now();
-  await saveSCurveItem(uid, scEditItemProjId, id, data);
-  closeSCItemModal();
-  toast('Item disimpan ✓');
+window.deleteSCProj=async function(projId){
+  if(!confirm('Hapus project S-Curve ini?'))return;
+  await deleteSCurveProject(uid,projId);scCurrentProjectId='__global__';toast('Project dihapus');
 };
-window.deleteSCProj = async function(projId) {
-  if (!confirm('Hapus project S-Curve ini? Semua data akan hilang.')) return;
-  await deleteSCurveProject(uid, projId);
-  scCurrentProjectId = '__global__';
-  toast('Project dihapus');
+window.deleteSCItemCurrent=async function(projId,itemId){
+  projId=projId||scEditItemProjId;itemId=itemId||scEditItemId;
+  if(!confirm('Hapus item WBS ini?'))return;
+  await deleteSCurveItem(uid,projId,itemId);closeSCItemModal();toast('Item dihapus');
 };
-window.deleteSCItemCurrent = async function(projId, itemId) {
-  projId = projId || scEditItemProjId;
-  itemId = itemId || scEditItemId;
-  if (!confirm('Hapus item WBS ini?')) return;
-  await deleteSCurveItem(uid, projId, itemId);
-  closeSCItemModal();
-  toast('Item dihapus');
-};
-window.editCurrentSCProject   = function() { window.openSCProjectModal(scCurrentProjectId); };
-window.deleteCurrentSCProject = function() { window.deleteSCProj(scCurrentProjectId); };
-window.handleTopbarAdd = function() {
-  if (curView === 'scurve') window.openSCProjectModal();
-  else window.openModal();
-};
+window.editCurrentSCProject=function(){window.openSCProjectModal(scCurrentProjectId);};
+window.deleteCurrentSCProject=function(){window.deleteSCProj(scCurrentProjectId);};
+window.handleTopbarAdd=function(){if(curView==='scurve')window.openSCProjectModal();else window.openModal();};
 
-
-// ── THEME TOGGLE ──────────────────────────────
-function toggleTheme() {
-  const isLight = document.documentElement.classList.toggle('light');
-  localStorage.setItem('theme', isLight ? 'light' : 'dark');
-  const btn = document.querySelector('[onclick="toggleTheme()"]');
-  if (btn) btn.textContent = isLight ? '☀️' : '🌙';
-}
-window.toggleTheme = toggleTheme;
-// Apply saved theme on load
-(function() {
-  if (localStorage.getItem('theme') === 'light') {
-    document.documentElement.classList.add('light');
-  }
-})();
 </script>
 </body>
 </html>
