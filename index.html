@@ -4426,29 +4426,54 @@ function renderSCurve() {
   // Draw chart - use double RAF to ensure layout is complete
   requestAnimationFrame(() => requestAnimationFrame(() => drawSCurve(periods, planned, actual, todayIdx)));
 
-  // Status bar
-  const lastActualPt = actual.reduce((acc, v, i) => v !== null ? { i, v } : acc, null);
+  // Status bar — filter actuals UP TO ref date
+  const refDate = getSCRefDate();
+  const refIdx  = todayIdx; // already computed using getSCRefDate()
+
+  // Find latest actual on or before ref date
+  const lastActualPt = actual.reduce((acc, v, i) => {
+    if (v === null) return acc;
+    // Only include periods whose end date <= refDate
+    const pEnd = periods[i] ? localDateStr(periods[i].end) : '';
+    if (pEnd <= refDate) return { i, v };
+    return acc;
+  }, null);
+
+  // Planned at ref date
+  const plannedAtRef = (refIdx >= 0 && refIdx < planned.length)
+    ? planned[refIdx]
+    : (refIdx >= planned.length ? planned[planned.length-1] : 0);
+
   const statusBar = document.getElementById('sc-status-bar');
-  if (lastActualPt) {
-    const dev = lastActualPt.v - planned[lastActualPt.i];
-    const isAhead = dev >= 0;
-    const devColor = isAhead ? 'var(--lime)' : 'var(--rose)';
-    statusBar.innerHTML = `
-      <div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:8px 14px;display:flex;gap:16px;flex-wrap:wrap">
-        <div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Planned Now</div>
-          <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--accent2)">${planned[lastActualPt.i].toFixed(1)}%</div></div>
-        <div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Actual</div>
-          <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--lime)">${lastActualPt.v.toFixed(1)}%</div></div>
-        <div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Deviasi</div>
-          <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:${devColor}">${dev >= 0 ? '+' : ''}${dev.toFixed(1)}%</div></div>
-        <div style="display:flex;align-items:center">
-          <div style="padding:6px 14px;border-radius:20px;background:${isAhead?'var(--limed)':'var(--rosed)'};border:1px solid ${isAhead?'rgba(168,255,87,.3)':'rgba(255,94,136,.3)'};color:${devColor};font-weight:700;font-size:13px">
-            ${isAhead ? '▲ AHEAD OF SCHEDULE' : '▼ BEHIND SCHEDULE'}
-          </div>
-        </div>
-      </div>`;
+  const isRefToday = refDate === TS();
+  const refLabel   = isRefToday ? 'Hari Ini' : FMT(refDate);
+
+  if (lastActualPt !== null) {
+    const actualVal = lastActualPt.v;
+    const dev       = Math.round((actualVal - plannedAtRef) * 10) / 10;
+    const isAhead   = dev >= 0;
+    const devColor  = isAhead ? 'var(--lime)' : 'var(--rose)';
+    statusBar.innerHTML =
+      '<div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:8px 14px;display:flex;gap:14px;flex-wrap:wrap;align-items:center">' +
+      (isRefToday ? '' : '<div style="font-size:10px;padding:3px 10px;border-radius:10px;background:var(--amberd);border:1px solid rgba(217,119,6,.3);color:var(--amber);font-weight:600">📅 ' + refDate + '</div>') +
+      '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Rencana ' + refLabel + '</div>' +
+      '<div style="font-size:20px;font-weight:700;font-family:JetBrains Mono,monospace;color:var(--accent2)">' + plannedAtRef.toFixed(1) + '%</div></div>' +
+      '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Aktual s/d ' + refLabel + '</div>' +
+      '<div style="font-size:20px;font-weight:700;font-family:JetBrains Mono,monospace;color:var(--lime)">' + actualVal.toFixed(1) + '%</div></div>' +
+      '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Deviasi</div>' +
+      '<div style="font-size:20px;font-weight:700;font-family:JetBrains Mono,monospace;color:' + devColor + '">' + (dev >= 0 ? '+' : '') + dev.toFixed(1) + '%</div></div>' +
+      '<div style="display:flex;align-items:center">' +
+      '<div style="padding:6px 14px;border-radius:20px;background:' + (isAhead?'var(--limed)':'var(--rosed)') + ';border:1px solid ' + (isAhead?'rgba(168,255,87,.3)':'rgba(255,94,136,.3)') + ';color:' + devColor + ';font-weight:700;font-size:13px">' +
+      (isAhead ? '▲ AHEAD OF SCHEDULE' : '▼ BEHIND SCHEDULE') +
+      '</div></div></div>';
   } else {
-    statusBar.innerHTML = '<span style="font-size:12px;color:var(--fog)">Belum ada input progress aktual</span>';
+    statusBar.innerHTML =
+      '<div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:8px 14px;display:flex;gap:12px;align-items:center">' +
+      (isRefToday ? '' : '<div style="font-size:10px;padding:3px 10px;border-radius:10px;background:var(--amberd);border:1px solid rgba(217,119,6,.3);color:var(--amber);font-weight:600">📅 ' + refDate + '</div>') +
+      '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Rencana ' + refLabel + '</div>' +
+      '<div style="font-size:20px;font-weight:700;font-family:JetBrains Mono,monospace;color:var(--accent2)">' + plannedAtRef.toFixed(1) + '%</div></div>' +
+      '<div style="font-size:12px;color:var(--fog)">— Belum ada aktual s/d ' + refLabel + '</div>' +
+      '</div>';
   }
 
   renderWBSList(projId, items, proj);
