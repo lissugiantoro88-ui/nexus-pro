@@ -4877,6 +4877,90 @@ window.editCurrentSCProject=function(){window.openSCProjectModal(scCurrentProjec
 window.deleteCurrentSCProject=function(){window.deleteSCProj(scCurrentProjectId);};
 window.handleTopbarAdd=function(){if(curView==='scurve')window.openSCProjectModal();else window.openModal();};
 
+// ── EVAL TAB FUNCTIONS ────────────────────────
+let evalTargetTask='', evalTargetDeleg='', evalRatingTask=0, evalRatingDeleg=0;
+
+window.switchEditTab = function(type, tab, el) {
+  const key = type==='task' ? 'task' : 'deleg';
+  const wrap = document.getElementById('edit-'+key+'-fields');
+  if(!wrap) return;
+  wrap.querySelectorAll('.modal-tab').forEach(b=>b.classList.remove('active'));
+  wrap.querySelectorAll('.modal-tab-content').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  const tc = document.getElementById(key+'-tab-'+tab);
+  if(tc) tc.classList.add('active');
+};
+
+window.setEvalTarget = function(type, val) {
+  const p = type==='task'?'et':'ed';
+  if(type==='task') evalTargetTask=val; else evalTargetDeleg=val;
+  ['yes','partial','no'].forEach(v=>{
+    const b=document.getElementById(p+'-ontarget-'+v);
+    if(b){b.className='eval-badge';if(v===val)b.className+=' active-'+v;}
+  });
+};
+
+window.setEvalRating = function(type, val) {
+  const p = type==='task'?'et':'ed';
+  if(type==='task') evalRatingTask=val; else evalRatingDeleg=val;
+  const c=document.getElementById(p+'-eval-rating');
+  if(c) c.querySelectorAll('.eval-star').forEach((b,i)=>b.classList.toggle('active',i<val));
+};
+
+function loadEvalFields(type, data) {
+  const p=type==='task'?'et':'ed';
+  const ev=(data&&data.eval)||{};
+  const r=document.getElementById(p+'-eval-result');
+  const o=document.getElementById(p+'-eval-obstacle');
+  const l=document.getElementById(p+'-eval-lesson');
+  if(r)r.value=ev.result||'';
+  if(o)o.value=ev.obstacle||'';
+  if(l)l.value=ev.lesson||'';
+  if(type==='task'){evalTargetTask=ev.onTarget||'';evalRatingTask=ev.rating||0;}
+  else{evalTargetDeleg=ev.onTarget||'';evalRatingDeleg=ev.rating||0;}
+  if(ev.onTarget)window.setEvalTarget(type,ev.onTarget);
+  else['yes','partial','no'].forEach(v=>{const b=document.getElementById(p+'-ontarget-'+v);if(b)b.className='eval-badge';});
+  if(ev.rating)window.setEvalRating(type,ev.rating);
+  else{const c=document.getElementById(p+'-eval-rating');if(c)c.querySelectorAll('.eval-star').forEach(b=>b.classList.remove('active'));}
+  // Reset to info tab
+  const wrap=document.getElementById('edit-'+(type==='task'?'task':'deleg')+'-fields');
+  if(wrap){
+    const tabs=wrap.querySelectorAll('.modal-tab');
+    const contents=wrap.querySelectorAll('.modal-tab-content');
+    tabs.forEach((b,i)=>b.classList.toggle('active',i===0));
+    contents.forEach((c,i)=>c.classList.toggle('active',i===0));
+  }
+}
+
+function getEvalData(type) {
+  const p=type==='task'?'et':'ed';
+  const r=document.getElementById(p+'-eval-result');
+  const o=document.getElementById(p+'-eval-obstacle');
+  const l=document.getElementById(p+'-eval-lesson');
+  return {
+    result:   r?r.value.trim():'',
+    obstacle: o?o.value.trim():'',
+    lesson:   l?l.value.trim():'',
+    onTarget: type==='task'?evalTargetTask:evalTargetDeleg,
+    rating:   type==='task'?evalRatingTask:evalRatingDeleg
+  };
+}
+
+// ── THEME TOGGLE ──────────────────────────────
+function toggleTheme() {
+  const isLight = document.documentElement.classList.toggle('light');
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  const btn = document.querySelector('[onclick="toggleTheme()"]');
+  if (btn) btn.textContent = isLight ? '☀️' : '🌙';
+}
+window.toggleTheme = toggleTheme;
+// Apply saved theme on load
+(function() {
+  if (localStorage.getItem('theme') === 'light') {
+    document.documentElement.classList.add('light');
+  }
+})();
+
 </script>
 </body>
 </html>
