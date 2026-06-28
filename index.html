@@ -4366,16 +4366,24 @@ function renderSCurve() {
       return s;
     }, 0);
   }
+  // Always use DAILY dates for status bar (same as grid, regardless of scInterval)
+  const dailyDates = [];
+  if (proj && proj.startDate && proj.finishDate) {
+    let _cur = localMidnight(proj.startDate);
+    const _end = localMidnight(proj.finishDate);
+    while (_cur <= _end) { dailyDates.push(localDateStr(_cur)); _cur.setDate(_cur.getDate()+1); }
+  }
+
   let planCumAtRef = 0;
-  periods.forEach(p => { if (p.key <= refDate) planCumAtRef += planDailyForDate(p.key); });
+  dailyDates.forEach(d => { if (d <= refDate) planCumAtRef += planDailyForDate(d); });
   planCumAtRef = Math.round(planCumAtRef * 100) / 100;
 
-  // Actual cumulative = same as grid's Kum. Aktual at refDate (only dates with input)
+  // Actual cumulative from daily item actuals (same as grid Kum. Aktual)
   let actualCumAtRef = 0, hasActualData = false;
-  periods.forEach(p => {
-    if (p.key > refDate) return;
+  dailyDates.forEach(d => {
+    if (d > refDate) return;
     itemsList.forEach(it => {
-      const dd = iActs[p.key];
+      const dd = iActs[d];
       if (dd && dd[it.id] !== undefined) {
         actualCumAtRef += parseFloat(dd[it.id]) || 0;
         hasActualData = true;
