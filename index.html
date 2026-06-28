@@ -372,7 +372,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 /* ── MODAL ── */
 .modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .2s;}
 .modal-ov.open{opacity:1;pointer-events:all;}
-.modal{background:var(--bg2);border:1px solid var(--line2);border-radius:12px;width:480px;max-width:95vw;padding:22px;transform:translateY(10px);transition:transform .2s;}
+.modal{background:var(--bg2);border:1px solid var(--line2);border-radius:12px;width:480px;max-width:95vw;padding:22px;transform:translateY(10px);transition:transform .2s;max-height:90vh;overflow-y:auto;}
 .modal-ov.open .modal{transform:translateY(0);}
 .modal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
 .modal-title{font-size:15px;font-weight:600;color:var(--white);}
@@ -786,13 +786,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 @keyframes slideDown{from{top:-60px;opacity:0;}to{top:14px;opacity:1;}}
 
 
-/* ── EVAL TAB IN MODAL ── */
+/* ── EVAL TAB ── */
 .modal-tabs{display:flex;gap:2px;margin-bottom:14px;background:var(--bg3);border-radius:var(--rs);padding:3px;}
 .modal-tab{flex:1;padding:7px;border:none;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;background:transparent;color:var(--fog);}
 .modal-tab.active{background:var(--bg2);color:var(--snow);box-shadow:0 1px 3px rgba(0,0,0,.2);}
 .modal-tab-content{display:none;}
 .modal-tab-content.active{display:block;}
-.eval-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--line2);background:transparent;color:var(--fog);transition:all .15s;font-family:'Inter',sans-serif;}
+.eval-badge{display:inline-flex;align-items:center;gap:4px;padding:5px 11px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--line2);background:transparent;color:var(--fog);transition:all .15s;font-family:'Inter',sans-serif;}
 .eval-badge.active-yes{background:rgba(22,163,74,.15);color:var(--lime);border-color:rgba(22,163,74,.3);}
 .eval-badge.active-no{background:var(--rosed);color:var(--rose);border-color:rgba(225,29,72,.3);}
 .eval-badge.active-partial{background:var(--amberd);color:var(--amber);border-color:rgba(217,119,6,.3);}
@@ -1548,46 +1548,68 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
         <div class="fld-row">
           <div class="fld"><div class="fld-lbl">Status</div>
             <select class="fld-sel" id="et-status">
-              <option value="todo">To Do</option><option value="inprogress">In Progress</option>
-              <option value="review">Review</option><option value="done">Done</option>
+              <option value="todo">To Do</option>
+              <option value="inprogress">In Progress</option>
+              <option value="review">Review</option>
+              <option value="done">Done</option>
             </select>
           </div>
           <div class="fld"><div class="fld-lbl">Prioritas</div>
             <select class="fld-sel" id="et-prio">
-              <option value="high">🔴 High</option><option value="medium">🟡 Medium</option><option value="low">🟢 Low</option>
+              <option value="high">🔴 High</option>
+              <option value="medium">🟡 Medium</option>
+              <option value="low">🟢 Low</option>
             </select>
           </div>
         </div>
         <div class="fld-row">
           <div class="fld"><div class="fld-lbl">Due Date</div><input class="fld-in" id="et-due" type="date"></div>
-          <div class="fld"><div class="fld-lbl">Kategori</div><input class="fld-in" id="et-cat" placeholder="e.g. Pekerjaan, Pribadi"></div>
+          <div class="fld"><div class="fld-lbl">Kategori</div><input class="fld-in" id="et-cat" placeholder="e.g. Pekerjaan"></div>
         </div>
         <div class="fld"><div class="fld-lbl">Catatan</div><textarea class="fld-ta" id="et-notes" placeholder="Detail tambahan..."></textarea></div>
       </div>
       <div class="modal-tab-content" id="task-tab-eval">
-        <div style="font-size:11px;color:var(--mist);background:var(--ag2);border:1px solid rgba(124,111,255,.15);border-radius:var(--rs);padding:10px 12px;margin-bottom:12px">📊 Isi setelah task selesai untuk evaluasi & pembelajaran</div>
-        <div class="fld"><div class="fld-lbl">Hasil Pekerjaan</div><textarea class="fld-ta" id="et-eval-result" placeholder="Apa yang berhasil diselesaikan?" style="min-height:65px"></textarea></div>
+        <div style="font-size:11px;color:var(--mist);background:var(--ag2);border:1px solid rgba(124,111,255,.15);border-radius:var(--rs);padding:8px 12px;margin-bottom:10px">📊 Isi setelah task selesai untuk evaluasi & pembelajaran</div>
+        <div class="fld"><div class="fld-lbl">Hasil Pekerjaan</div><textarea class="fld-ta" id="et-eval-result" placeholder="Apa yang diselesaikan?" style="min-height:55px"></textarea></div>
         <div class="fld">
-          <div class="fld-lbl">Apakah sesuai target?</div>
-          <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+          <div class="fld-lbl">Sesuai target?</div>
+          <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap">
             <button class="eval-badge" id="et-ontarget-yes" onclick="setEvalTarget('task','yes')">✓ Ya</button>
             <button class="eval-badge" id="et-ontarget-partial" onclick="setEvalTarget('task','partial')">~ Sebagian</button>
             <button class="eval-badge" id="et-ontarget-no" onclick="setEvalTarget('task','no')">✕ Tidak</button>
           </div>
         </div>
-        <div class="fld"><div class="fld-lbl">Kendala</div><textarea class="fld-ta" id="et-eval-obstacle" placeholder="Hambatan yang dihadapi?..." style="min-height:55px"></textarea></div>
-        <div class="fld"><div class="fld-lbl">Lesson Learned</div><textarea class="fld-ta" id="et-eval-lesson" placeholder="Apa yang bisa diperbaiki ke depannya?..." style="min-height:55px"></textarea></div>
+        <div class="fld"><div class="fld-lbl">Kendala</div><textarea class="fld-ta" id="et-eval-obstacle" placeholder="Hambatan?" style="min-height:45px"></textarea></div>
+        <div class="fld"><div class="fld-lbl">Lesson Learned</div><textarea class="fld-ta" id="et-eval-lesson" placeholder="Apa yang bisa diperbaiki?" style="min-height:45px"></textarea></div>
         <div class="fld">
-          <div class="fld-lbl">Rating Hasil</div>
-          <div style="display:flex;gap:4px;margin-top:6px" id="et-eval-rating">
-            <button class="eval-star" onclick="setEvalRating('task',1)" title="1">⭐</button>
-            <button class="eval-star" onclick="setEvalRating('task',2)" title="2">⭐</button>
-            <button class="eval-star" onclick="setEvalRating('task',3)" title="3">⭐</button>
-            <button class="eval-star" onclick="setEvalRating('task',4)" title="4">⭐</button>
-            <button class="eval-star" onclick="setEvalRating('task',5)" title="5">⭐</button>
+          <div class="fld-lbl">Rating</div>
+          <div style="display:flex;gap:4px;margin-top:5px" id="et-eval-rating">
+            <button class="eval-star" onclick="setEvalRating('task',1)">⭐</button>
+            <button class="eval-star" onclick="setEvalRating('task',2)">⭐</button>
+            <button class="eval-star" onclick="setEvalRating('task',3)">⭐</button>
+            <button class="eval-star" onclick="setEvalRating('task',4)">⭐</button>
+            <button class="eval-star" onclick="setEvalRating('task',5)">⭐</button>
           </div>
         </div>
       </div>
+      <div class="fld-row">
+        <div class="fld"><div class="fld-lbl">Status</div>
+          <select class="fld-sel" id="et-status">
+            <option value="todo">To Do</option><option value="inprogress">In Progress</option>
+            <option value="review">Review</option><option value="done">Done</option>
+          </select>
+        </div>
+        <div class="fld"><div class="fld-lbl">Prioritas</div>
+          <select class="fld-sel" id="et-prio">
+            <option value="high">🔴 High</option><option value="medium">🟡 Medium</option><option value="low">🟢 Low</option>
+          </select>
+        </div>
+      </div>
+      <div class="fld-row">
+        <div class="fld"><div class="fld-lbl">Due Date</div><input class="fld-in" id="et-due" type="date"></div>
+        <div class="fld"><div class="fld-lbl">Kategori</div><input class="fld-in" id="et-cat" placeholder="e.g. Pekerjaan, Pribadi"></div>
+      </div>
+      <div class="fld"><div class="fld-lbl">Catatan</div><textarea class="fld-ta" id="et-notes" placeholder="Detail tambahan..."></textarea></div>
     </div>
 
     <!-- Edit Habit -->
@@ -1618,33 +1640,37 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
         <div class="fld-row">
           <div class="fld"><div class="fld-lbl">Status</div>
             <select class="fld-sel" id="ed-status">
-              <option value="todo">Belum Mulai</option><option value="inprogress">In Progress</option><option value="done">Selesai</option>
+              <option value="todo">Belum Mulai</option>
+              <option value="inprogress">In Progress</option>
+              <option value="done">Selesai</option>
             </select>
           </div>
           <div class="fld"><div class="fld-lbl">Prioritas</div>
             <select class="fld-sel" id="ed-prio">
-              <option value="high">🔴 High</option><option value="medium">🟡 Medium</option><option value="low">🟢 Low</option>
+              <option value="high">🔴 High</option>
+              <option value="medium">🟡 Medium</option>
+              <option value="low">🟢 Low</option>
             </select>
           </div>
         </div>
-        <div class="fld"><div class="fld-lbl">Catatan</div><textarea class="fld-ta" id="ed-notes" placeholder="Detail delegasi..."></textarea></div>
+        <div class="fld"><div class="fld-lbl">Catatan</div><textarea class="fld-ta" id="ed-notes" placeholder="Instruksi atau konteks..."></textarea></div>
       </div>
       <div class="modal-tab-content" id="deleg-tab-eval">
-        <div style="font-size:11px;color:var(--mist);background:var(--ag2);border:1px solid rgba(124,111,255,.15);border-radius:var(--rs);padding:10px 12px;margin-bottom:12px">📊 Evaluasi hasil delegasi setelah selesai</div>
-        <div class="fld"><div class="fld-lbl">Hasil Pekerjaan</div><textarea class="fld-ta" id="ed-eval-result" placeholder="Output yang diterima?..." style="min-height:65px"></textarea></div>
+        <div style="font-size:11px;color:var(--mist);background:var(--ag2);border:1px solid rgba(124,111,255,.15);border-radius:var(--rs);padding:8px 12px;margin-bottom:10px">📊 Isi setelah delegasi selesai</div>
+        <div class="fld"><div class="fld-lbl">Hasil</div><textarea class="fld-ta" id="ed-eval-result" placeholder="Output yang diterima?" style="min-height:50px"></textarea></div>
         <div class="fld">
-          <div class="fld-lbl">Apakah sesuai target?</div>
-          <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+          <div class="fld-lbl">Sesuai target?</div>
+          <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap">
             <button class="eval-badge" id="ed-ontarget-yes" onclick="setEvalTarget('deleg','yes')">✓ Ya</button>
             <button class="eval-badge" id="ed-ontarget-partial" onclick="setEvalTarget('deleg','partial')">~ Sebagian</button>
             <button class="eval-badge" id="ed-ontarget-no" onclick="setEvalTarget('deleg','no')">✕ Tidak</button>
           </div>
         </div>
-        <div class="fld"><div class="fld-lbl">Kendala</div><textarea class="fld-ta" id="ed-eval-obstacle" placeholder="Hambatan dari pelaksana?..." style="min-height:55px"></textarea></div>
-        <div class="fld"><div class="fld-lbl">Feedback untuk Pelaksana</div><textarea class="fld-ta" id="ed-eval-lesson" placeholder="Catatan untuk pelaksana ke depannya?..." style="min-height:55px"></textarea></div>
+        <div class="fld"><div class="fld-lbl">Kendala</div><textarea class="fld-ta" id="ed-eval-obstacle" placeholder="Hambatan?" style="min-height:45px"></textarea></div>
+        <div class="fld"><div class="fld-lbl">Feedback untuk Pelaksana</div><textarea class="fld-ta" id="ed-eval-lesson" placeholder="Catatan ke depan?" style="min-height:45px"></textarea></div>
         <div class="fld">
-          <div class="fld-lbl">Rating Hasil</div>
-          <div style="display:flex;gap:4px;margin-top:6px" id="ed-eval-rating">
+          <div class="fld-lbl">Rating</div>
+          <div style="display:flex;gap:4px;margin-top:5px" id="ed-eval-rating">
             <button class="eval-star" onclick="setEvalRating('deleg',1)">⭐</button>
             <button class="eval-star" onclick="setEvalRating('deleg',2)">⭐</button>
             <button class="eval-star" onclick="setEvalRating('deleg',3)">⭐</button>
@@ -1652,8 +1678,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
             <button class="eval-star" onclick="setEvalRating('deleg',5)">⭐</button>
           </div>
         </div>
-      </div>id="edit-deleg-fields" style="display:none">
-      <div class="fld"><div class="fld-lbl">Nama Task</div><input class="fld-in" id="ed-name" placeholder="Task yang didelegasikan..."></div>
+      </div>
       <div class="fld-row">
         <div class="fld"><div class="fld-lbl">Dikerjakan Oleh</div><input class="fld-in" id="ed-person" placeholder="Nama / posisi"></div>
         <div class="fld"><div class="fld-lbl">Due Date</div><input class="fld-in" id="ed-due" type="date"></div>
@@ -3226,6 +3251,7 @@ window.openEditTask = id => {
   document.getElementById('et-due').value = t.due||'';
   document.getElementById('et-cat').value = t.category||'';
   document.getElementById('et-notes').value = t.notes||'';
+  loadEvalFields('task',t);
   showEditModal('task', '✎ Edit Task');
 };
 
@@ -3247,6 +3273,7 @@ window.openEditDeleg = id => {
   document.getElementById('ed-status').value = d.status||'todo';
   document.getElementById('ed-prio').value = d.priority||'medium';
   document.getElementById('ed-notes').value = d.notes||'';
+  loadEvalFields('deleg',d);
   showEditModal('deleg', '✎ Edit Delegasi');
 };
 
@@ -3270,7 +3297,8 @@ window.saveEditItem = async () => {
         priority:document.getElementById('et-prio').value,
         due:document.getElementById('et-due').value,
         category:document.getElementById('et-cat').value.trim(),
-        notes:document.getElementById('et-notes').value.trim()
+        notes:document.getElementById('et-notes').value.trim(),
+        eval:getEvalData('task')
       });
     } else if(editType==='habit') {
       const name=document.getElementById('eh-name').value.trim();
@@ -3287,7 +3315,8 @@ window.saveEditItem = async () => {
         due:document.getElementById('ed-due').value,
         status:document.getElementById('ed-status').value,
         priority:document.getElementById('ed-prio').value,
-        notes:document.getElementById('ed-notes').value.trim()
+        notes:document.getElementById('ed-notes').value.trim(),
+        eval:getEvalData('deleg')
       });
     } else if(editType==='idea') {
       const title=document.getElementById('ei-title').value.trim();
@@ -4812,9 +4841,59 @@ window.onItemDailyChange = async function(projId, itemId, dateStr, value) {
   await autoComputeActuals(projId);
   renderSCurve();
 };
-// ── S-CURVE MODAL FUNCTIONS ───────────────────
-let scEditProjId=null, scEditItemProjId=null, scEditItemId=null;
+// ── EVAL TAB JS ───────────────────────────────
+let evalTargetTask='',evalTargetDeleg='',evalRatingTask=0,evalRatingDeleg=0;
+window.switchEditTab=function(type,tab,el){
+  const k=type==='task'?'task':'deleg';
+  const wrap=document.getElementById('edit-'+k+'-fields');
+  if(!wrap)return;
+  wrap.querySelectorAll('.modal-tab').forEach(b=>b.classList.remove('active'));
+  wrap.querySelectorAll('.modal-tab-content').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  const tc=document.getElementById(k+'-tab-'+tab);
+  if(tc)tc.classList.add('active');
+};
+window.setEvalTarget=function(type,val){
+  const p=type==='task'?'et':'ed';
+  if(type==='task')evalTargetTask=val;else evalTargetDeleg=val;
+  ['yes','partial','no'].forEach(v=>{
+    const b=document.getElementById(p+'-ontarget-'+v);
+    if(b){b.className='eval-badge';if(v===val)b.className+=' active-'+v;}
+  });
+};
+window.setEvalRating=function(type,val){
+  const p=type==='task'?'et':'ed';
+  if(type==='task')evalRatingTask=val;else evalRatingDeleg=val;
+  const c=document.getElementById(p+'-eval-rating');
+  if(c)c.querySelectorAll('.eval-star').forEach((b,i)=>b.classList.toggle('active',i<val));
+};
+function loadEvalFields(type,data){
+  const p=type==='task'?'et':'ed',ev=(data&&data.eval)||{};
+  const r=document.getElementById(p+'-eval-result');
+  const o=document.getElementById(p+'-eval-obstacle');
+  const l=document.getElementById(p+'-eval-lesson');
+  if(r)r.value=ev.result||'';
+  if(o)o.value=ev.obstacle||'';
+  if(l)l.value=ev.lesson||'';
+  if(type==='task'){evalTargetTask=ev.onTarget||'';evalRatingTask=ev.rating||0;}
+  else{evalTargetDeleg=ev.onTarget||'';evalRatingDeleg=ev.rating||0;}
+  if(ev.onTarget)window.setEvalTarget(type,ev.onTarget);
+  else['yes','partial','no'].forEach(v=>{const b=document.getElementById(p+'-ontarget-'+v);if(b)b.className='eval-badge';});
+  if(ev.rating)window.setEvalRating(type,ev.rating);
+  else{const c=document.getElementById(p+'-eval-rating');if(c)c.querySelectorAll('.eval-star').forEach(b=>b.classList.remove('active'));}
+  const wrap=document.getElementById('edit-'+(type==='task'?'task':'deleg')+'-fields');
+  if(wrap){wrap.querySelectorAll('.modal-tab').forEach((b,i)=>b.classList.toggle('active',i===0));wrap.querySelectorAll('.modal-tab-content').forEach((c,i)=>c.classList.toggle('active',i===0));}
+}
+function getEvalData(type){
+  const p=type==='task'?'et':'ed';
+  const r=document.getElementById(p+'-eval-result');
+  const o=document.getElementById(p+'-eval-obstacle');
+  const l=document.getElementById(p+'-eval-lesson');
+  return{result:r?r.value.trim():'',obstacle:o?o.value.trim():'',lesson:l?l.value.trim():'',onTarget:type==='task'?evalTargetTask:evalTargetDeleg,rating:type==='task'?evalRatingTask:evalRatingDeleg};
+}
 
+// ── S-CURVE MODAL FUNCTIONS ───────────────────
+let scEditProjId=null,scEditItemProjId=null,scEditItemId=null;
 window.openSCProjectModal=function(projId){
   scEditProjId=projId||null;
   const proj=projId?D.scProjects.find(p=>p.id===projId):null;
@@ -4833,8 +4912,7 @@ window.saveSCProject=async function(){
   if(!name){toast('Nama project wajib diisi',true);return;}
   const id=scEditProjId||'sc_'+Date.now().toString(36);
   const data={name,startDate:document.getElementById('sc-proj-start').value,finishDate:document.getElementById('sc-proj-end').value,budget:document.getElementById('sc-proj-budget').value,currency:document.getElementById('sc-proj-currency').value||'IDR',desc:document.getElementById('sc-proj-desc').value.trim()};
-  await saveSCurveProject(uid,id,data);
-  closeSCProjectModal();toast('Project disimpan ✓');
+  await saveSCurveProject(uid,id,data);closeSCProjectModal();toast('Project disimpan ✓');
   if(!scEditProjId)setTimeout(()=>{const s=document.getElementById('sc-project-sel');if(s){s.value=id;window.onSCProjectChange(id);}},600);
 };
 window.openSCItemModal=function(projId,itemId){
@@ -4861,8 +4939,7 @@ window.saveSCItem=async function(){
   const id=scEditItemId||'sci_'+Date.now().toString(36);
   const data={name,weight,value,startDate:document.getElementById('sc-item-start').value,finishDate:document.getElementById('sc-item-finish').value,category:document.getElementById('sc-item-cat').value.trim()};
   if(!scEditItemId)data.createdAt=Date.now();
-  await saveSCurveItem(uid,scEditItemProjId,id,data);
-  closeSCItemModal();toast('Item disimpan ✓');
+  await saveSCurveItem(uid,scEditItemProjId,id,data);closeSCItemModal();toast('Item disimpan ✓');
 };
 window.deleteSCProj=async function(projId){
   if(!confirm('Hapus project S-Curve ini?'))return;
@@ -4877,89 +4954,15 @@ window.editCurrentSCProject=function(){window.openSCProjectModal(scCurrentProjec
 window.deleteCurrentSCProject=function(){window.deleteSCProj(scCurrentProjectId);};
 window.handleTopbarAdd=function(){if(curView==='scurve')window.openSCProjectModal();else window.openModal();};
 
-// ── EVAL TAB FUNCTIONS ────────────────────────
-let evalTargetTask='', evalTargetDeleg='', evalRatingTask=0, evalRatingDeleg=0;
-
-window.switchEditTab = function(type, tab, el) {
-  const key = type==='task' ? 'task' : 'deleg';
-  const wrap = document.getElementById('edit-'+key+'-fields');
-  if(!wrap) return;
-  wrap.querySelectorAll('.modal-tab').forEach(b=>b.classList.remove('active'));
-  wrap.querySelectorAll('.modal-tab-content').forEach(c=>c.classList.remove('active'));
-  el.classList.add('active');
-  const tc = document.getElementById(key+'-tab-'+tab);
-  if(tc) tc.classList.add('active');
-};
-
-window.setEvalTarget = function(type, val) {
-  const p = type==='task'?'et':'ed';
-  if(type==='task') evalTargetTask=val; else evalTargetDeleg=val;
-  ['yes','partial','no'].forEach(v=>{
-    const b=document.getElementById(p+'-ontarget-'+v);
-    if(b){b.className='eval-badge';if(v===val)b.className+=' active-'+v;}
-  });
-};
-
-window.setEvalRating = function(type, val) {
-  const p = type==='task'?'et':'ed';
-  if(type==='task') evalRatingTask=val; else evalRatingDeleg=val;
-  const c=document.getElementById(p+'-eval-rating');
-  if(c) c.querySelectorAll('.eval-star').forEach((b,i)=>b.classList.toggle('active',i<val));
-};
-
-function loadEvalFields(type, data) {
-  const p=type==='task'?'et':'ed';
-  const ev=(data&&data.eval)||{};
-  const r=document.getElementById(p+'-eval-result');
-  const o=document.getElementById(p+'-eval-obstacle');
-  const l=document.getElementById(p+'-eval-lesson');
-  if(r)r.value=ev.result||'';
-  if(o)o.value=ev.obstacle||'';
-  if(l)l.value=ev.lesson||'';
-  if(type==='task'){evalTargetTask=ev.onTarget||'';evalRatingTask=ev.rating||0;}
-  else{evalTargetDeleg=ev.onTarget||'';evalRatingDeleg=ev.rating||0;}
-  if(ev.onTarget)window.setEvalTarget(type,ev.onTarget);
-  else['yes','partial','no'].forEach(v=>{const b=document.getElementById(p+'-ontarget-'+v);if(b)b.className='eval-badge';});
-  if(ev.rating)window.setEvalRating(type,ev.rating);
-  else{const c=document.getElementById(p+'-eval-rating');if(c)c.querySelectorAll('.eval-star').forEach(b=>b.classList.remove('active'));}
-  // Reset to info tab
-  const wrap=document.getElementById('edit-'+(type==='task'?'task':'deleg')+'-fields');
-  if(wrap){
-    const tabs=wrap.querySelectorAll('.modal-tab');
-    const contents=wrap.querySelectorAll('.modal-tab-content');
-    tabs.forEach((b,i)=>b.classList.toggle('active',i===0));
-    contents.forEach((c,i)=>c.classList.toggle('active',i===0));
-  }
-}
-
-function getEvalData(type) {
-  const p=type==='task'?'et':'ed';
-  const r=document.getElementById(p+'-eval-result');
-  const o=document.getElementById(p+'-eval-obstacle');
-  const l=document.getElementById(p+'-eval-lesson');
-  return {
-    result:   r?r.value.trim():'',
-    obstacle: o?o.value.trim():'',
-    lesson:   l?l.value.trim():'',
-    onTarget: type==='task'?evalTargetTask:evalTargetDeleg,
-    rating:   type==='task'?evalRatingTask:evalRatingDeleg
-  };
-}
-
 // ── THEME TOGGLE ──────────────────────────────
-function toggleTheme() {
-  const isLight = document.documentElement.classList.toggle('light');
-  localStorage.setItem('theme', isLight ? 'light' : 'dark');
-  const btn = document.querySelector('[onclick="toggleTheme()"]');
-  if (btn) btn.textContent = isLight ? '☀️' : '🌙';
+function toggleTheme(){
+  const isLight=document.documentElement.classList.toggle('light');
+  localStorage.setItem('theme',isLight?'light':'dark');
+  const btn=document.querySelector('[onclick="toggleTheme()"]');
+  if(btn)btn.textContent=isLight?'☀️':'🌙';
 }
-window.toggleTheme = toggleTheme;
-// Apply saved theme on load
-(function() {
-  if (localStorage.getItem('theme') === 'light') {
-    document.documentElement.classList.add('light');
-  }
-})();
+window.toggleTheme=toggleTheme;
+(function(){if(localStorage.getItem('theme')==='light')document.documentElement.classList.add('light');})();
 
 </script>
 </body>
