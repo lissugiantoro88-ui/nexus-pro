@@ -1565,24 +1565,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
         <div class="fld"><div class="fld-lbl">Lesson Learned</div><textarea class="fld-ta" id="et-eval-lesson" style="min-height:45px"></textarea></div>
         <div class="fld"><div class="fld-lbl">Rating</div><div style="display:flex;gap:4px;margin-top:5px" id="et-eval-rating"><button class="eval-star" onclick="setEvalRating('task',1)">⭐</button><button class="eval-star" onclick="setEvalRating('task',2)">⭐</button><button class="eval-star" onclick="setEvalRating('task',3)">⭐</button><button class="eval-star" onclick="setEvalRating('task',4)">⭐</button><button class="eval-star" onclick="setEvalRating('task',5)">⭐</button></div></div>
       </div>
-      <div class="fld-row">
-        <div class="fld"><div class="fld-lbl">Status</div>
-          <select class="fld-sel" id="et-status">
-            <option value="todo">To Do</option><option value="inprogress">In Progress</option>
-            <option value="review">Review</option><option value="done">Done</option>
-          </select>
-        </div>
-        <div class="fld"><div class="fld-lbl">Prioritas</div>
-          <select class="fld-sel" id="et-prio">
-            <option value="high">🔴 High</option><option value="medium">🟡 Medium</option><option value="low">🟢 Low</option>
-          </select>
-        </div>
-      </div>
-      <div class="fld-row">
-        <div class="fld"><div class="fld-lbl">Due Date</div><input class="fld-in" id="et-due" type="date"></div>
-        <div class="fld"><div class="fld-lbl">Kategori</div><input class="fld-in" id="et-cat" placeholder="e.g. Pekerjaan, Pribadi"></div>
-      </div>
-      <div class="fld"><div class="fld-lbl">Catatan</div><textarea class="fld-ta" id="et-notes" placeholder="Detail tambahan..."></textarea></div>
     </div>
 
     <!-- Edit Habit -->
@@ -1615,23 +1597,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
         <div class="fld"><div class="fld-lbl">Feedback</div><textarea class="fld-ta" id="ed-eval-lesson" style="min-height:45px"></textarea></div>
         <div class="fld"><div class="fld-lbl">Rating</div><div style="display:flex;gap:4px;margin-top:5px" id="ed-eval-rating"><button class="eval-star" onclick="setEvalRating('deleg',1)">⭐</button><button class="eval-star" onclick="setEvalRating('deleg',2)">⭐</button><button class="eval-star" onclick="setEvalRating('deleg',3)">⭐</button><button class="eval-star" onclick="setEvalRating('deleg',4)">⭐</button><button class="eval-star" onclick="setEvalRating('deleg',5)">⭐</button></div></div>
       </div>
-      <div class="fld-row">
-        <div class="fld"><div class="fld-lbl">Dikerjakan Oleh</div><input class="fld-in" id="ed-person" placeholder="Nama / posisi"></div>
-        <div class="fld"><div class="fld-lbl">Due Date</div><input class="fld-in" id="ed-due" type="date"></div>
-      </div>
-      <div class="fld-row">
-        <div class="fld"><div class="fld-lbl">Status</div>
-          <select class="fld-sel" id="ed-status">
-            <option value="todo">Belum Mulai</option><option value="inprogress">In Progress</option><option value="done">Selesai</option>
-          </select>
-        </div>
-        <div class="fld"><div class="fld-lbl">Prioritas</div>
-          <select class="fld-sel" id="ed-prio">
-            <option value="high">🔴 High</option><option value="medium">🟡 Medium</option><option value="low">🟢 Low</option>
-          </select>
-        </div>
-      </div>
-      <div class="fld"><div class="fld-lbl">Catatan</div><textarea class="fld-ta" id="ed-notes" placeholder="Instruksi atau konteks..."></textarea></div>
     </div>
 
     <!-- Edit Idea/Note -->
@@ -2311,7 +2276,13 @@ function startListeners(){
         onSCProjectChange(projects[0].id);
       } else {
         renderSCurve();
-        loadSCRTL(scCurrentProjectId); // reload RTL now Firebase data is fresh
+        // Update RTL cache from Firebase data, then reload DOM
+        D.scProjects.forEach(function(p){
+          if(p.rtl && (p.rtl.highlight||p.rtl.action||p.rtl.target)){
+            if(!_rtlCache[p.id]) _rtlCache[p.id] = p.rtl; // don't overwrite local edits
+          }
+        });
+        loadSCRTL(scCurrentProjectId);
       }
     }
   }));
@@ -4866,6 +4837,9 @@ window.deleteCurrentSCProject=function(){window.deleteSCProj(scCurrentProjectId)
 window.handleTopbarAdd=function(){if(curView==='scurve')window.openSCProjectModal();else window.openModal();};
 
 // ── SC RTL ────────────────────────────────────
+// RTL cache: per-project, keyed by projId — source of truth for DOM
+var _rtlCache = {};
+
 function saveSCRTL(){
   var projId=scCurrentProjectId;
   if(!projId||projId==='__global__')return;
@@ -4876,21 +4850,27 @@ function saveSCRTL(){
     action:   (document.getElementById('sc-rtl-action')||{}).value||'',
     target:   (document.getElementById('sc-rtl-target')||{}).value||''
   };
-  proj.rtl=data; // update in-memory immediately
-  // Save only the rtl field (merge:true preserves other fields)
-  saveSCurveProject(uid,projId,{rtl:data});
+  _rtlCache[projId] = data;   // update local cache immediately
+  proj.rtl = data;            // update in-memory immediately
+  saveSCurveProject(uid,projId,{rtl:data}); // persist to Firebase
 }
+
 function loadSCRTL(projId){
-  // Always clear first to prevent bleed from previous project
   var h=document.getElementById('sc-rtl-highlight');
   var a=document.getElementById('sc-rtl-action');
   var t=document.getElementById('sc-rtl-target');
+  // Always clear first to prevent bleed from previous project
   if(h)h.value='';
   if(a)a.value='';
   if(t)t.value='';
   if(!projId||projId==='__global__')return;
-  var proj=D.scProjects.find(function(p){return p.id===projId;});
-  var rtl=(proj&&proj.rtl)||{};
+  // Prefer local cache (most up-to-date), then D.scProjects (from Firebase)
+  var rtl = _rtlCache[projId];
+  if(!rtl){
+    var proj=D.scProjects.find(function(p){return p.id===projId;});
+    rtl=(proj&&proj.rtl)||{};
+    if(rtl.highlight||rtl.action||rtl.target) _rtlCache[projId]=rtl; // populate cache
+  }
   if(h)h.value=rtl.highlight||'';
   if(a)a.value=rtl.action||'';
   if(t)t.value=rtl.target||'';
