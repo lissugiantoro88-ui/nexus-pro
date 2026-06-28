@@ -4578,11 +4578,12 @@ function renderActualInputs(projId, items, actuals, periods) {
   const el = document.getElementById('sc-actual-input-list');
   if (!el) return;
 
-  const isItemTab = scActualTab === 'item';
-  const tabHtml = '<div style="display:flex;gap:3px;margin-bottom:10px;background:var(--bg3);border-radius:var(--rs);padding:2px">'
-    + '<button onclick="window.scActualTab=\'item\';window.renderSCurve()" style="flex:1;padding:6px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;transition:all .15s;background:'+(isItemTab?'var(--bg2)':'transparent')+';color:'+(isItemTab?'var(--snow)':'var(--fog)')+'">Per Item Pekerjaan</button>'
-    + '<button onclick="window.scActualTab=\'period\';window.renderSCurve()" style="flex:1;padding:6px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;transition:all .15s;background:'+(!isItemTab?'var(--bg2)':'transparent')+';color:'+(!isItemTab?'var(--snow)':'var(--fog)')+'">Per Periode</button>'
-    + '</div>';
+  const isItem = scActualTab === 'item';
+  const tabHtml =
+    '<div style="display:flex;gap:3px;margin-bottom:10px;background:var(--bg3);border-radius:var(--rs);padding:3px">' +
+    '<button onclick="window.scActualTab=\'item\';window.renderSCurve()" style="flex:1;padding:6px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;background:' + (isItem?'var(--bg2)':'transparent') + ';color:' + (isItem?'var(--snow)':'var(--fog)') + '">Per Item Pekerjaan</button>' +
+    '<button onclick="window.scActualTab=\'period\';window.renderSCurve()" style="flex:1;padding:6px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;background:' + (!isItem?'var(--bg2)':'transparent') + ';color:' + (!isItem?'var(--snow)':'var(--fog)') + '">Per Periode</button>' +
+    '</div>';
 
   if (scActualTab === 'item') {
     renderItemActualInputs(projId, items, el, tabHtml);
@@ -4590,291 +4591,59 @@ function renderActualInputs(projId, items, actuals, periods) {
   }
 
   if (periods.length === 0) {
-    el.innerHTML = '<div style="color:var(--fog);font-size:12px;padding:8px 0">Set start/finish date project untuk generate periode</div>';
+    el.innerHTML = tabHtml + '<div style="color:var(--fog);font-size:12px;padding:8px 0">Set start/finish date project untuk generate periode</div>';
     return;
   }
 
   const todayIdx = getTodayPeriodIndex(periods);
-  let showPeriods;
-  if (scInterval === 'day') {
-    showPeriods = periods;
-  } else {
-    const showFrom = Math.max(0, todayIdx - 3);
-    showPeriods = periods.slice(showFrom, showFrom + 12);
-  }
+  const showPeriods = scInterval === 'day' ? periods : periods.slice(Math.max(0,todayIdx-3), Math.max(0,todayIdx-3)+12);
 
-  el.innerHTML = showPeriods.map(p => {
-    const actual = actuals.find(a => a.id === p.key);
-    const cum    = actual ? actual.cumProgress : '';
-    const note   = actual ? (actual.note || '') : '';
+  // Build rows using a container div with event delegation
+  const rowsHtml = showPeriods.map(p => {
+    const act  = actuals.find(a => a.id === p.key);
+    const cum  = act ? act.cumProgress : '';
+    const note = act ? (act.note||'') : '';
     const isPast = p.end < todayMidnight();
     const isNow  = !isPast && p.start <= todayMidnight();
-    const labelClean = p.label.replace('\n',' ');
-    return '<div style="padding:8px 0;border-bottom:1px solid var(--line)">'
-      + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">'
-      + '<div style="flex:1;font-size:11px;font-weight:500;color:'+(isNow?'var(--amber)':isPast?'var(--mist)':'var(--fog)')+'">'+( isNow?'▶ ':'')+labelClean+'</div>'
-      + '<span style="font-size:10px;color:var(--fog)">%</span>'
-      + '<input type="number" min="0" max="100" step="0.1" value="'+cum+'" placeholder="0" id="cum-'+p.key+'"'
-      + ' style="width:65px;background:var(--bg3);border:1px solid '+(isNow?'var(--amber)':'var(--line)')+';border-radius:var(--rs);padding:4px 7px;color:var(--snow);font-size:12px;font-family:JetBrains Mono,monospace;outline:none;text-align:center"'
-      + ' onchange="saveActualInput(\''+projId+'\',\''+p.key+'\',this.value,(document.getElementById(\'note-'+p.key+'\'))||{value:\'\'}).value||\'\')"'
-      + ' onfocus="this.style.borderColor=\'var(--accent)\'"'
-      + ' onblur="this.style.borderColor=\''+(isNow?'var(--amber)':'var(--line)')+'\'">'
-      + (cum ? '<span style="color:var(--lime)">✓</span>' : '<span style="color:transparent">✓</span>')
-      + '</div>'
-      + '<input type="text" id="note-'+p.key+'" value="'+note+'" placeholder="Catatan progress..."'
-      + ' style="width:100%;background:transparent;border:none;border-bottom:1px dashed var(--line);padding:2px 0;color:var(--fog);font-size:10px;outline:none"'
-      + ' onchange="saveActualInput(\''+projId+'\',\''+p.key+'\',(document.getElementById(\'cum-'+p.key+'\')||{value:0}).value,this.value)">'
-      + '</div>';
+    const lbl  = p.label.replace('\n',' ');
+    const bdrClr = isNow ? 'var(--amber)' : 'var(--line)';
+    const lblClr = isNow ? 'var(--amber)' : isPast ? 'var(--mist)' : 'var(--fog)';
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--line)">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <div style="flex:1;font-size:11px;font-weight:500;color:${lblClr}">${isNow?'▶ ':''}${lbl}</div>
+        <span style="font-size:10px;color:var(--fog)">%</span>
+        <input type="number" min="0" max="100" step="0.1"
+          class="sc-period-input"
+          data-proj="${projId}" data-key="${p.key}" data-note-id="scnote-${p.key}"
+          value="${cum!==''?cum:''}" placeholder="0"
+          style="width:65px;background:var(--bg3);border:1px solid ${bdrClr};border-radius:var(--rs);padding:4px 7px;color:var(--snow);font-size:12px;font-family:JetBrains Mono,monospace;outline:none;text-align:center">
+        <span style="color:${cum?'var(--lime)':'transparent'}">✓</span>
+      </div>
+      <input type="text" id="scnote-${p.key}"
+        class="sc-note-input" data-proj="${projId}" data-key="${p.key}" data-cum-class="sc-period-input"
+        value="${note}" placeholder="Catatan progress..."
+        style="width:100%;background:transparent;border:none;border-bottom:1px dashed var(--line);padding:2px 0;color:var(--fog);font-size:10px;outline:none">
+    </div>`;
   }).join('');
-}
 
-// ── AUTO-COMPUTE CUMULATIVE FROM ITEM ACTUALS ────────────────────────────────
-async function autoComputeActuals(projId) {
-  const items       = D.scItems[projId] || [];
-  const itemActuals = D.scItemActuals[projId] || {};
-  const totalWeight = items.reduce((s,it) => s + (parseFloat(it.weight)||0), 0) || 100;
-  const proj        = D.scProjects.find(p => p.id === projId);
-  if (!proj || !proj.startDate || !proj.finishDate) return;
+  el.innerHTML = tabHtml + '<div>' + rowsHtml + '</div>';
 
-  // Build sorted list of all dates in project range
-  const dates = [];
-  let cur = localMidnight(proj.startDate);
-  const end = localMidnight(proj.finishDate);
-  while (cur <= end) {
-    dates.push(localDateStr(cur));
-    cur.setDate(cur.getDate()+1);
-  }
-
-  // For each date: cumulative = sum of (latest known % per item × weight)
-  // "Latest known %" = most recent entry on or before this date
-  for (const dateStr of dates) {
-    let cumTotal = 0;
-    // Cell value = direct % contribution to project total
-    // Cumulative = sum all daily contributions up to this date
-    for (const d of dates) {
-      if (d > dateStr) break;
-      items.forEach(item => {
-        const dayData = itemActuals[d];
-        if (dayData && dayData[item.id] !== undefined) {
-          cumTotal += parseFloat(dayData[item.id]) || 0;
-        }
-      });
-    }
-    const cum = Math.min(100, Math.round(cumTotal * 100) / 100);
-    if (cum === 0) continue; // skip zero dates
-
-    // Save to scActuals
-    const existing = (D.scActuals[projId]||[]).find(a => a.id === dateStr);
-    if (!existing || Math.abs((existing.cumProgress||0) - cum) > 0.01) {
-      await saveSCurveActual(uid, projId, dateStr, { cumProgress: cum });
-      if (!D.scActuals[projId]) D.scActuals[projId] = [];
-      if (existing) existing.cumProgress = cum;
-      else D.scActuals[projId].push({ id: dateStr, cumProgress: cum });
-    }
-  }
-}
-
-function getLatestItemPct(itemActuals, itemId, upToDate) {
-  // Find the most recent date <= upToDate that has a value for this item
-  let latestDate = '';
-  let best = 0;
-  for (const [date, dayItems] of Object.entries(itemActuals)) {
-    if (date <= upToDate && dayItems[itemId] !== undefined && date >= latestDate) {
-      latestDate = date;
-      best = dayItems[itemId];
-    }
-  }
-  return best;
-}
-
-async function saveActualInput(projId, periodKey, value, note) {
-  const cum = parseFloat(value) || 0;
-  const data = { cumProgress: cum };
-  if (note !== undefined) data.note = note;
-  await saveSCurveActual(uid, projId, periodKey, data);
-  if (!D.scActuals[projId]) D.scActuals[projId] = [];
-  const existing = D.scActuals[projId].find(a => a.id === periodKey);
-  if (existing) { existing.cumProgress = cum; if (note !== undefined) existing.note = note; }
-  else D.scActuals[projId].push({ id: periodKey, cumProgress: cum, note: note||'' });
-  renderSCurve();
-  toast('Progress disimpan ✓');
-}
-window.saveActualInput = saveActualInput;
-
-// ── PER-ITEM ACTUAL INPUT ─────────────────────────────────────────────────────
-function renderItemActualInputs(projId, items, el, tabHtml) {
-  if (items.length === 0) {
-    el.innerHTML = tabHtml + '<div class="empty"><div class="empty-sub">Belum ada item WBS</div></div>';
-    return;
-  }
-
-  const proj        = D.scProjects.find(p => p.id === projId);
-  const itemActuals = D.scItemActuals[projId] || {};
-  const dates = [];
-  if (proj && proj.startDate && proj.finishDate) {
-    let cur = localMidnight(proj.startDate);
-    const end = localMidnight(proj.finishDate);
-    while (cur <= end) {
-      dates.push(localDateStr(cur));
-      cur.setDate(cur.getDate() + 1);
-    }
-  }
-
-  const today = TS();
-  const dayNames = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
-
-  function getItemPlanned(item, date) {
-    if (item.startDate && item.finishDate) {
-      const iStart = localMidnight(item.startDate);
-      const iEnd   = localMidnight(item.finishDate);
-      const dur    = Math.round((iEnd - iStart) / 86400000) + 1;
-      const d      = localMidnight(date);
-      if (d >= iStart && d <= iEnd) {
-        return Math.round((parseFloat(item.weight)||0) / dur * 100) / 100;
-      }
-    }
-    return 0;
-  }
-
-  function getItemActual(item, date) {
-    const day = itemActuals[date];
-    return (day && day[item.id] !== undefined) ? day[item.id] : '';
-  }
-
-  function getPlanDayTotal(date) {
-    return Math.round(items.reduce((s,it) => s + getItemPlanned(it, date), 0) * 100) / 100;
-  }
-  function getActualDayTotal(date) {
-    return Math.round(items.reduce((s,it) => s + (parseFloat(getItemActual(it,date))||0), 0) * 100) / 100;
-  }
-  function getPlanCum(upTo) {
-    let s = 0; dates.forEach(d => { if (d <= upTo) s += getPlanDayTotal(d); }); return Math.round(s*100)/100;
-  }
-  function getActualCum(upTo) {
-    let s = 0; dates.forEach(d => { if (d <= upTo) s += getActualDayTotal(d); }); return Math.round(s*100)/100;
-  }
-
-  const cats = {};
-  items.forEach(it => { const c = it.category||'Lainnya'; if(!cats[c]) cats[c]=[]; cats[c].push(it); });
-
-  const colW = 56;
-  const PC = 'var(--accent2)', AC = 'var(--lime)', BC = 'var(--rose)';
-
-  let rows = tabHtml;
-  rows += '<div style="font-size:11px;color:var(--fog);margin-bottom:8px;padding:7px 10px;background:var(--bg3);border-radius:var(--rs);border-left:3px solid var(--accent)">Isi baris <b style="color:var(--lime)">A (Aktual)</b>. Baris <b style="color:var(--accent2)">R (Rencana)</b> otomatis. Enter untuk simpan.</div>';
-  rows += '<div style="overflow-x:auto;overflow-y:auto;max-height:500px" id="sc-grid-wrap">';
-  rows += '<table id="sc-grid" style="border-collapse:collapse;font-size:11px;min-width:max-content;width:100%">';
-
-  // Header
-  rows += '<thead><tr style="position:sticky;top:0;z-index:10;background:var(--bg2)">';
-  rows += '<th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--line);min-width:180px;position:sticky;left:0;background:var(--bg2);z-index:11;font-size:10px;color:var(--fog);letter-spacing:1px">ITEM</th>';
-  rows += '<th style="padding:4px;border-bottom:2px solid var(--line);color:var(--fog);font-size:10px;text-align:center;min-width:45px">BOBOT</th>';
-  rows += '<th style="padding:4px;border-bottom:2px solid var(--line);color:var(--fog);font-size:10px;min-width:28px;text-align:center">P/A</th>';
-  dates.forEach(function(d) {
-    const isToday = d === today;
-    const dt = localMidnight(d);
-    rows += '<th style="padding:4px 3px;border-bottom:2px solid ' + (isToday?'var(--amber)':'var(--line)') + ';color:' + (isToday?'var(--amber)':'var(--fog)') + ';font-size:9px;text-align:center;min-width:' + colW + 'px;font-weight:' + (isToday?700:500) + '">';
-    rows += '<div>' + dt.getDate() + '/' + (dt.getMonth()+1) + '</div>';
-    rows += '<div style="font-size:8px;opacity:.7">' + dayNames[dt.getDay()] + '</div></th>';
-  });
-  rows += '</tr></thead><tbody>';
-
-  for (const cat in cats) {
-    rows += '<tr style="background:var(--bg3)"><td colspan="' + (dates.length+3) + '" style="padding:5px 10px;font-size:9px;color:var(--accent2);font-weight:700;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--line)">' + cat + '</td></tr>';
-
-    cats[cat].forEach(function(item) {
-      const w = parseFloat(item.weight) || 0;
-
-      // Rencana row
-      rows += '<tr style="background:rgba(124,111,255,.03)">';
-      rows += '<td rowspan="2" style="padding:4px 10px;border-bottom:2px solid var(--line2);color:var(--snow);font-size:11px;position:sticky;left:0;background:var(--bg2);z-index:5;vertical-align:middle;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + item.name + '">' + item.name + '</td>';
-      rows += '<td rowspan="2" style="padding:4px;border-bottom:2px solid var(--line2);text-align:center;color:' + PC + ';font-family:JetBrains Mono,monospace;font-weight:600;font-size:10px;vertical-align:middle">' + w + '%</td>';
-      rows += '<td style="padding:3px 4px;border-bottom:1px dashed var(--line);text-align:center;font-size:9px;font-weight:700;color:' + PC + '">R</td>';
-      dates.forEach(function(d) {
-        const plan = getItemPlanned(item, d);
-        const isToday = d === today;
-        rows += '<td style="padding:2px 3px;border-bottom:1px dashed var(--line);border-left:1px solid ' + (isToday?'rgba(255,184,48,.3)':'var(--line)') + ';text-align:center;color:' + PC + ';font-size:11px;font-family:JetBrains Mono,monospace">';
-        rows += plan > 0 ? plan.toFixed(2) + '%' : '-';
-        rows += '</td>';
-      });
-      rows += '</tr>';
-
-      // Aktual row
-      rows += '<tr>';
-      rows += '<td style="padding:3px 4px;border-bottom:2px solid var(--line2);text-align:center;font-size:9px;font-weight:700;color:' + AC + '">A</td>';
-      dates.forEach(function(d) {
-        const val    = getItemActual(item, d);
-        const numVal = parseFloat(val) || 0;
-        const plan   = getItemPlanned(item, d);
-        const isToday = d === today;
-        const hasVal = val !== '' && numVal > 0;
-        const behind = hasVal && plan > 0 && numVal < plan;
-        const ahead  = hasVal && plan > 0 && numVal >= plan;
-        const cellBg = ahead ? 'rgba(168,255,87,.12)' : behind ? 'rgba(255,94,136,.1)' : hasVal ? 'rgba(124,111,255,.08)' : 'transparent';
-        const bdrClr = ahead ? 'var(--lime)' : behind ? 'var(--rose)' : isToday ? 'rgba(255,184,48,.5)' : '#333348';
-        const txtClr = ahead ? 'var(--lime)' : behind ? 'var(--rose)' : hasVal ? 'var(--snow)' : 'var(--fog)';
-        rows += '<td style="padding:2px 3px;border-bottom:2px solid var(--line2);border-left:1px solid ' + (isToday?'rgba(255,184,48,.3)':'var(--line)') + ';text-align:center">';
-        rows += '<input type="number" min="0" max="' + (w*1.5) + '" step="0.01"';
-        rows += ' value="' + (hasVal ? numVal : '') + '"';
-        rows += ' data-proj="' + projId + '" data-item="' + item.id + '" data-date="' + d + '"';
-        rows += ' style="width:' + (colW-8) + 'px;background:' + cellBg + ';border:1px solid ' + bdrClr + ';border-radius:3px;padding:3px 2px;color:' + txtClr + ';font-size:11px;font-family:JetBrains Mono,monospace;outline:none;text-align:center;font-weight:' + (hasVal?700:400) + '"';
-        rows += ' class="sc-actual-input">';
-        rows += '</td>';
-      });
-      rows += '</tr>';
-    });
-  }
-
-  // Rencana Harian
-  rows += '<tr style="background:var(--bg3);position:sticky;bottom:56px"><td style="padding:6px 10px;border-top:2px solid var(--line);font-weight:700;color:' + PC + ';font-size:11px;position:sticky;left:0;background:var(--bg3);z-index:5">Rencana Harian</td><td style="border-top:2px solid var(--line)"></td><td style="border-top:2px solid var(--line)"></td>';
-  dates.forEach(function(d) { const pt=getPlanDayTotal(d); rows+='<td style="padding:5px 3px;border-top:2px solid var(--line);text-align:center;font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:'+PC+'">'+(pt>0?pt.toFixed(2)+'%':'-')+'</td>'; });
-  rows += '</tr>';
-
-  // Aktual Harian
-  rows += '<tr style="background:var(--bg2);position:sticky;bottom:42px"><td style="padding:5px 10px;border-top:1px solid var(--line);font-weight:700;color:'+AC+';font-size:11px;position:sticky;left:0;background:var(--bg2);z-index:5">Aktual Harian</td><td style="border-top:1px solid var(--line)"></td><td style="border-top:1px solid var(--line)"></td>';
-  dates.forEach(function(d) { const at=getActualDayTotal(d); rows+='<td style="padding:5px 3px;border-top:1px solid var(--line);text-align:center;font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:'+(at>0?AC:'var(--fog)')+'">'+(at>0?at.toFixed(2)+'%':'-')+'</td>'; });
-  rows += '</tr>';
-
-  // Kum Rencana
-  rows += '<tr style="background:var(--bg3)"><td style="padding:5px 10px;border-top:1px solid var(--line);font-weight:600;color:'+PC+';font-size:11px;position:sticky;left:0;background:var(--bg3);z-index:5">Kum. Rencana</td><td style="border-top:1px solid var(--line)"></td><td style="border-top:1px solid var(--line)"></td>';
-  dates.forEach(function(d) { const pc=getPlanCum(d); rows+='<td style="padding:4px 3px;border-top:1px solid var(--line);text-align:center;font-family:JetBrains Mono,monospace;font-size:11px;color:'+PC+'">'+(pc>0?pc.toFixed(2)+'%':'-')+'</td>'; });
-  rows += '</tr>';
-
-  // Kum Aktual + deviasi
-  rows += '<tr style="background:var(--bg2);position:sticky;bottom:0"><td style="padding:5px 10px;border-top:2px solid var(--line2);font-weight:700;color:'+AC+';font-size:11px;position:sticky;left:0;background:var(--bg2);z-index:5">Kum. Aktual</td><td style="border-top:2px solid var(--line2)"></td><td style="border-top:2px solid var(--line2)"></td>';
-  dates.forEach(function(d) {
-    const ac=getActualCum(d); const pc=getPlanCum(d);
-    const dev = ac>0 ? Math.round((ac-pc)*100)/100 : null;
-    const dc = dev!==null ? (dev>=0?AC:BC) : 'transparent';
-    rows += '<td style="padding:4px 3px;border-top:2px solid var(--line2);text-align:center">';
-    if(ac>0){ rows+='<div style="font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:'+AC+'">'+ac.toFixed(2)+'%</div>'; if(dev!==null) rows+='<div style="font-size:9px;font-weight:700;color:'+dc+'">'+(dev>=0?'+':'')+dev.toFixed(2)+'%</div>'; }
-    else rows+='<span style="color:var(--fog)">-</span>';
-    rows += '</td>';
-  });
-  rows += '</tr>';
-
-  rows += '</tbody></table></div>';
-  el.innerHTML = rows;
-
-  // Attach events via delegation (no inline handlers)
-  el.querySelectorAll('.sc-actual-input').forEach(function(inp) {
-    inp.addEventListener('focus', function() {
-      this.style.borderColor = 'var(--accent)';
-      this.style.background  = 'var(--bg3)';
-      this.select();
+  // Attach events via delegation (no inline handlers = no quote issues)
+  el.querySelectorAll('.sc-period-input').forEach(inp => {
+    inp.addEventListener('focus', function() { this.style.borderColor='var(--accent)'; });
+    inp.addEventListener('blur',  function() {
+      const noteEl = document.getElementById('scnote-' + this.dataset.key);
+      saveActualInput(this.dataset.proj, this.dataset.key, this.value, noteEl ? noteEl.value : '');
     });
     inp.addEventListener('change', function() {
-      window.onItemDailyChange(this.dataset.proj, this.dataset.item, this.dataset.date, this.value);
+      const noteEl = document.getElementById('scnote-' + this.dataset.key);
+      saveActualInput(this.dataset.proj, this.dataset.key, this.value, noteEl ? noteEl.value : '');
     });
-    inp.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        window.onItemDailyChange(this.dataset.proj, this.dataset.item, this.dataset.date, this.value);
-        // Move focus to next input
-        const inputs = Array.from(el.querySelectorAll('.sc-actual-input'));
-        const idx = inputs.indexOf(this);
-        if (idx < inputs.length - 1) inputs[idx+1].focus();
-      }
+  });
+  el.querySelectorAll('.sc-note-input').forEach(inp => {
+    inp.addEventListener('change', function() {
+      const cumEl = el.querySelector(`.sc-period-input[data-key="${this.dataset.key}"]`);
+      saveActualInput(this.dataset.proj, this.dataset.key, cumEl ? cumEl.value : 0, this.value);
     });
   });
 }
