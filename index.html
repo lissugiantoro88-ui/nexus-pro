@@ -3976,6 +3976,15 @@ function loadAllSubtasks() {
 let scInterval = 'week';
 let scCurrentProjectId = '__global__';
 let scRefDate = null; // null = use today
+
+function getSCRefDate() { return scRefDate || TS(); }
+window.onSCRefDateChange = function(val) { scRefDate = val || null; renderSCurve(); };
+window.resetSCRefDate = function() {
+  scRefDate = null;
+  const dp = document.getElementById('sc-ref-date');
+  if (dp) dp.value = TS();
+  renderSCurve();
+};
 let scItemUnsubs = [];
 let scEditingItemId = null;
 let scEditingProjectId = null;
