@@ -1893,6 +1893,7 @@ function onAuth(callback) {
 
 // ── DB (inlined from db.js) ────────────────────
 const db = getFirestore(app);
+window._nexusDB = db;
 
 // ── HELPERS ───────────────────────────────────
 const col = (uid, name) => collection(db, "users", uid, name);
@@ -2220,6 +2221,7 @@ onAuth(user => {
   if(loadEl) { loadEl.dataset.appStarted='1'; loadEl.style.display='none'; }
   if(user){
     uid=user.uid;
+    window._nexusUID = uid;
     document.getElementById('auth-screen').style.display='none';
     const app=document.getElementById('app');
     // On mobile: use block so column layout works; on desktop: flex
