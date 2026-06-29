@@ -2887,7 +2887,7 @@ window.onNoteInput = () => {
 };
 window.deleteCurrentNote = async () => {
   if(!curNoteId)return;
-  await dbDeleteNote(uid,curNoteId);
+  await deleteNote(uid,curNoteId);
   curNoteId=D.notes.length>0?D.notes[D.notes.length-1].id:null;
   toast('Catatan dihapus');
 };
@@ -3058,7 +3058,7 @@ window.createNewRetro = async () => {
   const id = TS();
   const label = new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
   const data = { _label: label, _savedAt: null, keep:'', improve:'', stop:'', start:'', insight:'' };
-  await dbSaveRetroDoc(uid, id, data);
+  await saveRetroDoc(uid, id, data);
   currentRetroId = id;
   if(!D.retros) D.retros = {};
   D.retros[id] = data;
@@ -3074,7 +3074,7 @@ window.onRetroInput = (k, v) => {
   retroSaveTimer = setTimeout(async () => {
     if(!currentRetroId) await createNewRetro();
     const timeStr = new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
-    await dbSaveRetroDoc(uid, currentRetroId, { [k]: v, _savedAt: timeStr });
+    await saveRetroDoc(uid, currentRetroId, { [k]: v, _savedAt: timeStr });
     if(!D.retros) D.retros = {};
     if(!D.retros[currentRetroId]) D.retros[currentRetroId] = {};
     D.retros[currentRetroId][k] = v;
@@ -3099,7 +3099,7 @@ window.forceSaveRetro = async () => {
   });
   const timeStr = new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
   fields._savedAt = timeStr;
-  await dbSaveRetroDoc(uid, currentRetroId, fields);
+  await saveRetroDoc(uid, currentRetroId, fields);
   if(!D.retros) D.retros = {};
   D.retros[currentRetroId] = { ...(D.retros[currentRetroId]||{}), ...fields };
   const ls = document.getElementById('retro-last-saved');
@@ -3252,7 +3252,7 @@ window.doDeleteEditItem = async () => {
     if(editType==='task') await deleteTask(uid, editId);
     else if(editType==='habit') { await deleteHabit(uid, editId); }
     else if(editType==='deleg') await deleteDelegation(uid, editId);
-    else if(editType==='idea') await dbDeleteNote(uid, editId);
+    else if(editType==='idea') await deleteNote(uid, editId);
     closeEditModal();
     toast('Item dihapus');
   } catch(e) { toast('Gagal menghapus', true); }
@@ -3266,7 +3266,7 @@ window.doDelHabit = async id => {
 
 window.doDelIdea = async id => {
   if(!confirm('Hapus catatan ini?')) return;
-  await dbDeleteNote(uid, id);
+  await deleteNote(uid, id);
   toast('Catatan dihapus');
 };
 
