@@ -4622,6 +4622,11 @@ window.saveActualInput = saveActualInput;
 
 // ── PER-ITEM ACTUAL INPUT ─────────────────────────────────────────────────────
 function renderItemActualInputs(projId, items, el, tabHtml) {
+  // Save scroll position before re-render
+  const _wrap = document.getElementById('sc-grid-wrap');
+  const _scrollLeft = _wrap ? _wrap.scrollLeft : 0;
+  const _scrollTop  = _wrap ? _wrap.scrollTop  : 0;
+
   if (items.length === 0) {
     el.innerHTML = tabHtml + '<div class="empty"><div class="empty-sub">Belum ada item WBS</div></div>';
     return;
@@ -4762,18 +4767,41 @@ function renderItemActualInputs(projId, items, el, tabHtml) {
   // Kum Aktual + deviasi
   rows += '<tr style="background:var(--bg2);position:sticky;bottom:0"><td style="padding:5px 10px;border-top:2px solid var(--line2);font-weight:700;color:'+AC+';font-size:11px;position:sticky;left:0;background:var(--bg2);z-index:5">Kum. Aktual</td><td style="border-top:2px solid var(--line2)"></td><td style="border-top:2px solid var(--line2)"></td>';
   dates.forEach(function(d) {
-    const ac=getActualCum(d); const pc=getPlanCum(d);
-    const dev = ac>0 ? Math.round((ac-pc)*100)/100 : null;
-    const dc = dev!==null ? (dev>=0?AC:BC) : 'transparent';
+    const ac = getActualCum(d);
+    const pc = getPlanCum(d);
+    // Show deviasi for past/today dates even if actual is 0 (not yet input)
+    const isPastOrToday = d <= today;
+    const hasActualInput = ac > 0;
+    const dev = (hasActualInput || (isPastOrToday && pc > 0))
+      ? Math.round((ac - pc) * 100) / 100
+      : null;
+    const dc = dev === null ? 'transparent' : dev >= 0 ? AC : BC;
     rows += '<td style="padding:4px 3px;border-top:2px solid var(--line2);text-align:center">';
-    if(ac>0){ rows+='<div style="font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:'+AC+'">'+ac.toFixed(2)+'%</div>'; if(dev!==null) rows+='<div style="font-size:9px;font-weight:700;color:'+dc+'">'+(dev>=0?'+':'')+dev.toFixed(2)+'%</div>'; }
-    else rows+='<span style="color:var(--fog)">-</span>';
+    if (hasActualInput) {
+      rows += '<div style="font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:'+AC+'">'+ac.toFixed(2)+'%</div>';
+      rows += '<div style="font-size:9px;font-weight:700;color:'+dc+'">'+(dev>=0?'+':'')+dev.toFixed(2)+'%</div>';
+    } else if (isPastOrToday && pc > 0) {
+      // Past date, no actual input yet — show 0% actual with deviasi (behind)
+      rows += '<div style="font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;color:var(--fog)">0%</div>';
+      rows += '<div style="font-size:9px;font-weight:700;color:'+BC+'">'+(dev>=0?'+':'')+dev.toFixed(2)+'%</div>';
+    } else {
+      rows += '<span style="color:var(--fog)">-</span>';
+    }
     rows += '</td>';
   });
   rows += '</tr>';
 
   rows += '</tbody></table></div>';
   el.innerHTML = rows;
+
+  // Restore scroll position after re-render
+  requestAnimationFrame(function() {
+    const _wrapAfter = document.getElementById('sc-grid-wrap');
+    if (_wrapAfter) {
+      _wrapAfter.scrollLeft = _scrollLeft;
+      _wrapAfter.scrollTop  = _scrollTop;
+    }
+  });
 
   // Attach events via delegation (no inline handlers)
   el.querySelectorAll('.sc-actual-input').forEach(function(inp) {
