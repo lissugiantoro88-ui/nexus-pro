@@ -5318,8 +5318,14 @@ window.toggleTheme=toggleTheme;
 // ── S-CURVE PDF EXPORT ────────────────────────────────────────────────────────
 window.exportSCurvePDF = function() {
   const projId = scCurrentProjectId;
+
+  if (projId === '__global__') {
+    openDashboardExportModal();
+    return;
+  }
+
   const proj   = D.scProjects.find(p => p.id === projId);
-  if (!proj || projId === '__global__') { toast('Pilih project terlebih dahulu', true); return; }
+  if (!proj) { toast('Pilih project terlebih dahulu', true); return; }
 
   const modal = document.createElement('div');
   modal.id = 'sc-export-modal';
@@ -5599,6 +5605,257 @@ window.generateSCurvePDF = function(exportDate) {
     +'</body></html>';
 
   var win = window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+};
+
+// ── DASHBOARD PDF EXPORT (Global / Multi-Project) ─────────────────────────────
+window.openDashboardExportModal = function() {
+  const dashProjects = getDashboardProjects();
+  if (dashProjects.length === 0) { toast('Tidak ada project untuk di-export', true); return; }
+
+  const modal = document.createElement('div');
+  modal.id = 'sc-dash-export-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center';
+  const today = TS();
+  modal.innerHTML = '<div style="background:var(--bg2);border:1px solid var(--line2);border-radius:12px;padding:22px;width:360px;max-width:95vw">'
+    + '<div style="font-size:14px;font-weight:700;color:var(--snow);margin-bottom:4px">Export Dashboard Gabungan</div>'
+    + '<div style="font-size:11px;color:var(--fog);margin-bottom:16px">' + dashProjects.length + ' project akan disertakan</div>'
+    + '<div class="fld"><div class="fld-lbl">Tanggal referensi report</div>'
+    + '<input class="fld-in" type="date" id="sc-dash-export-date" value="' + today + '">'
+    + '<div style="font-size:10px;color:var(--fog);margin-top:4px">Semua project dihitung s/d tanggal yang sama untuk perbandingan adil.</div></div>'
+    + '<div style="display:flex;gap:8px;margin-top:16px">'
+    + '<button onclick="document.getElementById(\'sc-dash-export-modal\').remove()" style="flex:1;padding:9px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:12px">Batal</button>'
+    + '<button onclick="generateDashboardPDF(document.getElementById(\'sc-dash-export-date\').value)" style="flex:2;padding:9px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:12px;font-weight:600">&#11015; Generate PDF</button>'
+    + '</div></div>';
+  document.body.appendChild(modal);
+  modal.addEventListener('click', function(e) { if(e.target===modal) modal.remove(); });
+};
+
+window.generateDashboardPDF = function(exportDate) {
+  document.getElementById('sc-dash-export-modal') && document.getElementById('sc-dash-export-modal').remove();
+
+  const dashProjects = getDashboardProjects();
+  const refDate = exportDate || TS();
+  const projColors = ['#7c6fff','#16a34a','#d97706','#e11d48','#0891b2','#7c3aed','#ec4899','#84cc16'];
+
+  // ── Compute status for each project (same logic as on-screen dashboard) ──
+  function computeStatusForExport(proj) {
+    const items = D.scItems[proj.id] || [];
+    const iActs = D.scItemActuals[proj.id] || {};
+    if (!proj.startDate || !proj.finishDate) return null;
+
+    const dailyDates = [];
+    let cur = localMidnight(proj.startDate);
+    const end = localMidnight(proj.finishDate);
+    while (cur <= end) { dailyDates.push(localDateStr(cur)); cur.setDate(cur.getDate()+1); }
+
+    function planDailyForDate(d) {
+      return items.reduce(function(s, it) {
+        if (!it.startDate || !it.finishDate) return s;
+        const iS = localMidnight(it.startDate), iE = localMidnight(it.finishDate);
+        const dur = Math.round((iE - iS) / 86400000) + 1;
+        const dD = localMidnight(d);
+        if (dD >= iS && dD <= iE) return s + (parseFloat(it.weight)||0) / dur;
+        return s;
+      }, 0);
+    }
+
+    let planCum = 0;
+    dailyDates.forEach(function(d) { if (d <= refDate) planCum += planDailyForDate(d); });
+    planCum = Math.round(planCum * 100) / 100;
+
+    let actualCum = 0, hasActual = false;
+    dailyDates.forEach(function(d) {
+      if (d > refDate) return;
+      items.forEach(function(it) {
+        const dd = iActs[d];
+        if (dd && dd[it.id] !== undefined) { actualCum += parseFloat(dd[it.id])||0; hasActual = true; }
+      });
+    });
+    actualCum = Math.round(actualCum * 100) / 100;
+
+    const effectiveActual = hasActual ? actualCum : (planCum > 0 ? 0 : null);
+    const dev = effectiveActual !== null ? Math.round((effectiveActual - planCum) * 10) / 10 : null;
+
+    const totalDays = Math.round((end - localMidnight(proj.startDate)) / 86400000) + 1;
+    const refDay = Math.round((localMidnight(refDate) - localMidnight(proj.startDate)) / 86400000) + 1;
+    const remDays = Math.max(0, totalDays - refDay);
+
+    return { proj: proj, planCum: planCum, actualCum: effectiveActual, dev: dev, hasActual: hasActual,
+             totalDays: totalDays, refDay: refDay, remDays: remDays, dailyDates: dailyDates, items: items };
+  }
+
+  const statuses = dashProjects.map(computeStatusForExport).filter(Boolean);
+
+  const behindCount  = statuses.filter(function(s){return s.dev!==null && s.dev<0;}).length;
+  const aheadCount   = statuses.filter(function(s){return s.dev!==null && s.dev>0;}).length;
+  const onTrackCount = statuses.filter(function(s){return s.dev===0;}).length;
+  const validDevs    = statuses.filter(function(s){return s.dev!==null;});
+  const avgDev       = validDevs.length ? Math.round(validDevs.reduce(function(s,x){return s+x.dev;},0)/validDevs.length*10)/10 : null;
+
+  // ── Build SVG overlay chart (vector, sharp on print) ──────────────────────
+  let minDate = null, maxDate = null;
+  statuses.forEach(function(s) {
+    const sD = localMidnight(s.proj.startDate), eD = localMidnight(s.proj.finishDate);
+    if (!minDate || sD < minDate) minDate = sD;
+    if (!maxDate || eD > maxDate) maxDate = eD;
+  });
+  const totalSpan = minDate && maxDate ? Math.max(1, Math.round((maxDate-minDate)/86400000)) : 1;
+
+  const svgW=700, svgH=200, padL=34, padR=140, padT=16, padB=24;
+  const cW=svgW-padL-padR, cH=svgH-padT-padB;
+
+  function xFor(dateStr) {
+    const d = localMidnight(dateStr);
+    const offset = Math.round((d - minDate)/86400000);
+    return padL + (offset/totalSpan)*cW;
+  }
+  function yFor(v) { return padT + cH - (v/100)*cH; }
+
+  const yLbls = [0,25,50,75,100].map(function(v) {
+    return '<text x="'+(padL-4).toFixed(1)+'" y="'+(yFor(v)+3).toFixed(1)+'" font-size="8" text-anchor="end" fill="#9ca3af">'+v+'</text>'
+      +'<line x1="'+padL+'" y1="'+yFor(v).toFixed(1)+'" x2="'+(svgW-padR).toFixed(1)+'" y2="'+yFor(v).toFixed(1)+'" stroke="#e5e7eb" stroke-width="0.5"/>';
+  }).join('');
+
+  let xLbls = '';
+  if (minDate && maxDate) {
+    [0,0.25,0.5,0.75,1].forEach(function(frac) {
+      const d = new Date(minDate); d.setDate(d.getDate()+Math.round(totalSpan*frac));
+      const x = padL+frac*cW;
+      xLbls += '<text x="'+x.toFixed(1)+'" y="'+(svgH-8).toFixed(1)+'" font-size="8" text-anchor="middle" fill="#9ca3af">'+d.getDate()+'/'+(d.getMonth()+1)+'</text>';
+    });
+  }
+
+  const refX = minDate ? xFor(refDate) : null;
+  const refLine = (refX!==null && refX>=padL && refX<=padL+cW)
+    ? '<line x1="'+refX.toFixed(1)+'" y1="'+padT+'" x2="'+refX.toFixed(1)+'" y2="'+(svgH-padB).toFixed(1)+'" stroke="#d97706" stroke-width="1.2" stroke-dasharray="3,2"/>'
+      +'<text x="'+refX.toFixed(1)+'" y="'+(padT-4).toFixed(1)+'" font-size="7" text-anchor="middle" fill="#d97706">REF</text>'
+    : '';
+
+  let lines = '';
+  let legendItems = '';
+  statuses.forEach(function(s, idx) {
+    const color = projColors[idx % projColors.length];
+    const iActs = D.scItemActuals[s.proj.id] || {};
+    const items = s.items;
+    let cum = 0;
+    const pts = [];
+    s.dailyDates.forEach(function(d) {
+      let dayHas = false;
+      items.forEach(function(it) {
+        const dd = iActs[d];
+        if (dd && dd[it.id]!==undefined) { cum += parseFloat(dd[it.id])||0; dayHas = true; }
+      });
+      if (d <= refDate && (pts.length>0 || dayHas)) {
+        pts.push({ x: xFor(d), y: yFor(Math.min(100, Math.round(cum*100)/100)) });
+      }
+    });
+    if (pts.length > 0) {
+      const ptStr = pts.map(function(p){return p.x.toFixed(1)+','+p.y.toFixed(1);}).join(' ');
+      lines += '<polyline points="'+ptStr+'" fill="none" stroke="'+color+'" stroke-width="1.8"/>';
+      const last = pts[pts.length-1];
+      lines += '<circle cx="'+last.x.toFixed(1)+'" cy="'+last.y.toFixed(1)+'" r="2.5" fill="'+color+'"/>';
+    }
+    const shortName = s.proj.name.length > 18 ? s.proj.name.slice(0,17)+'…' : s.proj.name;
+    legendItems += '<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">'
+      +'<span style="width:8px;height:8px;border-radius:50%;background:'+color+';display:inline-block;flex-shrink:0"></span>'
+      +'<span style="font-size:9px;color:#374151">'+shortName+'</span></div>';
+  });
+
+  const dashboardSvg = '<svg width="'+svgW+'" height="'+svgH+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">'
+    + yLbls + xLbls + refLine + lines + '</svg>';
+
+  // ── KPI cards ──
+  const kpiCards = [
+    ['Total Project', statuses.length, '#374151'],
+    ['Ahead', aheadCount, '#16a34a'],
+    ['On Schedule', onTrackCount, '#0891b2'],
+    ['Behind', behindCount, '#dc2626'],
+    ['Rata² Deviasi', avgDev!==null ? (avgDev>=0?'+':'')+avgDev.toFixed(1)+'%' : '—', avgDev===null?'#9ca3af':avgDev>=0?'#16a34a':'#dc2626'],
+  ].map(function(arr) {
+    return '<div style="background:#f9fafb;border-radius:6px;padding:10px 8px;border:1px solid #e5e7eb;text-align:center">'
+      +'<div style="font-size:18px;font-weight:700;color:'+arr[2]+';font-family:monospace;line-height:1">'+arr[1]+'</div>'
+      +'<div style="font-size:8px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-top:4px">'+arr[0]+'</div>'
+      +'</div>';
+  }).join('');
+
+  // ── Project scorecard rows ──
+  const scoreRows = statuses.map(function(s, idx) {
+    const color = projColors[idx % projColors.length];
+    const dev = s.dev;
+    let badgeTxt, badgeBg, badgeClr;
+    if (dev === null) { badgeTxt='Belum ada data'; badgeBg='#f3f4f6'; badgeClr='#6b7280'; }
+    else if (dev === 0) { badgeTxt='On Schedule'; badgeBg='#cffafe'; badgeClr='#0891b2'; }
+    else if (dev > 0) { badgeTxt='Ahead'; badgeBg='#dcfce7'; badgeClr='#16a34a'; }
+    else { badgeTxt='Behind'; badgeBg='#fee2e2'; badgeClr='#dc2626'; }
+
+    const barPct = Math.min(100, s.actualCum||0);
+    const planMarkerPct = Math.min(100, s.planCum);
+
+    return '<div style="padding:11px 14px;border-bottom:1px solid #f3f4f6">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+        +'<span style="width:7px;height:7px;border-radius:50%;background:'+color+';flex-shrink:0"></span>'
+        +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:12px;font-weight:700;color:#111">'+s.proj.name+'</div>'
+          +'<div style="font-size:9px;color:#9ca3af">'+(s.proj.startDate||'-')+' &rarr; '+(s.proj.finishDate||'-')+' &middot; '+s.items.length+' item &middot; sisa '+s.remDays+' hari</div>'
+        +'</div>'
+        +'<span style="padding:3px 9px;border-radius:12px;background:'+badgeBg+';color:'+badgeClr+';font-size:9px;font-weight:700;white-space:nowrap">'+badgeTxt+'</span>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:10px">'
+        +'<div style="flex:1;height:5px;background:#f3f4f6;border-radius:3px;overflow:hidden;position:relative">'
+          +'<div style="position:absolute;top:0;bottom:0;left:0;width:'+planMarkerPct+'%;background:rgba(0,0,0,.06);border-right:1px dashed #9ca3af"></div>'
+          +'<div style="height:100%;width:'+barPct+'%;background:'+color+';border-radius:3px"></div>'
+        +'</div>'
+        +'<div style="font-size:10px;font-family:monospace;color:#6b7280;white-space:nowrap;min-width:115px;text-align:right">'
+          +'R:<span style="color:#4f46e5;font-weight:600">'+s.planCum.toFixed(1)+'%</span>'
+          +' A:<span style="color:'+color+';font-weight:600">'+(s.actualCum!==null?s.actualCum.toFixed(1):'&#8212;')+'%</span>'
+        +'</div>'
+      +'</div></div>';
+  }).join('');
+
+  const html = '<!DOCTYPE html>\n<html lang="id"><head><meta charset="UTF-8">'
+    +'<title>Dashboard Gabungan S-Curve</title>'
+    +'<style>@page{margin:12mm 10mm}body{font-family:-apple-system,Segoe UI,sans-serif;color:#111;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>'
+    +'</head><body><div style="max-width:760px;margin:0 auto;padding:0 0 24px">'
+
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:10px;margin-bottom:14px;border-bottom:2px solid #e5e7eb">'
+      +'<div><div style="font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Dashboard Ringkasan &#8212; Multi Project</div>'
+      +'<div style="font-size:16px;font-weight:700;color:#111">S-Curve Progress Overview</div>'
+      +'<div style="font-size:11px;color:#6b7280;margin-top:2px">'+statuses.length+' project &middot; PT. KILANG PERTAMINA BALIKPAPAN</div></div>'
+      +'<div style="text-align:right"><div style="font-size:10px;color:#9ca3af">Tanggal referensi</div>'
+      +'<div style="font-size:13px;font-weight:700;color:#111;font-family:monospace">'+refDate+'</div></div>'
+    +'</div>'
+
+    +'<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:16px">'+kpiCards+'</div>'
+    +'<div style="font-size:9px;color:#9ca3af;margin-top:-12px;margin-bottom:14px;text-align:right">* Rata-rata sederhana antar project (bobot sama), bukan tertimbang nilai kontrak</div>'
+
+    +'<div style="margin-bottom:16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px">'
+      +'<div style="display:flex;gap:14px">'
+        +'<div style="flex:1">'
+          +'<div style="font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Overlay Progress Aktual &#8212; Semua Project</div>'
+          + dashboardSvg
+        +'</div>'
+        +'<div style="width:150px;padding-top:18px;border-left:1px solid #e5e7eb;padding-left:12px">'
+          +'<div style="font-size:8px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Legenda</div>'
+          + legendItems
+        +'</div>'
+      +'</div>'
+    +'</div>'
+
+    +'<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">'
+      +'<div style="background:#f3f4f6;padding:8px 14px;border-bottom:1px solid #e5e7eb">'
+        +'<div style="font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px">Status per Project</div></div>'
+      + scoreRows
+    +'</div>'
+
+    +'<div style="margin-top:14px;font-size:9px;color:#9ca3af;text-align:center">Generated from NEXUS PRO S-Curve Dashboard &middot; '+TS()+'</div>'
+
+    +'</div>'
+    +'<scr'+'ipt>window.onload=function(){window.print();}<\/scr'+'ipt>'
+    +'</body></html>';
+
+  const win = window.open('','_blank');
   win.document.write(html);
   win.document.close();
 };
