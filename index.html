@@ -1420,6 +1420,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
           <button onclick="resetSCRefDate()" style="background:none;border:none;color:var(--fog);cursor:pointer;font-size:12px;padding:0" title="Reset">↺</button>
         </div>
         <button class="tb-btn" onclick="exportSCurvePDF()" style="white-space:nowrap" title="Export PDF">⬇ PDF</button>
+        <button class="tb-btn" onclick="openVMBoardExport()" style="white-space:nowrap;gap:5px" title="Visual Management Board">⬇ VM Board</button>
         <button class="tb-btn primary" onclick="handleTopbarAdd()" style="white-space:nowrap">+ Project</button>
       </div>
 
@@ -6006,6 +6007,218 @@ window.openItemFocusInput = function(projId, itemId) {
       if (todayInput) todayInput.focus();
     }
   }, 100);
+};
+
+// ── VISUAL MANAGEMENT BOARD — PDF EXPORT ─────────────────────────────────────
+window.openVMBoardExport = function() {
+  const dashProjects = getDashboardProjects();
+  if (dashProjects.length === 0) { toast('Tidak ada project untuk ditampilkan', true); return; }
+
+  const modal = document.createElement('div');
+  modal.id = 'vm-board-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center';
+  const today = TS();
+  modal.innerHTML = '<div style="background:var(--bg2);border:1px solid var(--line2);border-radius:12px;padding:22px;width:400px;max-width:95vw">'
+    + '<div style="font-size:14px;font-weight:700;color:var(--snow);margin-bottom:4px">Visual Management Board</div>'
+    + '<div style="font-size:11px;color:var(--fog);margin-bottom:16px">Status tahapan pekerjaan per valve — ' + dashProjects.length + ' project</div>'
+    + '<div class="fld"><div class="fld-lbl">Tanggal report</div>'
+    + '<input class="fld-in" type="date" id="vm-export-date" value="' + today + '">'
+    + '<div style="font-size:10px;color:var(--fog);margin-top:4px">Status ditentukan dari progress aktual s/d tanggal ini.</div></div>'
+    + '<div style="display:flex;gap:8px;margin-top:16px">'
+    + '<button onclick="document.getElementById(\'vm-board-modal\').remove()" style="flex:1;padding:9px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:12px">Batal</button>'
+    + '<button onclick="generateVMBoard(document.getElementById(\'vm-export-date\').value)" style="flex:2;padding:9px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:12px;font-weight:600">&#11015; Generate PDF</button>'
+    + '</div></div>';
+  document.body.appendChild(modal);
+  modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
+};
+
+window.generateVMBoard = function(exportDate) {
+  document.getElementById('vm-board-modal') && document.getElementById('vm-board-modal').remove();
+  const refDate = exportDate || TS();
+  const dashProjects = getDashboardProjects();
+
+  // ── Determine item status from actual progress vs plan ──────────────────────
+  function getItemStatus(proj, item) {
+    const iActs = D.scItemActuals[proj.id] || {};
+    const allDates = [];
+    if (proj.startDate && proj.finishDate) {
+      let cur = localMidnight(proj.startDate);
+      const end = localMidnight(proj.finishDate);
+      while (cur <= end) { allDates.push(localDateStr(cur)); cur.setDate(cur.getDate()+1); }
+    }
+
+    // Cumulative actual for this item up to refDate
+    let cumActual = 0;
+    allDates.forEach(function(d) {
+      if (d > refDate) return;
+      const dd = iActs[d];
+      if (dd && dd[item.id] !== undefined) cumActual += parseFloat(dd[item.id]) || 0;
+    });
+    cumActual = Math.round(cumActual * 100) / 100;
+
+    const w = parseFloat(item.weight) || 0;
+    const threshold = w * 0.98; // within 2% = done
+
+    // Has the item's schedule started yet (relative to refDate)?
+    const itemStart = item.startDate ? item.startDate : proj.startDate;
+    const itemEnd   = item.finishDate ? item.finishDate : proj.finishDate;
+    const started   = itemStart <= refDate;
+    const finished  = itemEnd <= refDate;
+
+    if (cumActual >= threshold && threshold > 0) return 'done';
+    if (cumActual > 0) return 'inprogress';
+    if (started) return 'overdue'; // should have started but no actual
+    return 'notstarted';
+  }
+
+  // ── Build HTML ───────────────────────────────────────────────────────────────
+  // Each project = one section with its own WBS items as columns
+
+  const sections = dashProjects.map(function(proj) {
+    const items = (D.scItems[proj.id] || []);
+    if (items.length === 0) return '';
+
+    // Group items by category
+    const cats = {};
+    items.forEach(function(it) {
+      const c = it.category || 'Umum';
+      if (!cats[c]) cats[c] = [];
+      cats[c].push(it);
+    });
+
+    // Status cell for each item
+    const itemStatuses = items.map(function(item) {
+      return { item: item, status: getItemStatus(proj, item) };
+    });
+
+    const doneCount = itemStatuses.filter(function(x){ return x.status === 'done'; }).length;
+    const inpCount  = itemStatuses.filter(function(x){ return x.status === 'inprogress'; }).length;
+    const overdueCount = itemStatuses.filter(function(x){ return x.status === 'overdue'; }).length;
+    const pct = items.length > 0 ? Math.round(doneCount/items.length*100) : 0;
+
+    const overallBadge = overdueCount > 0
+      ? '<span style="padding:2px 8px;border-radius:10px;background:#fee2e2;color:#dc2626;font-size:9px;font-weight:700">▼ Behind</span>'
+      : inpCount > 0
+      ? '<span style="padding:2px 8px;border-radius:10px;background:#fef9c3;color:#854d0e;font-size:9px;font-weight:700">● In Progress</span>'
+      : doneCount === items.length
+      ? '<span style="padding:2px 8px;border-radius:10px;background:#dcfce7;color:#15803d;font-size:9px;font-weight:700">✓ Selesai</span>'
+      : '<span style="padding:2px 8px;border-radius:10px;background:#f3f4f6;color:#6b7280;font-size:9px;font-weight:700">○ Belum Mulai</span>';
+
+    // Build item cells
+    const cells = itemStatuses.map(function(x, idx) {
+      const s = x.status;
+      const it = x.item;
+      const w = parseFloat(it.weight) || 0;
+
+      let bg, border, icon, textClr;
+      if (s === 'done')       { bg='#f0fdf4'; border='#86efac'; icon='✓'; textClr='#15803d'; }
+      else if (s === 'inprogress') { bg='#fefce8'; border='#fde047'; icon='●'; textClr='#854d0e'; }
+      else if (s === 'overdue') { bg='#fff1f2'; border='#fca5a5'; icon='▼'; textClr='#dc2626'; }
+      else                    { bg='#f9fafb'; border='#e5e7eb'; icon=''; textClr='#9ca3af'; }
+
+      // Short name: take last part after dot if exists
+      const shortName = it.name.replace(/^\d+\.\d+\s*/, '').replace(/^\d+\.\s*/, '');
+      const displayName = shortName.length > 22 ? shortName.slice(0,20)+'…' : shortName;
+
+      // Cumulative actual for progress display
+      const iActs2 = D.scItemActuals[proj.id] || {};
+      let cum2 = 0;
+      if (proj.startDate && proj.finishDate) {
+        let c2 = localMidnight(proj.startDate);
+        const e2 = localMidnight(proj.finishDate);
+        while (c2 <= e2) {
+          const ds = localDateStr(c2);
+          if (ds <= refDate) { const dd=iActs2[ds]; if(dd&&dd[it.id]!==undefined) cum2+=parseFloat(dd[it.id])||0; }
+          c2.setDate(c2.getDate()+1);
+        }
+      }
+      cum2 = Math.round(cum2*100)/100;
+      const pctDone = w > 0 ? Math.min(100, Math.round(cum2/w*100)) : 0;
+
+      return '<td style="padding:6px 4px;border:1px solid #f3f4f6;vertical-align:top;width:'+(Math.max(60, Math.floor(420/items.length)))+'px;min-width:60px">'
+        +'<div style="background:'+bg+';border:1.5px solid '+border+';border-radius:6px;padding:6px 5px;text-align:center;height:64px;display:flex;flex-direction:column;justify-content:space-between">'
+          +'<div style="font-size:9px;color:'+textClr+';font-weight:600;line-height:1.3">' + displayName + '</div>'
+          +'<div>'
+            + (s!=='notstarted'
+              ? '<div style="height:3px;background:#e5e7eb;border-radius:2px;margin:3px 2px;overflow:hidden"><div style="height:100%;width:'+pctDone+'%;background:'+(s==='done'?'#22c55e':s==='inprogress'?'#eab308':'#f87171')+';border-radius:2px"></div></div>'
+              : '')
+            +'<div style="font-size:10px;font-weight:700;color:'+textClr+'">'
+              + (icon ? icon+' ' : '') + (s==='notstarted'?'—':s==='done'?'Done':s==='inprogress'?cum2.toFixed(1)+'%':'Behind')
+            +'</div>'
+          +'</div>'
+        +'</div>'
+        +'</td>';
+    }).join('');
+
+    // Bullet points for progress bar
+    const progressBar = '<div style="display:flex;align-items:center;gap:8px;margin-top:6px;margin-bottom:2px">'
+      +'<div style="flex:1;height:5px;background:#e5e7eb;border-radius:3px;overflow:hidden">'
+        +'<div style="height:100%;width:'+pct+'%;background:'+(pct===100?'#22c55e':'#7c6fff')+';border-radius:3px"></div>'
+      +'</div>'
+      +'<span style="font-size:9px;color:#6b7280;white-space:nowrap">'+doneCount+'/'+items.length+' tahap ('+pct+'%)</span>'
+    +'</div>';
+
+    return '<div style="margin-bottom:20px;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;page-break-inside:avoid">'
+      +'<div style="padding:10px 14px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px">'
+        +'<div style="flex:1"><div style="font-size:13px;font-weight:700;color:#111">'+proj.name+'</div>'
+        +'<div style="font-size:9px;color:#9ca3af;margin-top:1px">'+(proj.desc||proj.startDate+' → '+proj.finishDate)+'</div>'
+        + progressBar
+        +'</div>'
+        + overallBadge
+      +'</div>'
+      +'<div style="overflow-x:auto;padding:10px 8px">'
+        +'<table style="border-collapse:collapse;min-width:100%;table-layout:fixed"><tr>'+cells+'</tr></table>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+
+  // Legend
+  const legend = '<div style="display:flex;gap:20px;align-items:center;padding:10px 14px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:18px">'
+    +'<div style="font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px;margin-right:4px">Keterangan</div>'
+    +'<div style="display:flex;align-items:center;gap:5px"><div style="width:14px;height:14px;border-radius:3px;background:#f0fdf4;border:1.5px solid #86efac"></div><span style="font-size:9px;color:#374151">✓ Done — tahap selesai</span></div>'
+    +'<div style="display:flex;align-items:center;gap:5px"><div style="width:14px;height:14px;border-radius:3px;background:#fefce8;border:1.5px solid #fde047"></div><span style="font-size:9px;color:#374151">● In Progress — sedang berjalan</span></div>'
+    +'<div style="display:flex;align-items:center;gap:5px"><div style="width:14px;height:14px;border-radius:3px;background:#fff1f2;border:1.5px solid #fca5a5"></div><span style="font-size:9px;color:#374151">▼ Behind — belum ada aktual padahal sudah waktunya</span></div>'
+    +'<div style="display:flex;align-items:center;gap:5px"><div style="width:14px;height:14px;border-radius:3px;background:#f9fafb;border:1.5px solid #e5e7eb"></div><span style="font-size:9px;color:#374151">— Belum mulai</span></div>'
+    +'</div>';
+
+  // Format date for display
+  const refDt = localMidnight(refDate);
+  const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const refDateStr = refDt.getDate() + ' ' + months[refDt.getMonth()] + ' ' + refDt.getFullYear();
+
+  const html = '<!DOCTYPE html>\n<html lang="id"><head><meta charset="UTF-8">'
+    +'<title>Visual Management Board</title>'
+    +'<style>'
+    +'@page{margin:12mm 10mm;size:A4 landscape}'
+    +'body{font-family:-apple-system,Segoe UI,sans-serif;color:#111;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'@media print{.no-print{display:none!important}}'
+    +'</style></head>'
+    +'<body><div style="max-width:960px;margin:0 auto;padding:0 0 24px">'
+
+    // Header
+    +'<div style="background:#111827;color:#fff;border-radius:10px;padding:14px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">'
+      +'<div>'
+        +'<div style="font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:2px;margin-bottom:3px">PT. BUMI INTAN GEMILANG</div>'
+        +'<div style="font-size:16px;font-weight:700;letter-spacing:.5px">Visual Management Board</div>'
+        +'<div style="font-size:10px;color:#9ca3af;margin-top:2px">Status Tahapan Pekerjaan — Customer: PT. Kilang Pertamina Balikpapan</div>'
+      +'</div>'
+      +'<div style="text-align:right">'
+        +'<div style="font-size:9px;color:#9ca3af">Per tanggal</div>'
+        +'<div style="font-size:14px;font-weight:700;font-family:monospace">'+refDateStr+'</div>'
+        +'<div style="font-size:9px;color:#9ca3af;margin-top:2px">'+dashProjects.length+' project aktif</div>'
+      +'</div>'
+    +'</div>'
+
+    + legend
+    + sections
+
+    +'</div>'
+    +'<scr'+'ipt>window.onload=function(){window.print();}<\/scr'+'ipt>'
+    +'</body></html>';
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
 };
 
 </script>
