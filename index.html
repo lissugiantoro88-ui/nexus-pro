@@ -5820,15 +5820,13 @@ window.generateDashboardPDF = function(exportDate) {
     +'</head><body><div style="max-width:760px;margin:0 auto;padding:0 0 24px">'
 
     +'<div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:10px;margin-bottom:14px;border-bottom:2px solid #e5e7eb">'
-      +'<div><div style="font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Dashboard Ringkasan &#8212; Multi Project</div>'
-      +'<div style="font-size:16px;font-weight:700;color:#111">S-Curve Progress Overview</div>'
+      +'<div><div style="font-size:16px;font-weight:700;color:#111">S-Curve Progress Overview (summary)</div>'
       +'<div style="font-size:11px;color:#6b7280;margin-top:2px">'+statuses.length+' project &middot; PT. KILANG PERTAMINA BALIKPAPAN</div></div>'
       +'<div style="text-align:right"><div style="font-size:10px;color:#9ca3af">Tanggal referensi</div>'
       +'<div style="font-size:13px;font-weight:700;color:#111;font-family:monospace">'+refDate+'</div></div>'
     +'</div>'
 
     +'<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:16px">'+kpiCards+'</div>'
-    +'<div style="font-size:9px;color:#9ca3af;margin-top:-12px;margin-bottom:14px;text-align:right">* Rata-rata sederhana antar project (bobot sama), bukan tertimbang nilai kontrak</div>'
 
     +'<div style="margin-bottom:16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px">'
       +'<div style="display:flex;gap:14px">'
@@ -5849,7 +5847,6 @@ window.generateDashboardPDF = function(exportDate) {
       + scoreRows
     +'</div>'
 
-    +'<div style="margin-top:14px;font-size:9px;color:#9ca3af;text-align:center">Generated from NEXUS PRO S-Curve Dashboard &middot; '+TS()+'</div>'
 
     +'</div>'
     +'<scr'+'ipt>window.onload=function(){window.print();}<\/scr'+'ipt>'
