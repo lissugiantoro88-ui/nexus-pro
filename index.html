@@ -6088,9 +6088,9 @@ window.generateVMBoard = function(exportDate) {
     const overallBadge = overdueCount > 0
       ? '<span style="padding:2px 8px;border-radius:10px;background:#fee2e2;color:#dc2626;font-size:9px;font-weight:700">▼ Behind</span>'
       : inpCount > 0
-      ? '<span style="padding:2px 8px;border-radius:10px;background:#fef9c3;color:#854d0e;font-size:9px;font-weight:700">● In Progress</span>'
+      ? '<span style="padding:2px 8px;border-radius:10px;background:#f0fdf4;color:#15803d;font-size:9px;font-weight:700">● In Progress</span>'
       : doneCount === items.length
-      ? '<span style="padding:2px 8px;border-radius:10px;background:#dcfce7;color:#15803d;font-size:9px;font-weight:700">✓ Selesai</span>'
+      ? '<span style="padding:2px 8px;border-radius:10px;background:#eff6ff;color:#1d4ed8;font-size:9px;font-weight:700">✓ Selesai</span>'
       : '<span style="padding:2px 8px;border-radius:10px;background:#f3f4f6;color:#6b7280;font-size:9px;font-weight:700">○ Belum Mulai</span>';
 
     // Build item cells
@@ -6100,8 +6100,8 @@ window.generateVMBoard = function(exportDate) {
       const w = parseFloat(it.weight) || 0;
 
       let bg, border, icon, textClr;
-      if (s === 'done')       { bg='#f0fdf4'; border='#86efac'; icon='✓'; textClr='#15803d'; }
-      else if (s === 'inprogress') { bg='#fefce8'; border='#fde047'; icon='●'; textClr='#854d0e'; }
+      if (s === 'done')       { bg='#eff6ff'; border='#93c5fd'; icon='✓'; textClr='#1d4ed8'; }
+      else if (s === 'inprogress') { bg='#f0fdf4'; border='#86efac'; icon='●'; textClr='#15803d'; }
       else if (s === 'overdue') { bg='#fff1f2'; border='#fca5a5'; icon='▼'; textClr='#dc2626'; }
       else                    { bg='#f9fafb'; border='#e5e7eb'; icon=''; textClr='#9ca3af'; }
 
@@ -6129,7 +6129,7 @@ window.generateVMBoard = function(exportDate) {
           +'<div style="font-size:9px;color:'+textClr+';font-weight:600;line-height:1.3">' + displayName + '</div>'
           +'<div>'
             + (s!=='notstarted'
-              ? '<div style="height:3px;background:#e5e7eb;border-radius:2px;margin:3px 2px;overflow:hidden"><div style="height:100%;width:'+pctDone+'%;background:'+(s==='done'?'#22c55e':s==='inprogress'?'#eab308':'#f87171')+';border-radius:2px"></div></div>'
+              ? '<div style="height:3px;background:#e5e7eb;border-radius:2px;margin:3px 2px;overflow:hidden"><div style="height:100%;width:'+pctDone+'%;background:'+(s==='done'?'#3b82f6':s==='inprogress'?'#22c55e':'#f87171')+';border-radius:2px"></div></div>'
               : '')
             +'<div style="font-size:10px;font-weight:700;color:'+textClr+'">'
               + (icon ? icon+' ' : '') + (s==='notstarted'?'—':s==='done'?'Done':s==='inprogress'?cum2.toFixed(1)+'%':'Behind')
