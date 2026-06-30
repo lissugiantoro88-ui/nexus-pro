@@ -1401,7 +1401,14 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
           <button class="vtbtn" id="sc-interval-week" onclick="setSCInterval('week',this)">Mingguan</button>
           <button class="vtbtn" id="sc-interval-month" onclick="setSCInterval('month',this)">Bulanan</button>
         </div>
-        <button class="tb-btn primary" onclick="handleTopbarAdd()" style="white-space:nowrap">+ Project</button>
+        <div style="display:flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:3px 8px">
+          <span style="font-size:11px;color:var(--fog)">📅</span>
+          <input type="date" id="sc-ref-date" style="background:transparent;border:none;color:var(--snow);font-size:11px;font-family:JetBrains Mono,monospace;outline:none;width:110px" onchange="onSCRefDateChange(this.value)">
+          <button onclick="resetSCRefDate()" style="background:none;border:none;color:var(--fog);cursor:pointer;font-size:12px;padding:0" title="Reset">↺</button>
+        </div>
+        <button class="tb-btn" onclick="exportSCurvePDF()" style="white-space:nowrap" title="Export PDF">⬇ PDF</button>
+        <button class="tb-btn" onclick="openVMBoardExport()" style="white-space:nowrap" title="Visual Management Board">⬇ VM Board</button>
+        <button class="tb-btn primary" id="sc-topbar-add-btn" onclick="handleTopbarAdd()" style="white-space:nowrap">+ Project</button>
       </div>
 
       <!-- Chart card -->
