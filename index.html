@@ -5110,7 +5110,7 @@ function renderItemActualInputs(projId, items, el, tabHtml) {
 
       // Rencana row
       rows += '<tr style="background:rgba(124,111,255,.03)">';
-      rows += '<td rowspan="2" style="padding:4px 10px;border-bottom:2px solid var(--line2);color:var(--snow);font-size:11px;position:sticky;left:0;background:var(--bg2);z-index:5;vertical-align:middle;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + item.name + '">' + item.name + '</td>';
+      rows += '<td rowspan="2" style="padding:4px 10px;border-bottom:2px solid var(--line2);color:var(--accent2);font-size:11px;position:sticky;left:0;background:var(--bg2);z-index:5;vertical-align:middle;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px" title="Klik untuk input fokus: ' + item.name + '" onclick="openItemFocusInput(\'' + projId + '\',\'' + item.id + '\')">✎ ' + item.name + '</td>';
       rows += '<td rowspan="2" style="padding:4px;border-bottom:2px solid var(--line2);text-align:center;color:' + PC + ';font-family:JetBrains Mono,monospace;font-weight:600;font-size:10px;vertical-align:middle">' + w + '%</td>';
       rows += '<td style="padding:3px 4px;border-bottom:1px dashed var(--line);text-align:center;font-size:9px;font-weight:700;color:' + PC + '">R</td>';
       dates.forEach(function(d) {
@@ -5835,7 +5835,6 @@ window.generateDashboardPDF = function(exportDate) {
           + dashboardSvg
         +'</div>'
         +'<div style="width:150px;padding-top:18px;border-left:1px solid #e5e7eb;padding-left:12px">'
-          +'<div style="font-size:8px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Legenda</div>'
           + legendItems
         +'</div>'
       +'</div>'
@@ -5855,6 +5854,155 @@ window.generateDashboardPDF = function(exportDate) {
   const win = window.open('','_blank');
   win.document.write(html);
   win.document.close();
+};
+
+// ── ITEM FOCUS INPUT — input progress per item, lebih lega & user-friendly ───
+window.openItemFocusInput = function(projId, itemId) {
+  const proj = D.scProjects.find(p => p.id === projId);
+  const item = (D.scItems[projId] || []).find(i => i.id === itemId);
+  if (!proj || !item) return;
+
+  const iActs = D.scItemActuals[projId] || {};
+  const today = TS();
+
+  // Build daily date list for the whole project (same range as grid)
+  const dates = [];
+  if (proj.startDate && proj.finishDate) {
+    let cur = localMidnight(proj.startDate);
+    const end = localMidnight(proj.finishDate);
+    while (cur <= end) { dates.push(localDateStr(cur)); cur.setDate(cur.getDate()+1); }
+  }
+
+  function getItemPlanned(date) {
+    if (item.startDate && item.finishDate) {
+      const iStart = localMidnight(item.startDate);
+      const iEnd   = localMidnight(item.finishDate);
+      const dur    = Math.round((iEnd - iStart) / 86400000) + 1;
+      const d      = localMidnight(date);
+      if (d >= iStart && d <= iEnd) return Math.round((parseFloat(item.weight)||0) / dur * 100) / 100;
+    }
+    return 0;
+  }
+  function getItemActual(date) {
+    const day = iActs[date];
+    return (day && day[itemId] !== undefined) ? day[itemId] : '';
+  }
+
+  const dayNames = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+  const modal = document.createElement('div');
+  modal.id = 'item-focus-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+
+  const w = parseFloat(item.weight) || 0;
+  const cumActual = dates.reduce((s,d) => { const v=getItemActual(d); return s + (parseFloat(v)||0); }, 0);
+
+  const rowsHtml = dates.map(d => {
+    const dt = localMidnight(d);
+    const isToday = d === today;
+    const plan = getItemPlanned(d);
+    const actual = getItemActual(d);
+    const numActual = parseFloat(actual) || 0;
+    const hasVal = actual !== '' && numActual > 0;
+    const ahead = hasVal && plan > 0 && numActual >= plan;
+    const behind = hasVal && plan > 0 && numActual < plan;
+    const rowBg = isToday ? 'var(--ag2)' : 'transparent';
+    const dotClr = ahead ? 'var(--lime)' : behind ? 'var(--rose)' : 'var(--fog)';
+
+    return `<div class="ifi-row" data-date="${d}" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);background:${rowBg}">
+      <div style="width:70px;flex-shrink:0">
+        <div style="font-size:13px;font-weight:${isToday?700:500};color:${isToday?'var(--amber)':'var(--snow)'}">${dt.getDate()}/${dt.getMonth()+1}</div>
+        <div style="font-size:10px;color:var(--fog)">${dayNames[dt.getDay()]}${isToday?' · hari ini':''}</div>
+      </div>
+      <div style="width:90px;flex-shrink:0;text-align:center">
+        <div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px">Rencana</div>
+        <div style="font-size:14px;font-weight:600;color:var(--accent2);font-family:'JetBrains Mono',monospace">${plan>0?plan.toFixed(2)+'%':'—'}</div>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;gap:8px">
+        <input type="number" min="0" max="${(w*1.5).toFixed(1)}" step="0.01"
+          class="ifi-input" data-date="${d}"
+          value="${hasVal ? numActual : ''}"
+          placeholder="0"
+          style="width:100%;background:var(--bg3);border:2px solid ${isToday?'var(--amber)':'var(--line)'};border-radius:8px;padding:10px 14px;color:var(--snow);font-size:16px;font-weight:600;font-family:'JetBrains Mono',monospace;outline:none;text-align:center;transition:border-color .15s">
+        <span style="font-size:13px;color:var(--fog);width:16px">%</span>
+        <span style="width:8px;height:8px;border-radius:50%;background:${dotClr};flex-shrink:0"></span>
+      </div>
+    </div>`;
+  }).join('');
+
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--line2);border-radius:14px;width:560px;max-width:100%;max-height:88vh;display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:18px 20px 14px;border-bottom:1px solid var(--line);flex-shrink:0">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:3px">Input Progress Aktual</div>
+            <div style="font-size:15px;font-weight:700;color:var(--white)">${item.name}</div>
+            <div style="font-size:11px;color:var(--fog);margin-top:2px">${item.category||'—'} · Bobot ${w}% · ${proj.name}</div>
+          </div>
+          <button onclick="document.getElementById('item-focus-modal').remove()" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--fog);cursor:pointer;font-size:14px;flex-shrink:0">✕</button>
+        </div>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:10px">
+          <div style="flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${Math.min(100,(cumActual/w)*100)}%;background:linear-gradient(90deg,var(--accent),var(--lime));border-radius:3px;transition:width .3s" id="ifi-progress-bar"></div>
+          </div>
+          <div style="font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--lime);font-weight:700;white-space:nowrap" id="ifi-cum-label">${cumActual.toFixed(2)}% / ${w}%</div>
+        </div>
+      </div>
+      <div style="padding:8px 14px;background:var(--bg3);border-bottom:1px solid var(--line);display:flex;gap:14px;font-size:10px;color:var(--fog);flex-shrink:0">
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--lime);margin-right:4px"></span>Sesuai/lebih dari rencana</span>
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--rose);margin-right:4px"></span>Di bawah rencana</span>
+        <span style="margin-left:auto">Tekan <b style="color:var(--mist)">Enter</b> untuk pindah ke hari berikutnya</span>
+      </div>
+      <div style="flex:1;overflow-y:auto" id="ifi-rows-wrap">${rowsHtml}</div>
+      <div style="padding:12px 20px;border-top:1px solid var(--line);flex-shrink:0;display:flex;gap:8px">
+        <button onclick="document.getElementById('item-focus-modal').remove()" style="flex:1;padding:10px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:13px">Tutup</button>
+        <button onclick="document.getElementById('item-focus-modal').remove();toast('Progress tersimpan ✓')" style="flex:2;padding:10px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:13px;font-weight:600">✓ Selesai</button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+  // Wire up inputs: save on change/blur, Enter moves to next, live progress update
+  const inputs = Array.from(modal.querySelectorAll('.ifi-input'));
+
+  function updateProgressBar() {
+    let cum = 0;
+    inputs.forEach(inp => { cum += parseFloat(inp.value) || 0; });
+    const bar = document.getElementById('ifi-progress-bar');
+    const lbl = document.getElementById('ifi-cum-label');
+    if (bar) bar.style.width = Math.min(100, (cum/w)*100) + '%';
+    if (lbl) lbl.textContent = cum.toFixed(2) + '% / ' + w + '%';
+  }
+
+  inputs.forEach((inp, idx) => {
+    inp.addEventListener('focus', function() { this.select(); this.style.borderColor = 'var(--accent)'; });
+    inp.addEventListener('blur', function() {
+      const d = this.dataset.date;
+      this.style.borderColor = (d === today) ? 'var(--amber)' : 'var(--line)';
+    });
+    inp.addEventListener('change', function() {
+      window.onItemDailyChange(projId, itemId, this.dataset.date, this.value);
+      updateProgressBar();
+    });
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        window.onItemDailyChange(projId, itemId, this.dataset.date, this.value);
+        updateProgressBar();
+        if (idx < inputs.length - 1) { inputs[idx+1].focus(); inputs[idx+1].scrollIntoView({block:'center', behavior:'smooth'}); }
+      }
+    });
+  });
+
+  // Auto-scroll to today's row and focus it
+  setTimeout(() => {
+    const todayRow = modal.querySelector(`.ifi-row[data-date="${today}"]`);
+    if (todayRow) {
+      todayRow.scrollIntoView({ block: 'center' });
+      const todayInput = todayRow.querySelector('.ifi-input');
+      if (todayInput) todayInput.focus();
+    }
+  }, 100);
 };
 
 </script>
