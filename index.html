@@ -6093,65 +6093,66 @@ window.generateVMBoard = function(exportDate) {
       ? '<span style="padding:2px 8px;border-radius:10px;background:#eff6ff;color:#1d4ed8;font-size:9px;font-weight:700">✓ Selesai</span>'
       : '<span style="padding:2px 8px;border-radius:10px;background:#f3f4f6;color:#6b7280;font-size:9px;font-weight:700">○ Belum Mulai</span>';
 
-    // Build item cells
-    const cellArr2 = itemStatuses.map(function(x, idx) {
-      const s = x.status;
-      const it = x.item;
-      const w = parseFloat(it.weight) || 0;
+    // Build cells grouped by category
+    // Group itemStatuses by category
+    var catGroups = {};
+    var catOrder = [];
+    itemStatuses.forEach(function(x) {
+      var cat = x.item.category || 'Umum';
+      if (!catGroups[cat]) { catGroups[cat] = []; catOrder.push(cat); }
+      catGroups[cat].push(x);
+    });
 
-      let bg, border, icon, textClr;
+    function buildCell(x) {
+      var s = x.status;
+      var it = x.item;
+      var w = parseFloat(it.weight) || 0;
+      var bg, border, icon, textClr;
       if (s === 'done')       { bg='#eff6ff'; border='#93c5fd'; icon='✓'; textClr='#1d4ed8'; }
       else if (s === 'inprogress') { bg='#f0fdf4'; border='#86efac'; icon='●'; textClr='#15803d'; }
       else if (s === 'overdue') { bg='#fff1f2'; border='#fca5a5'; icon='▼'; textClr='#dc2626'; }
       else                    { bg='#f9fafb'; border='#e5e7eb'; icon=''; textClr='#9ca3af'; }
 
-      // Short name: take last part after dot if exists
-      // Smart name simplification — readable without truncation
       function simplifyItemName(name) {
-        // Remove leading numbering like "1.1 ", "2.3 "
         var n = name.replace(/^\d+\.\d+\s*/, '').replace(/^\d+\.\s*/, '');
-        // Common abbreviations for clarity
         var abbr = [
-          [/Proses fabrikasi /i,       'Fabrikasi '],
-          [/Proses repair /i,          'Repair '],
-          [/Proses assembly/i,         'Assembly'],
-          [/Undercut id seat ring/i,   'Undercut seat ring'],
-          [/\+ NDT \(BIG \+ BRIN\)/i,  '+ NDT'],
-          [/NDT \(BIG [&+] BRIN\)/i,   'NDT'],
-          [/Buildup GMAW /i,           'GMAW '],
-          [/Buildup SMAW /i,           'SMAW '],
+          [/Proses fabrikasi /i, 'Fabrikasi '],
+          [/Proses repair /i, 'Repair '],
+          [/Proses assembly/i, 'Assembly'],
+          [/Undercut id seat ring/i, 'Undercut seat ring'],
+          [/\+ NDT \(BIG \+ BRIN\)/i, '+ NDT'],
+          [/NDT \(BIG [&+] BRIN\)/i, 'NDT'],
+          [/Buildup GMAW /i, 'GMAW '],
+          [/Buildup SMAW /i, 'SMAW '],
           [/ArcSpray \(follow mockup\)/i, 'ArcSpray'],
           [/Hvof \(Chrome carbide\)/i, 'HVOF'],
-          [/Machining finishing/i,     'Machining finish'],
-          [/\(\+\s*stellite6\)/i,      ''],
-          [/\(\+\s*stellite 6\)/i,     ''],
-          [/\s+/g,                     ' '],
+          [/Machining finishing/i, 'Machining finish'],
+          [/\(\+\s*stellite6\)/i, ''],
+          [/\(\+\s*stellite 6\)/i, ''],
+          [/\s+/g, ' '],
         ];
         abbr.forEach(function(pair) { n = n.replace(pair[0], pair[1]); });
         n = n.trim();
-        // If still too long (>24 chars), cut at word boundary
         if (n.length > 24) {
           var cut = n.lastIndexOf(' ', 22);
           n = cut > 8 ? n.slice(0, cut) + '…' : n.slice(0, 22) + '…';
         }
         return n;
       }
-      const displayName = simplifyItemName(it.name);
+      var displayName = simplifyItemName(it.name);
 
-      // Cumulative actual for progress display
-      const iActs2 = D.scItemActuals[proj.id] || {};
-      let cum2 = 0;
+      var iActs2 = D.scItemActuals[proj.id] || {};
+      var cum2 = 0;
       if (proj.startDate && proj.finishDate) {
-        let c2 = localMidnight(proj.startDate);
-        const e2 = localMidnight(proj.finishDate);
+        var c2 = localMidnight(proj.startDate), e2 = localMidnight(proj.finishDate);
         while (c2 <= e2) {
-          const ds = localDateStr(c2);
-          if (ds <= refDate) { const dd=iActs2[ds]; if(dd&&dd[it.id]!==undefined) cum2+=parseFloat(dd[it.id])||0; }
+          var ds = localDateStr(c2);
+          if (ds <= refDate) { var dd=iActs2[ds]; if(dd&&dd[it.id]!==undefined) cum2+=parseFloat(dd[it.id])||0; }
           c2.setDate(c2.getDate()+1);
         }
       }
       cum2 = Math.round(cum2*100)/100;
-      const pctDone = w > 0 ? Math.min(100, Math.round(cum2/w*100)) : 0;
+      var pctDone = w > 0 ? Math.min(100, Math.round(cum2/w*100)) : 0;
 
       return '<td style="padding:6px 4px;border:1px solid #f3f4f6;vertical-align:top;width:16.66%">'
         +'<div style="background:'+bg+';border:1.5px solid '+border+';border-radius:6px;padding:6px 5px;text-align:center;min-height:64px;display:flex;flex-direction:column;justify-content:space-between">'
@@ -6166,16 +6167,29 @@ window.generateVMBoard = function(exportDate) {
           +'</div>'
         +'</div>'
         +'</td>';
-    });
-    const cells = cellArr2.join('');
+    }
 
-    // Bullet points for progress bar
-    const progressBar = '<div style="display:flex;align-items:center;gap:8px;margin-top:6px;margin-bottom:2px">'
-      +'<div style="flex:1;height:5px;background:#e5e7eb;border-radius:3px;overflow:hidden">'
-        +'<div style="height:100%;width:'+pct+'%;background:'+(pct===100?'#22c55e':'#7c6fff')+';border-radius:3px"></div>'
-      +'</div>'
-      +'<span style="font-size:9px;color:#6b7280;white-space:nowrap">'+doneCount+'/'+items.length+' tahap ('+pct+'%)</span>'
-    +'</div>';
+    // Build grouped HTML: category header + cells in rows of 6
+    var COLS = 6;
+    var groupedHtml = catOrder.map(function(cat) {
+      var cells = catGroups[cat];
+      var rows = '';
+      for (var r = 0; r < cells.length; r += COLS) {
+        var chunk = cells.slice(r, r + COLS);
+        while (chunk.length < COLS && cells.length > COLS) {
+          chunk.push(null);
+        }
+        rows += '<tr>' + chunk.map(function(x) {
+          return x ? buildCell(x) : '<td style="padding:6px 4px;border:none;width:16.66%"></td>';
+        }).join('') + '</tr>';
+      }
+      return '<div style="margin-bottom:10px">'
+        +'<div style="font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.8px;padding:5px 4px 5px;border-bottom:2px solid #e5e7eb;margin-bottom:5px">'+cat+'</div>'
+        +'<table style="border-collapse:collapse;width:100%;table-layout:fixed">'+rows+'</table>'
+        +'</div>';
+    }).join('');
+
+    var groupedTable = '<div style="padding:8px 8px">'+groupedHtml+'</div>';
 
     return '<div style="margin-bottom:20px;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;page-break-inside:avoid">'
       +'<div style="padding:10px 14px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px">'
