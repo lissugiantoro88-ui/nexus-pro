@@ -2272,20 +2272,34 @@ function startListeners(){
   unsubs.push(listenSCurveProjects(uid, projects => {
     D.scProjects = projects;
     updateSCNav();
-    if (curView === 'scurve') {
-      // If we have projects but none selected, auto-select first
-      if (scCurrentProjectId === '__global__' && projects.length > 0) {
-        onSCProjectChange(projects[0].id);
-      } else {
-        renderSCurve();
-        // Update RTL cache from Firebase data, then reload DOM
-        D.scProjects.forEach(function(p){
-          if(p.rtl && (p.rtl.highlight||p.rtl.action||p.rtl.target)){
-            if(!_rtlCache[p.id]) _rtlCache[p.id] = p.rtl; // don't overwrite local edits
-          }
-        });
-        loadSCRTL(scCurrentProjectId);
+
+    // Start lightweight listeners for ALL projects' items + actuals
+    // (needed so Global Dashboard can compute status without opening each project)
+    projects.forEach(function(p) {
+      if (!scGlobalUnsubs[p.id]) {
+        scGlobalUnsubs[p.id] = [];
+        if (!D.scItems[p.id]) D.scItems[p.id] = [];
+        if (!D.scItemActuals[p.id]) D.scItemActuals[p.id] = {};
+        scGlobalUnsubs[p.id].push(listenSCurveItems(uid, p.id, items => {
+          D.scItems[p.id] = items;
+          if (curView === 'scurve' && scCurrentProjectId === '__global__') renderSCurve();
+        }));
+        scGlobalUnsubs[p.id].push(listenItemActuals(uid, p.id, itemActuals => {
+          D.scItemActuals[p.id] = itemActuals;
+          if (curView === 'scurve' && scCurrentProjectId === '__global__') renderSCurve();
+        }));
       }
+    });
+
+    if (curView === 'scurve') {
+      renderSCurve();
+      // Update RTL cache from Firebase data, then reload DOM
+      D.scProjects.forEach(function(p){
+        if(p.rtl && (p.rtl.highlight||p.rtl.action||p.rtl.target)){
+          if(!_rtlCache[p.id]) _rtlCache[p.id] = p.rtl; // don't overwrite local edits
+        }
+      });
+      loadSCRTL(scCurrentProjectId);
     }
   }));
 
@@ -3881,6 +3895,7 @@ function loadAllSubtasks() {
 let scInterval = 'week';
 let scCurrentProjectId = '__global__';
 let scRefDate = null;
+let scGlobalUnsubs = {}; // per-project lightweight listeners for dashboard
 function getSCRefDate(){return scRefDate||TS();}
 window.onSCRefDateChange=function(v){scRefDate=v||null;renderSCurve();};
 window.resetSCRefDate=function(){scRefDate=null;var dp=document.getElementById('sc-ref-date');if(dp)dp.value=TS();renderSCurve();};
@@ -4407,16 +4422,16 @@ function renderSCurve() {
 }
 
 function renderSCurveGlobal() {
-  document.getElementById('sc-chart-title').textContent = 'Global Overview';
   document.getElementById('sc-chart-sub').textContent = `${D.scProjects.length} project`;
-  document.getElementById('sc-status-bar').innerHTML = '';
 
-  // Render project cards as WBS list
-  const wbsEl = document.getElementById('sc-wbs-list');
+  const canvas = document.getElementById('sc-canvas');
+  const wbsEl  = document.getElementById('sc-wbs-list');
   const totalEl = document.getElementById('sc-total-weight');
-  totalEl.textContent = D.scProjects.length + ' project';
 
   if (D.scProjects.length === 0) {
+    document.getElementById('sc-chart-title').textContent = 'S-Curve';
+    document.getElementById('sc-chart-sub').textContent = 'Belum ada project';
+    document.getElementById('sc-status-bar').innerHTML = '';
     wbsEl.innerHTML = `<div class="empty" style="padding:40px 20px">
       <div style="font-size:36px;margin-bottom:12px">◬</div>
       <div class="empty-ttl" style="font-size:15px">Belum ada project S-Curve</div>
@@ -4424,38 +4439,285 @@ function renderSCurveGlobal() {
       <button class="mbtn save" onclick="openSCProjectModal()" style="padding:10px 20px;font-size:13px">+ Buat Project S-Curve Pertama</button>
     </div>`;
     document.getElementById('sc-actual-input-list').innerHTML = '';
-    // Clear canvas
-    const canvas = document.getElementById('sc-canvas');
-    if(canvas) { const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }
-    document.getElementById('sc-chart-title').textContent = 'S-Curve';
-    document.getElementById('sc-chart-sub').textContent = 'Belum ada project';
-    document.getElementById('sc-status-bar').innerHTML = '';
-    document.getElementById('sc-total-weight').textContent = '0 project';
+    if (canvas) { const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }
+    totalEl.textContent = '0 project';
     return;
   }
 
-  wbsEl.innerHTML = D.scProjects.map(p => {
-    const items   = D.scItems[p.id]   || [];
-    const actuals = D.scActuals[p.id] || [];
-    const totalW  = items.reduce((s, it) => s + (parseFloat(it.weight) || 0), 0);
-    return `<div style="padding:10px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;cursor:pointer" onclick="document.getElementById('sc-project-sel').value='${p.id}';onSCProjectChange('${p.id}')">
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:500;color:var(--snow)">${p.name}</div>
-        <div style="font-size:10px;color:var(--fog);margin-top:2px">${FMT(p.startDate)} → ${FMT(p.finishDate)}  ·  ${items.length} item  ·  ${p.currency||'IDR'} ${p.budget?Number(p.budget).toLocaleString('id-ID'):'—'}</div>
+  document.getElementById('sc-chart-title').textContent = 'Dashboard Ringkasan — Semua Project';
+  totalEl.textContent = D.scProjects.length + ' project';
+
+  const refDate = getSCRefDate();
+
+  // ── Compute status per project (reuse logic from status bar / PDF export) ──
+  function computeProjectStatus(proj) {
+    const items   = D.scItems[proj.id]   || [];
+    const iActs   = D.scItemActuals[proj.id] || {};
+    if (!proj.startDate || !proj.finishDate) return null;
+
+    const dailyDates = [];
+    let cur = localMidnight(proj.startDate);
+    const end = localMidnight(proj.finishDate);
+    while (cur <= end) { dailyDates.push(localDateStr(cur)); cur.setDate(cur.getDate()+1); }
+
+    function planDailyForDate(d) {
+      return items.reduce((s, it) => {
+        if (!it.startDate || !it.finishDate) return s;
+        const iS = localMidnight(it.startDate), iE = localMidnight(it.finishDate);
+        const dur = Math.round((iE - iS) / 86400000) + 1;
+        const dD = localMidnight(d);
+        if (dD >= iS && dD <= iE) return s + (parseFloat(it.weight)||0) / dur;
+        return s;
+      }, 0);
+    }
+
+    let planCum = 0;
+    dailyDates.forEach(d => { if (d <= refDate) planCum += planDailyForDate(d); });
+    planCum = Math.round(planCum * 100) / 100;
+
+    let actualCum = 0, hasActual = false;
+    dailyDates.forEach(d => {
+      if (d > refDate) return;
+      items.forEach(it => {
+        const dd = iActs[d];
+        if (dd && dd[it.id] !== undefined) { actualCum += parseFloat(dd[it.id])||0; hasActual = true; }
+      });
+    });
+    actualCum = Math.round(actualCum * 100) / 100;
+
+    // Treat past/today with no input as 0 (auto-deviasi logic)
+    const isPastOrToday = true; // refDate is always "now or past" relative to itself
+    const effectiveActual = hasActual ? actualCum : (planCum > 0 ? 0 : null);
+    const dev = effectiveActual !== null ? Math.round((effectiveActual - planCum) * 10) / 10 : null;
+
+    const totalDays = Math.round((end - localMidnight(proj.startDate)) / 86400000) + 1;
+    const refDay = Math.round((localMidnight(refDate) - localMidnight(proj.startDate)) / 86400000) + 1;
+    const remDays = Math.max(0, totalDays - refDay);
+
+    return {
+      proj, planCum, actualCum: effectiveActual, dev, hasActual,
+      totalDays, refDay, remDays, dailyDates, items
+    };
+  }
+
+  const statuses = D.scProjects.map(computeProjectStatus).filter(Boolean);
+
+  // ── Aggregate summary ──
+  const behindCount = statuses.filter(s => s.dev !== null && s.dev < 0).length;
+  const aheadCount  = statuses.filter(s => s.dev !== null && s.dev > 0).length;
+  const onTrackCount= statuses.filter(s => s.dev === 0).length;
+  const noDataCount = statuses.filter(s => s.dev === null).length;
+
+  // Simple average (equal weight per project) — clearly labeled as such
+  const validDevs = statuses.filter(s => s.dev !== null);
+  const avgPlan   = statuses.length ? Math.round(statuses.reduce((s,x)=>s+x.planCum,0)/statuses.length*10)/10 : 0;
+  const avgActual = validDevs.length ? Math.round(validDevs.reduce((s,x)=>s+x.actualCum,0)/validDevs.length*10)/10 : null;
+  const avgDev    = validDevs.length ? Math.round(validDevs.reduce((s,x)=>s+x.dev,0)/validDevs.length*10)/10 : null;
+
+  // ── Status bar: aggregate summary cards ──
+  const statusBar = document.getElementById('sc-status-bar');
+  statusBar.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+      <div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:10px 12px;text-align:center">
+        <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--snow)">${statuses.length}</div>
+        <div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px;margin-top:2px">Total Project</div>
       </div>
-      <button class="act-btn edit" onclick="event.stopPropagation();openSCProjectModal('${p.id}')" title="Edit">✎</button>
-      <button class="act-btn del" onclick="event.stopPropagation();deleteSCProj('${p.id}')" title="Hapus">✕</button>
+      <div style="background:var(--limed);border:1px solid rgba(168,255,87,.25);border-radius:var(--rs);padding:10px 12px;text-align:center">
+        <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--lime)">${aheadCount}</div>
+        <div style="font-size:9px;color:var(--lime);text-transform:uppercase;letter-spacing:1px;margin-top:2px">▲ Ahead</div>
+      </div>
+      <div style="background:var(--teald);border:1px solid rgba(8,145,178,.25);border-radius:var(--rs);padding:10px 12px;text-align:center">
+        <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--teal)">${onTrackCount}</div>
+        <div style="font-size:9px;color:var(--teal);text-transform:uppercase;letter-spacing:1px;margin-top:2px">● On Schedule</div>
+      </div>
+      <div style="background:var(--rosed);border:1px solid rgba(255,94,136,.25);border-radius:var(--rs);padding:10px 12px;text-align:center">
+        <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--rose)">${behindCount}</div>
+        <div style="font-size:9px;color:var(--rose);text-transform:uppercase;letter-spacing:1px;margin-top:2px">▼ Behind</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:10px 12px;text-align:center">
+        <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:${avgDev===null?'var(--fog)':avgDev>=0?'var(--lime)':'var(--rose)'}">${avgDev!==null?(avgDev>=0?'+':'')+avgDev.toFixed(1)+'%':'—'}</div>
+        <div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px;margin-top:2px">Rata² Deviasi</div>
+      </div>
+    </div>
+    <div style="font-size:9px;color:var(--fog);margin-top:6px;text-align:right">* Rata-rata sederhana (bobot sama tiap project), bukan tertimbang nilai kontrak</div>
+  `;
+
+  // ── Multi-line overlay chart: one line per project (actual only) ──
+  drawGlobalOverlayChart(statuses, refDate);
+
+  // ── Scorecards per project ──
+  const projColors = ['#7c6fff','#16a34a','#d97706','#e11d48','#0891b2','#7c3aed','#ec4899','#84cc16'];
+
+  wbsEl.innerHTML = statuses.map((s, idx) => {
+    const p = s.proj;
+    const dev = s.dev;
+    const badge = dev === null
+      ? { txt: 'Belum ada data', bg: 'var(--bg4)', clr: 'var(--fog)', bd: 'var(--line2)' }
+      : dev === 0
+      ? { txt: '● On Schedule', bg: 'var(--teald)', clr: 'var(--teal)', bd: 'rgba(8,145,178,.3)' }
+      : dev > 0
+      ? { txt: '▲ Ahead', bg: 'var(--limed)', clr: 'var(--lime)', bd: 'rgba(168,255,87,.3)' }
+      : { txt: '▼ Behind', bg: 'var(--rosed)', clr: 'var(--rose)', bd: 'rgba(255,94,136,.3)' };
+
+    const barPct = Math.min(100, s.actualCum || 0);
+    const color = projColors[idx % projColors.length];
+
+    return `<div style="padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .15s" onclick="document.getElementById('sc-project-sel').value='${p.id}';onSCProjectChange('${p.id}')" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--snow);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
+          <div style="font-size:10px;color:var(--fog);margin-top:1px">${FMT(p.startDate)} → ${FMT(p.finishDate)} · ${s.items.length} item</div>
+        </div>
+        <div style="padding:3px 10px;border-radius:14px;background:${badge.bg};border:1px solid ${badge.bd};color:${badge.clr};font-size:10px;font-weight:700;white-space:nowrap">${badge.txt}</div>
+        <button class="act-btn edit" onclick="event.stopPropagation();openSCProjectModal('${p.id}')" title="Edit" style="width:22px;height:22px">✎</button>
+        <button class="act-btn del" onclick="event.stopPropagation();deleteSCProj('${p.id}')" title="Hapus" style="width:22px;height:22px">✕</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;position:relative">
+          <div style="position:absolute;top:0;bottom:0;left:0;width:${s.planCum}%;background:rgba(255,255,255,.15);border-right:1px dashed rgba(255,255,255,.4)"></div>
+          <div style="height:100%;width:${barPct}%;background:${color};border-radius:3px;transition:width .4s"></div>
+        </div>
+        <div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--fog);white-space:nowrap;min-width:120px;text-align:right">
+          R:<span style="color:var(--accent2);font-weight:600">${s.planCum.toFixed(1)}%</span>
+          &nbsp;A:<span style="color:${color};font-weight:600">${s.actualCum!==null?s.actualCum.toFixed(1):'—'}%</span>
+        </div>
+      </div>
     </div>`;
   }).join('');
 
-  // Global chart: overlay all project S-Curves
-  const canvas = document.getElementById('sc-canvas');
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
   document.getElementById('sc-actual-input-list').innerHTML =
-    '<div style="padding:12px;color:var(--fog);font-size:12px">Pilih project spesifik untuk input progress aktual</div>';
+    '<div style="padding:14px;color:var(--fog);font-size:12px;text-align:center">' +
+    '<div style="font-size:24px;margin-bottom:8px">◬</div>' +
+    'Pilih salah satu project di sebelah kiri<br>untuk input progress aktual atau lihat detail RTL' +
+    '</div>';
 }
+
+// ── Multi-line overlay chart for dashboard ────────────────────────────────────
+function drawGlobalOverlayChart(statuses, refDate) {
+  const canvas = document.getElementById('sc-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const wrap = document.getElementById('sc-canvas-wrap') || canvas.parentElement;
+  const W = Math.max(wrap.offsetWidth || wrap.clientWidth || 600, 300);
+  const H = 280;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  ctx.scale(dpr, dpr);
+
+  const PAD = { top: 24, right: 110, bottom: 36, left: 46 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+
+  const isDark = !document.documentElement.classList.contains('light');
+  const gridColor = isDark ? '#272736' : '#e5e5ee';
+  const textColor = isDark ? '#5c5c78' : '#9090a8';
+  const amberClr  = '#ffb830';
+
+  ctx.clearRect(0,0,W,H);
+
+  if (statuses.length === 0) {
+    ctx.fillStyle = textColor;
+    ctx.font = '13px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Belum ada project', W/2, H/2);
+    return;
+  }
+
+  // Determine overall date range (union of all projects)
+  let minDate = null, maxDate = null;
+  statuses.forEach(s => {
+    const sD = localMidnight(s.proj.startDate), eD = localMidnight(s.proj.finishDate);
+    if (!minDate || sD < minDate) minDate = sD;
+    if (!maxDate || eD > maxDate) maxDate = eD;
+  });
+  const totalSpan = Math.max(1, Math.round((maxDate - minDate) / 86400000));
+
+  function xFor(dateStr) {
+    const d = localMidnight(dateStr);
+    const offset = Math.round((d - minDate) / 86400000);
+    return PAD.left + (offset / totalSpan) * chartW;
+  }
+  function yFor(v) { return PAD.top + chartH - (v/100) * chartH; }
+
+  // Grid
+  ctx.setLineDash([3,4]); ctx.lineWidth = 1;
+  [0,25,50,75,100].forEach(pct => {
+    const y = yFor(pct);
+    ctx.strokeStyle = gridColor;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left+chartW, y); ctx.stroke();
+    ctx.fillStyle = textColor; ctx.font = '10px JetBrains Mono, monospace'; ctx.textAlign='right';
+    ctx.fillText(pct+'%', PAD.left-6, y+4);
+  });
+  ctx.setLineDash([]);
+
+  // Ref date line
+  const refX = xFor(refDate);
+  if (refX >= PAD.left && refX <= PAD.left+chartW) {
+    ctx.strokeStyle = amberClr; ctx.lineWidth = 1.5; ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.moveTo(refX, PAD.top); ctx.lineTo(refX, PAD.top+chartH); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = amberClr; ctx.font = '9px Inter, sans-serif'; ctx.textAlign='center';
+    ctx.fillText('REF', refX, PAD.top-8);
+  }
+
+  // X axis labels (start / mid / end of overall range)
+  ctx.fillStyle = textColor; ctx.font = '9px JetBrains Mono, monospace'; ctx.textAlign='center';
+  [0, 0.5, 1].forEach(frac => {
+    const d = new Date(minDate); d.setDate(d.getDate() + Math.round(totalSpan*frac));
+    const x = PAD.left + frac*chartW;
+    ctx.fillText(d.getDate()+'/'+(d.getMonth()+1), x, PAD.top+chartH+14);
+  });
+
+  const projColors = ['#7c6fff','#16a34a','#d97706','#e11d48','#0891b2','#7c3aed','#ec4899','#84cc16'];
+
+  // Draw each project's actual line (only up to refDate / last data point)
+  statuses.forEach((s, idx) => {
+    const color = projColors[idx % projColors.length];
+    const iActs = D.scItemActuals[s.proj.id] || {};
+    const items = s.items;
+
+    // Build cumulative actual points
+    let cum = 0;
+    const pts = [];
+    s.dailyDates.forEach(d => {
+      let dayHas = false;
+      items.forEach(it => {
+        const dd = iActs[d];
+        if (dd && dd[it.id] !== undefined) { cum += parseFloat(dd[it.id])||0; dayHas = true; }
+      });
+      if (d <= refDate && (pts.length > 0 || dayHas)) {
+        pts.push({ x: xFor(d), y: yFor(Math.min(100, Math.round(cum*100)/100)) });
+      }
+    });
+
+    if (pts.length === 0) return;
+
+    ctx.strokeStyle = color; ctx.lineWidth = 2;
+    ctx.beginPath();
+    pts.forEach((p,i) => i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y));
+    ctx.stroke();
+
+    // Dot at last point
+    const last = pts[pts.length-1];
+    ctx.beginPath(); ctx.arc(last.x, last.y, 3.5, 0, Math.PI*2);
+    ctx.fillStyle = color; ctx.fill();
+  });
+
+  // Legend (right side)
+  let ly = PAD.top + 4;
+  statuses.forEach((s, idx) => {
+    const color = projColors[idx % projColors.length];
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(PAD.left+chartW+14, ly, 4, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = textColor; ctx.font = '10px Inter, sans-serif'; ctx.textAlign = 'left';
+    const label = s.proj.name.length > 14 ? s.proj.name.slice(0,13)+'…' : s.proj.name;
+    ctx.fillText(label, PAD.left+chartW+22, ly+3);
+    ly += 16;
+  });
+}
+
 
 function renderSCurveEmpty() {
   document.getElementById('sc-wbs-list').innerHTML = '<div class="empty"><div class="empty-ttl">Project tidak ditemukan</div></div>';
