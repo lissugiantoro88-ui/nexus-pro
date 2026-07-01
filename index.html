@@ -6191,36 +6191,32 @@ window.generateVMBoard = function(exportDate) {
 
     var groupedTable = '<div style="padding:8px 8px">'+groupedHtml+'</div>';
 
-    return '<div style="margin-bottom:20px;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;page-break-inside:avoid">'
+    // Inline progress bar
+    var progressBarHtml = '<div style="display:flex;align-items:center;gap:8px;margin-top:6px;margin-bottom:2px">'
+      +'<div style="flex:1;height:5px;background:#e5e7eb;border-radius:3px;overflow:hidden">'
+        +'<div style="height:100%;width:'+pct+'%;background:'+(pct===100?'#3b82f6':'#7c6fff')+';border-radius:3px"></div>'
+      +'</div>'
+      +'<span style="font-size:9px;color:#6b7280;white-space:nowrap">'+doneCount+'/'+items.length+' tahap ('+pct+'%)</span>'
+    +'</div>';
+
+    return '<div style="margin-bottom:20px;border:1px solid '+(overdueCount>0?'#fecaca':'#e5e7eb')+';border-radius:10px;overflow:hidden;page-break-inside:avoid">'
       +'<div style="padding:10px 14px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px">'
         +'<div style="flex:1"><div style="font-size:13px;font-weight:700;color:#111">'+proj.name+'</div>'
         +'<div style="font-size:9px;color:#9ca3af;margin-top:1px">'+(proj.startDate||'')+(proj.startDate&&proj.finishDate?' → ':'')+(proj.finishDate||'')+'</div>'
-        + progressBar
+        + progressBarHtml
         +'</div>'
         + overallBadge
       +'</div>'
-      +(function(){
-        var COLS = 6;
-        var rows = '';
-        for (var r = 0; r < cellArr2.length; r += COLS) {
-          var chunk = cellArr2.slice(r, r + COLS);
-          // Pad last row to full width
-          while (chunk.length < COLS && cellArr2.length > COLS) {
-            chunk.push('<td style="padding:6px 4px;border:none"></td>');
-          }
-          rows += '<tr>' + chunk.join('') + '</tr>';
-        }
-        return '<div style="padding:10px 8px"><table style="border-collapse:collapse;width:100%;table-layout:fixed">'+rows+'</table></div>';
-      })()
+      + groupedTable
     +'</div>';
   }).join('');
 
   // Legend
   const legend = '<div style="display:flex;gap:20px;align-items:center;padding:10px 14px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:18px">'
     +'<div style="font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px;margin-right:4px">Keterangan</div>'
-    +'<div style="display:flex;align-items:center;gap:5px"><div style="width:14px;height:14px;border-radius:3px;background:#eff6ff;border:1.5px solid #93c5fd"></div><span style="font-size:9px;color:#374151">✓ Done'
-    +'<div style="display:flex;align-items:center;gap:5px"><div style="width:14px;height:14px;border-radius:3px;background:#f0fdf4;border:1.5px solid #86efac"></div><span style="font-size:9px;color:#374151">● In Progress'
-    +'<div style="display:flex;align-items:center;gap:5px"><div style="width:14px;height:14px;border-radius:3px;background:#fff1f2;border:1.5px solid #fca5a5"></div><span style="font-size:9px;color:#374151">▼ Behind'
+    +'<div style="display:flex;align-items:center;gap:5px"><div style="width:14px;height:14px;border-radius:3px;background:#eff6ff;border:1.5px solid #93c5fd"></div><span style="font-size:9px;color:#374151">✓ Done</span></div>'
+    +'<div style="display:flex;align-items:center;gap:5px"><div style="width:14px;height:14px;border-radius:3px;background:#f0fdf4;border:1.5px solid #86efac"></div><span style="font-size:9px;color:#374151">● In Progress</span></div>'
+    +'<div style="display:flex;align-items:center;gap:5px"><div style="width:14px;height:14px;border-radius:3px;background:#fff1f2;border:1.5px solid #fca5a5"></div><span style="font-size:9px;color:#374151">▼ Behind</span></div>'
     +'<div style="display:flex;align-items:center;gap:5px"><div style="width:14px;height:14px;border-radius:3px;background:#f9fafb;border:1.5px solid #e5e7eb"></div><span style="font-size:9px;color:#374151">— Belum mulai</span></div>'
     +'</div>';
 
