@@ -6199,7 +6199,7 @@ window.generateVMBoard = function(exportDate) {
       +'<span style="font-size:9px;color:#6b7280;white-space:nowrap">'+doneCount+'/'+items.length+' tahap ('+pct+'%)</span>'
     +'</div>';
 
-    return '<div style="margin-bottom:20px;border:1px solid '+(overdueCount>0?'#fecaca':'#e5e7eb')+';border-radius:10px;overflow:hidden;page-break-inside:avoid">'
+    return '<div style="margin-bottom:16px;border:1px solid '+(overdueCount>0?'#fecaca':'#e5e7eb')+';border-radius:10px;overflow:hidden">'
       +'<div style="padding:10px 14px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px">'
         +'<div style="flex:1"><div style="font-size:13px;font-weight:700;color:#111">'+proj.name+'</div>'
         +'<div style="font-size:9px;color:#9ca3af;margin-top:1px">'+(proj.startDate||'')+(proj.startDate&&proj.finishDate?' → ':'')+(proj.finishDate||'')+'</div>'
@@ -6228,9 +6228,12 @@ window.generateVMBoard = function(exportDate) {
   const html = '<!DOCTYPE html>\n<html lang="id"><head><meta charset="UTF-8">'
     +'<title>Visual Management Board</title>'
     +'<style>'
-    +'@page{margin:12mm 10mm;size:A4 landscape}'
-    +'body{font-family:-apple-system,Segoe UI,sans-serif;color:#111;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-    +'@media print{.no-print{display:none!important}}'
+    +'@page{margin:10mm 10mm;size:A4 landscape}'
+    +'body{font-family:-apple-system,Segoe UI,sans-serif;color:#111;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;margin:0}'
+    +'@media print{'
+    +'.no-print{display:none!important}'
+    +'div{page-break-inside:auto!important}'
+    +'}'
     +'</style></head>'
     +'<body><div style="max-width:960px;margin:0 auto;padding:0 0 24px">'
 
