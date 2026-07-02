@@ -3017,7 +3017,7 @@ window.renderNotes = function renderNotes(){
       const pinIcon=n.pinned?'<span class="note-pin-icon">📌</span>':'';
       const icon=tagIcon[n.tag]||'';
       // Strip highlight markers from preview
-      const prev=(n.body||'Tidak ada isi').replace(/<mark[^>]*>|<\/mark>/g,'').slice(0,60);
+      const prev=(n.body||'Tidak ada isi').replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ').trim().slice(0,60);
       return `<div class="note-li ${n.id===curNoteId?'active':''}" data-noteid="${n.id}" style="${clr?'background:'+clr+'33;border-left:4px solid '+clr:''}">
         <div class="note-li-title"><span class="note-color-dot" style="${dotStyle}"></span>${pinIcon}${icon} ${n.title||'Tanpa judul'}</div>
         <div class="note-li-prev">${prev}</div>
