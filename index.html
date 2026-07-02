@@ -303,6 +303,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 .note-ed-hd{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;}
 .note-title-in{flex:1;background:none;border:none;outline:none;font-size:16px;font-weight:600;color:var(--white);font-family:'Inter',sans-serif;}
 .note-body-in{flex:1;padding:16px;background:none;border:none;outline:none;font-size:13px;line-height:1.7;color:var(--mist);font-family:'Inter',sans-serif;resize:none;}
+.note-body-in[contenteditable]:empty:before{content:attr(data-placeholder);color:var(--fog);pointer-events:none;display:block;}
+.note-body-in mark{border-radius:2px;padding:0 2px;}
 .note-ed-ft{padding:8px 16px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;}
 
 /* ── REVIEW ── */
@@ -1329,7 +1331,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
             <div style="width:1px;height:16px;background:var(--line);margin:0 4px"></div>
             <button onclick="togglePinNote()" id="note-pin-btn" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--fog)" title="Pin catatan">📌</button>
           </div>
-          <textarea class="note-body-in" id="note-body" placeholder="Tulis ide atau catatan di sini..." oninput="onNoteInput()"></textarea>
+          <div class="note-body-in" id="note-body" contenteditable="true" spellcheck="false"
+            data-placeholder="Tulis ide atau catatan di sini..."
+            oninput="onNoteInput()"
+            style="overflow-y:auto;cursor:text;white-space:pre-wrap;word-break:break-word"></div>
           <div class="note-ed-ft"><span style="font-size:10px;color:var(--fog)" id="note-saved">—</span></div>
         </div>
       </div>
@@ -2953,7 +2958,8 @@ window.renderNotes = function renderNotes(){
     const n=D.notes.find(n=>n.id===curNoteId);
     if(n){
       document.getElementById('note-title').value=n.title||'';
-      document.getElementById('note-body').value=n.body||'';
+      const _nb=document.getElementById('note-body');
+      if(_nb){_nb.innerHTML=n.body||'';}
       document.getElementById('note-tag').value=n.tag||'';
       document.getElementById('note-saved').textContent='Disimpan: '+FMT(n.updated);
       // Update pin button
@@ -2972,7 +2978,9 @@ window.onNoteInput = () => {
   document.getElementById('note-saved').textContent='Menyimpan...';
   clearTimeout(noteSaveTimer);
   noteSaveTimer=setTimeout(async()=>{
-    await updateNote(uid,curNoteId,{title:document.getElementById('note-title').value,body:document.getElementById('note-body').value,tag:document.getElementById('note-tag').value,updated:TS()});
+    const bodyEl = document.getElementById('note-body');
+    const bodyHtml = bodyEl ? bodyEl.innerHTML : '';
+    await updateNote(uid,curNoteId,{title:document.getElementById('note-title').value,body:bodyHtml,tag:document.getElementById('note-tag').value,updated:TS()});
     document.getElementById('note-saved').textContent='Tersimpan ✓';
   },800);
 };
@@ -6418,26 +6426,40 @@ window.saveSCItem = async function() {
 
 // Apply highlight to selected text in note-body textarea
 window.applyNoteHighlight = function(color) {
-  const ta = document.getElementById('note-body');
-  if (!ta || !curNoteId) return;
-  const start = ta.selectionStart, end = ta.selectionEnd;
-  if (start === end) { toast('Pilih teks dulu untuk di-highlight', true); return; }
+  const editor = document.getElementById('note-body');
+  if (!editor || !curNoteId) return;
+  editor.focus();
 
-  const body = ta.value;
-  // Strip any existing mark tags from selection first (prevent nesting)
-  const rawSelected = body.slice(start, end).replace(/<mark[^>]*>([\s\S]*?)<\/mark>/g, '$1');
-
-  let newText;
-  if (!color) {
-    newText = rawSelected;
-  } else {
-    newText = '<mark style="background:' + color + ';border-radius:2px;padding:0 1px">' + rawSelected + '</mark>';
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
+    toast('Pilih teks dulu untuk di-highlight', true); return;
   }
 
-  ta.value = body.slice(0, start) + newText + body.slice(end);
-  ta.selectionStart = start;
-  ta.selectionEnd = start + newText.length;
-  ta.focus();
+  const range = sel.getRangeAt(0);
+
+  // Remove existing marks within selection first
+  const frag = range.extractContents();
+  const tempDiv = document.createElement('div');
+  tempDiv.appendChild(frag);
+  // Unwrap any nested marks
+  tempDiv.querySelectorAll('mark').forEach(function(m) {
+    while (m.firstChild) m.parentNode.insertBefore(m.firstChild, m);
+    m.parentNode.removeChild(m);
+  });
+
+  if (!color) {
+    // Just insert the cleaned text/nodes back
+    range.insertNode(tempDiv.firstChild || document.createTextNode(''));
+  } else {
+    const mark = document.createElement('mark');
+    mark.style.background = color;
+    mark.style.borderRadius = '2px';
+    mark.style.padding = '0 2px';
+    while (tempDiv.firstChild) mark.appendChild(tempDiv.firstChild);
+    range.insertNode(mark);
+  }
+
+  sel.removeAllRanges();
   onNoteInput();
 };
 
