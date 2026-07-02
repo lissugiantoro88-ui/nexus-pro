@@ -299,6 +299,17 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 .note-search-wrap{padding:7px 10px;border-bottom:1px solid var(--line);}
 .note-search-in{width:100%;background:var(--bg3);border:1px solid var(--line);border-radius:6px;padding:5px 10px;color:var(--snow);font-size:11px;outline:none;box-sizing:border-box;}
 .note-search-in:focus{border-color:var(--accent);}
+.modal-tab{padding:6px 14px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--fog);border-bottom:2px solid transparent;font-weight:500;transition:all .15s;}
+.modal-tab.active{color:var(--accent2);border-bottom-color:var(--accent);font-weight:600;}
+.modal-tab-content{display:none;}
+.modal-tab-content.active{display:block;}
+.eval-rating{display:flex;gap:6px;margin-top:6px;}
+.eval-star{width:28px;height:28px;border-radius:5px;border:1px solid var(--line2);background:transparent;cursor:pointer;font-size:14px;transition:all .15s;}
+.eval-star.active{background:var(--amberd);border-color:var(--amber);}
+.eval-badge{padding:4px 12px;border-radius:20px;border:1px solid var(--line);background:var(--bg3);cursor:pointer;font-size:11px;color:var(--fog);transition:all .15s;}
+.eval-badge.active-yes{background:var(--limed);border-color:var(--lime);color:var(--lime);}
+.eval-badge.active-partial{background:var(--amberd);border-color:var(--amber);color:var(--amber);}
+.eval-badge.active-no{background:var(--rosed);border-color:var(--rose);color:var(--rose);}
 .note-editor{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);display:flex;flex-direction:column;overflow:hidden;}
 .note-ed-hd{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;}
 .note-title-in{flex:1;background:none;border:none;outline:none;font-size:16px;font-weight:600;color:var(--white);font-family:'Inter',sans-serif;}
@@ -1569,25 +1580,55 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 
     <!-- Edit Task -->
     <div id="edit-task-fields" style="display:none">
-      <div class="fld"><div class="fld-lbl">Nama Task</div><input class="fld-in" id="et-name" placeholder="Nama task..."></div>
-      <div class="fld-row">
-        <div class="fld"><div class="fld-lbl">Status</div>
-          <select class="fld-sel" id="et-status">
-            <option value="todo">To Do</option><option value="inprogress">In Progress</option>
-            <option value="review">Review</option><option value="done">Done</option>
-          </select>
-        </div>
-        <div class="fld"><div class="fld-lbl">Prioritas</div>
-          <select class="fld-sel" id="et-prio">
-            <option value="high">🔴 High</option><option value="medium">🟡 Medium</option><option value="low">🟢 Low</option>
-          </select>
-        </div>
+      <!-- Tab nav -->
+      <div style="display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:0">
+        <button class="modal-tab active" onclick="switchEditTab('task','info',this)" style="padding:6px 14px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--accent2);border-bottom:2px solid var(--accent);font-weight:600">Info</button>
+        <button class="modal-tab" onclick="switchEditTab('task','eval',this)" style="padding:6px 14px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--fog);border-bottom:2px solid transparent">Evaluasi</button>
       </div>
-      <div class="fld-row">
-        <div class="fld"><div class="fld-lbl">Due Date</div><input class="fld-in" id="et-due" type="date"></div>
-        <div class="fld"><div class="fld-lbl">Kategori</div><input class="fld-in" id="et-cat" placeholder="e.g. Pekerjaan, Pribadi"></div>
+      <!-- Info tab -->
+      <div class="modal-tab-content active" id="task-tab-info">
+        <div class="fld"><div class="fld-lbl">Nama Task</div><input class="fld-in" id="et-name" placeholder="Nama task..."></div>
+        <div class="fld-row">
+          <div class="fld"><div class="fld-lbl">Status</div>
+            <select class="fld-sel" id="et-status">
+              <option value="todo">To Do</option><option value="inprogress">In Progress</option>
+              <option value="review">Review</option><option value="done">Done</option>
+            </select>
+          </div>
+          <div class="fld"><div class="fld-lbl">Prioritas</div>
+            <select class="fld-sel" id="et-prio">
+              <option value="high">🔴 High</option><option value="medium">🟡 Medium</option><option value="low">🟢 Low</option>
+            </select>
+          </div>
+        </div>
+        <div class="fld-row">
+          <div class="fld"><div class="fld-lbl">Due Date</div><input class="fld-in" id="et-due" type="date"></div>
+          <div class="fld"><div class="fld-lbl">Kategori</div><input class="fld-in" id="et-cat" placeholder="e.g. Pekerjaan, Pribadi"></div>
+        </div>
+        <div class="fld"><div class="fld-lbl">Catatan</div><textarea class="fld-ta" id="et-notes" placeholder="Detail tambahan..."></textarea></div>
       </div>
-      <div class="fld"><div class="fld-lbl">Catatan</div><textarea class="fld-ta" id="et-notes" placeholder="Detail tambahan..."></textarea></div>
+      <!-- Eval tab -->
+      <div class="modal-tab-content" id="task-tab-eval" style="display:none">
+        <div class="fld"><div class="fld-lbl">Sesuai target?</div>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button class="eval-badge" id="et-ontarget-yes" onclick="setEvalTarget('task','yes')">✓ Ya</button>
+            <button class="eval-badge" id="et-ontarget-partial" onclick="setEvalTarget('task','partial')">~ Sebagian</button>
+            <button class="eval-badge" id="et-ontarget-no" onclick="setEvalTarget('task','no')">✕ Tidak</button>
+          </div>
+        </div>
+        <div class="fld"><div class="fld-lbl">Rating</div>
+          <div class="eval-rating" id="et-eval-rating">
+            <button class="eval-star" onclick="setEvalRating('task',1)" title="1">⭐</button>
+            <button class="eval-star" onclick="setEvalRating('task',2)" title="2">⭐</button>
+            <button class="eval-star" onclick="setEvalRating('task',3)" title="3">⭐</button>
+            <button class="eval-star" onclick="setEvalRating('task',4)" title="4">⭐</button>
+            <button class="eval-star" onclick="setEvalRating('task',5)" title="5">⭐</button>
+          </div>
+        </div>
+        <div class="fld"><div class="fld-lbl">Hasil / Pencapaian</div><textarea class="fld-ta" id="et-eval-result" placeholder="Apa yang berhasil dicapai?"></textarea></div>
+        <div class="fld"><div class="fld-lbl">Hambatan</div><textarea class="fld-ta" id="et-eval-obstacle" placeholder="Apa kendalanya?"></textarea></div>
+        <div class="fld"><div class="fld-lbl">Lesson Learned</div><textarea class="fld-ta" id="et-eval-lesson" placeholder="Apa yang bisa diperbaiki?"></textarea></div>
+      </div>
     </div>
 
     <!-- Edit Habit -->
@@ -1605,24 +1646,54 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 
     <!-- Edit Delegation -->
     <div id="edit-deleg-fields" style="display:none">
-      <div class="fld"><div class="fld-lbl">Nama Task</div><input class="fld-in" id="ed-name" placeholder="Task yang didelegasikan..."></div>
-      <div class="fld-row">
-        <div class="fld"><div class="fld-lbl">Dikerjakan Oleh</div><input class="fld-in" id="ed-person" placeholder="Nama / posisi"></div>
-        <div class="fld"><div class="fld-lbl">Due Date</div><input class="fld-in" id="ed-due" type="date"></div>
+      <!-- Tab nav -->
+      <div style="display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:0">
+        <button class="modal-tab active" onclick="switchEditTab('deleg','info',this)" style="padding:6px 14px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--accent2);border-bottom:2px solid var(--accent);font-weight:600">Info</button>
+        <button class="modal-tab" onclick="switchEditTab('deleg','eval',this)" style="padding:6px 14px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--fog);border-bottom:2px solid transparent">Evaluasi</button>
       </div>
-      <div class="fld-row">
-        <div class="fld"><div class="fld-lbl">Status</div>
-          <select class="fld-sel" id="ed-status">
-            <option value="todo">Belum Mulai</option><option value="inprogress">In Progress</option><option value="done">Selesai</option>
-          </select>
+      <!-- Info tab -->
+      <div class="modal-tab-content active" id="deleg-tab-info">
+        <div class="fld"><div class="fld-lbl">Nama Task</div><input class="fld-in" id="ed-name" placeholder="Task yang didelegasikan..."></div>
+        <div class="fld-row">
+          <div class="fld"><div class="fld-lbl">Dikerjakan Oleh</div><input class="fld-in" id="ed-person" placeholder="Nama / posisi"></div>
+          <div class="fld"><div class="fld-lbl">Due Date</div><input class="fld-in" id="ed-due" type="date"></div>
         </div>
-        <div class="fld"><div class="fld-lbl">Prioritas</div>
-          <select class="fld-sel" id="ed-prio">
-            <option value="high">🔴 High</option><option value="medium">🟡 Medium</option><option value="low">🟢 Low</option>
-          </select>
+        <div class="fld-row">
+          <div class="fld"><div class="fld-lbl">Status</div>
+            <select class="fld-sel" id="ed-status">
+              <option value="todo">Belum Mulai</option><option value="inprogress">In Progress</option><option value="done">Selesai</option>
+            </select>
+          </div>
+          <div class="fld"><div class="fld-lbl">Prioritas</div>
+            <select class="fld-sel" id="ed-prio">
+              <option value="high">🔴 High</option><option value="medium">🟡 Medium</option><option value="low">🟢 Low</option>
+            </select>
+          </div>
         </div>
+        <div class="fld"><div class="fld-lbl">Catatan</div><textarea class="fld-ta" id="ed-notes" placeholder="Instruksi atau konteks..."></textarea></div>
       </div>
-      <div class="fld"><div class="fld-lbl">Catatan</div><textarea class="fld-ta" id="ed-notes" placeholder="Instruksi atau konteks..."></textarea></div>
+      <!-- Eval tab -->
+      <div class="modal-tab-content" id="deleg-tab-eval" style="display:none">
+        <div class="fld"><div class="fld-lbl">Sesuai target?</div>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button class="eval-badge" id="ed-ontarget-yes" onclick="setEvalTarget('deleg','yes')">✓ Ya</button>
+            <button class="eval-badge" id="ed-ontarget-partial" onclick="setEvalTarget('deleg','partial')">~ Sebagian</button>
+            <button class="eval-badge" id="ed-ontarget-no" onclick="setEvalTarget('deleg','no')">✕ Tidak</button>
+          </div>
+        </div>
+        <div class="fld"><div class="fld-lbl">Rating</div>
+          <div class="eval-rating" id="ed-eval-rating">
+            <button class="eval-star" onclick="setEvalRating('deleg',1)">⭐</button>
+            <button class="eval-star" onclick="setEvalRating('deleg',2)">⭐</button>
+            <button class="eval-star" onclick="setEvalRating('deleg',3)">⭐</button>
+            <button class="eval-star" onclick="setEvalRating('deleg',4)">⭐</button>
+            <button class="eval-star" onclick="setEvalRating('deleg',5)">⭐</button>
+          </div>
+        </div>
+        <div class="fld"><div class="fld-lbl">Hasil / Pencapaian</div><textarea class="fld-ta" id="ed-eval-result" placeholder="Apa yang berhasil dicapai?"></textarea></div>
+        <div class="fld"><div class="fld-lbl">Hambatan</div><textarea class="fld-ta" id="ed-eval-obstacle" placeholder="Apa kendalanya?"></textarea></div>
+        <div class="fld"><div class="fld-lbl">Lesson Learned</div><textarea class="fld-ta" id="ed-eval-lesson" placeholder="Apa yang bisa diperbaiki?"></textarea></div>
+      </div>
     </div>
 
     <!-- Edit Idea/Note -->
