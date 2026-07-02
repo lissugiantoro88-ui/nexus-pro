@@ -3017,7 +3017,7 @@ window.renderNotes = function renderNotes(){
       const icon=tagIcon[n.tag]||'';
       // Strip highlight markers from preview
       const prev=(n.body||'Tidak ada isi').replace(/<mark[^>]*>|<\/mark>/g,'').slice(0,60);
-      return `<div class="note-li ${n.id===curNoteId?'active':''}" onclick="openNote('${n.id}')" style="${clr?'background:'+clr+'33;border-left:4px solid '+clr:''}">
+      return `<div class="note-li ${n.id===curNoteId?'active':''}" data-noteid="${n.id}" style="${clr?'background:'+clr+'33;border-left:4px solid '+clr:''}">
         <div class="note-li-title"><span class="note-color-dot" style="${dotStyle}"></span>${pinIcon}${icon} ${n.title||'Tanpa judul'}</div>
         <div class="note-li-prev">${prev}</div>
         <div class="note-li-date">${FMT(n.updated)}</div>
@@ -6563,6 +6563,29 @@ window.setNoteColor = async function(color) {
 };
 
 // openNote is defined earlier — no override needed
+
+// ── EVENT DELEGATION for Notes list ────────────────────────────────────────
+// Attach once to the container — survives innerHTML replacements
+document.addEventListener('DOMContentLoaded', function() {
+  var notesListItems = document.getElementById('notes-list-items');
+  if (notesListItems) {
+    notesListItems.addEventListener('click', function(e) {
+      var li = e.target.closest('[data-noteid]');
+      if (li) { openNote(li.dataset.noteid); }
+    });
+  }
+});
+// Also attach after a short delay as fallback (in case DOMContentLoaded already fired)
+setTimeout(function() {
+  var el = document.getElementById('notes-list-items');
+  if (el && !el._delegated) {
+    el._delegated = true;
+    el.addEventListener('click', function(e) {
+      var li = e.target.closest('[data-noteid]');
+      if (li) { openNote(li.dataset.noteid); }
+    });
+  }
+}, 500);
 
 </script>
 </body>
