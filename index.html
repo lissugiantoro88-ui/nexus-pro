@@ -1320,11 +1320,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
             <button class="note-hl-btn" style="background:var(--bg3);color:var(--fog);border:1px solid var(--line)" onclick="applyNoteHighlight(null)" title="Hapus highlight">✕</button>
             <div style="width:1px;height:16px;background:var(--line);margin:0 4px"></div>
             <span style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px">Warna kartu</span>
-            <span onclick="setNoteColor('#fef9c3')" title="Kuning" style="width:14px;height:14px;border-radius:50%;background:#fef9c3;border:1.5px solid #fef9c3;cursor:pointer;display:inline-block;flex-shrink:0"></span>
-            <span onclick="setNoteColor('#dcfce7')" title="Hijau" style="width:14px;height:14px;border-radius:50%;background:#dcfce7;border:1.5px solid #dcfce7;cursor:pointer;display:inline-block;flex-shrink:0"></span>
-            <span onclick="setNoteColor('#fee2e2')" title="Merah" style="width:14px;height:14px;border-radius:50%;background:#fee2e2;border:1.5px solid #fee2e2;cursor:pointer;display:inline-block;flex-shrink:0"></span>
-            <span onclick="setNoteColor('#dbeafe')" title="Biru" style="width:14px;height:14px;border-radius:50%;background:#dbeafe;border:1.5px solid #dbeafe;cursor:pointer;display:inline-block;flex-shrink:0"></span>
-            <span onclick="setNoteColor('#f3e8ff')" title="Ungu" style="width:14px;height:14px;border-radius:50%;background:#f3e8ff;border:1.5px solid #f3e8ff;cursor:pointer;display:inline-block;flex-shrink:0"></span>
+            <span onclick="setNoteColor('#fbbf24')" title="Kuning" style="width:14px;height:14px;border-radius:50%;background:#fbbf24;border:1.5px solid #fbbf24;cursor:pointer;display:inline-block;flex-shrink:0"></span>
+            <span onclick="setNoteColor('#4ade80')" title="Hijau" style="width:14px;height:14px;border-radius:50%;background:#4ade80;border:1.5px solid #4ade80;cursor:pointer;display:inline-block;flex-shrink:0"></span>
+            <span onclick="setNoteColor('#f87171')" title="Merah" style="width:14px;height:14px;border-radius:50%;background:#f87171;border:1.5px solid #f87171;cursor:pointer;display:inline-block;flex-shrink:0"></span>
+            <span onclick="setNoteColor('#60a5fa')" title="Biru" style="width:14px;height:14px;border-radius:50%;background:#60a5fa;border:1.5px solid #60a5fa;cursor:pointer;display:inline-block;flex-shrink:0"></span>
+            <span onclick="setNoteColor('#c084fc')" title="Ungu" style="width:14px;height:14px;border-radius:50%;background:#c084fc;border:1.5px solid #c084fc;cursor:pointer;display:inline-block;flex-shrink:0"></span>
             <span onclick="setNoteColor('')" title="Default" style="width:14px;height:14px;border-radius:50%;background:var(--bg3);border:1.5px solid var(--line);cursor:pointer;display:inline-block;flex-shrink:0"></span>
             <div style="width:1px;height:16px;background:var(--line);margin:0 4px"></div>
             <button onclick="togglePinNote()" id="note-pin-btn" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--fog)" title="Pin catatan">📌</button>
@@ -2916,7 +2916,7 @@ window.doCycleDel = async id => {
 window.doDelDel = async id => { await deleteDelegation(uid,id);toast('Delegasi dihapus'); };
 
 // ── NOTES ─────────────────────────────────────
-function renderNotes(){
+window.renderNotes = function renderNotes(){
   const el=document.getElementById('notes-list-items');if(!el)return;
   const q=(document.getElementById('note-search')||{}).value||'';
   const ql=q.toLowerCase();
@@ -2941,7 +2941,7 @@ function renderNotes(){
       const icon=tagIcon[n.tag]||'';
       // Strip highlight markers from preview
       const prev=(n.body||'Tidak ada isi').replace(/<mark[^>]*>|<\/mark>/g,'').slice(0,60);
-      return `<div class="note-li ${n.id===curNoteId?'active':''}" onclick="openNote('${n.id}')" style="${clr?'background:'+clr+'22;border-left:3px solid '+clr:''}">
+      return `<div class="note-li ${n.id===curNoteId?'active':''}" onclick="openNote('${n.id}')" style="${clr?'background:'+clr+'33;border-left:4px solid '+clr:''}">
         <div class="note-li-title"><span class="note-color-dot" style="${dotStyle}"></span>${pinIcon}${icon} ${n.title||'Tanpa judul'}</div>
         <div class="note-li-prev">${prev}</div>
         <div class="note-li-date">${FMT(n.updated)}</div>
@@ -6424,14 +6424,14 @@ window.applyNoteHighlight = function(color) {
   if (start === end) { toast('Pilih teks dulu untuk di-highlight', true); return; }
 
   const body = ta.value;
-  const selected = body.slice(start, end);
+  // Strip any existing mark tags from selection first (prevent nesting)
+  const rawSelected = body.slice(start, end).replace(/<mark[^>]*>([\s\S]*?)<\/mark>/g, '$1');
 
   let newText;
   if (!color) {
-    // Remove highlight markers from selected text
-    newText = selected.replace(/<mark[^>]*>(.*?)<\/mark>/gs, '$1');
+    newText = rawSelected;
   } else {
-    newText = `<mark style="background:${color};border-radius:2px;padding:0 1px">${selected}</mark>`;
+    newText = '<mark style="background:' + color + ';border-radius:2px;padding:0 1px">' + rawSelected + '</mark>';
   }
 
   ta.value = body.slice(0, start) + newText + body.slice(end);
@@ -6447,14 +6447,14 @@ window.togglePinNote = async function() {
   const n = D.notes.find(n => n.id === curNoteId);
   if (!n) return;
   const newPinned = n.pinned ? 0 : 1;
-  await updateNote(uid, curNoteId, { pinned: newPinned, updated: TS() });
+  await updateNote(uid, curNoteId, { pinned: newPinned }); // don't change sort position
   toast(newPinned ? 'Catatan di-pin ✓' : 'Pin dilepas');
 };
 
 // Set color for current note
 window.setNoteColor = async function(color) {
   if (!curNoteId) return;
-  await updateNote(uid, curNoteId, { color: color, updated: TS() });
+  await updateNote(uid, curNoteId, { color: color }); // don't update timestamp
 };
 
 // Override openNote to also update pin button state
