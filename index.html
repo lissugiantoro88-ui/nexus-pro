@@ -301,8 +301,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 .note-search-in:focus{border-color:var(--accent);}
 .modal-tab{padding:6px 14px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--fog);border-bottom:2px solid transparent;font-weight:500;transition:all .15s;}
 .modal-tab.active{color:var(--accent2);border-bottom-color:var(--accent);font-weight:600;}
-.modal-tab-content{display:none;}
-.modal-tab-content.active{display:block;}
+.modal-tab-content{display:none!important;}
+.modal-tab-content.active{display:block!important;}
 .eval-rating{display:flex;gap:6px;margin-top:6px;}
 .eval-star{width:28px;height:28px;border-radius:5px;border:1px solid var(--line2);background:transparent;cursor:pointer;font-size:14px;transition:all .15s;}
 .eval-star.active{background:var(--amberd);border-color:var(--amber);}
@@ -5409,7 +5409,7 @@ window.onItemDailyChange = async function(projId, itemId, dateStr, value) {
 
 // ── EVAL TAB JS ───────────────────────────────
 let evalTargetTask='',evalTargetDeleg='',evalRatingTask=0,evalRatingDeleg=0;
-window.switchEditTab=function(type,tab,el){var k=type==='task'?'task':'deleg';var wrap=document.getElementById('edit-'+k+'-fields');if(!wrap)return;wrap.querySelectorAll('.modal-tab').forEach(function(b){b.classList.remove('active');});wrap.querySelectorAll('.modal-tab-content').forEach(function(c){c.classList.remove('active');});el.classList.add('active');var tc=document.getElementById(k+'-tab-'+tab);if(tc)tc.classList.add('active');};
+window.switchEditTab=function(type,tab,el){var k=type==='task'?'task':'deleg';var wrap=document.getElementById('edit-'+k+'-fields');if(!wrap)return;wrap.querySelectorAll('.modal-tab').forEach(function(b){b.classList.remove('active');b.style.color='var(--fog)';b.style.borderBottomColor='transparent';});wrap.querySelectorAll('.modal-tab-content').forEach(function(c){c.classList.remove('active');});el.classList.add('active');el.style.color='var(--accent2)';el.style.borderBottomColor='var(--accent)';var tc=document.getElementById(k+'-tab-'+tab);if(tc)tc.classList.add('active');};
 window.setEvalTarget=function(type,val){var p=type==='task'?'et':'ed';if(type==='task')evalTargetTask=val;else evalTargetDeleg=val;['yes','partial','no'].forEach(function(v){var b=document.getElementById(p+'-ontarget-'+v);if(b){b.className='eval-badge';if(v===val)b.className+=' active-'+v;}});};
 window.setEvalRating=function(type,val){var p=type==='task'?'et':'ed';if(type==='task')evalRatingTask=val;else evalRatingDeleg=val;var c=document.getElementById(p+'-eval-rating');if(c)c.querySelectorAll('.eval-star').forEach(function(b,i){b.classList.toggle('active',i<val);});};
 function loadEvalFields(type,data){var p=type==='task'?'et':'ed';var ev=(data&&data.eval)||{};var r=document.getElementById(p+'-eval-result');var o=document.getElementById(p+'-eval-obstacle');var l=document.getElementById(p+'-eval-lesson');if(r)r.value=ev.result||'';if(o)o.value=ev.obstacle||'';if(l)l.value=ev.lesson||'';if(type==='task'){evalTargetTask=ev.onTarget||'';evalRatingTask=ev.rating||0;}else{evalTargetDeleg=ev.onTarget||'';evalRatingDeleg=ev.rating||0;}if(ev.onTarget)window.setEvalTarget(type,ev.onTarget);else['yes','partial','no'].forEach(function(v){var b=document.getElementById(p+'-ontarget-'+v);if(b)b.className='eval-badge';});if(ev.rating)window.setEvalRating(type,ev.rating);else{var c=document.getElementById(p+'-eval-rating');if(c)c.querySelectorAll('.eval-star').forEach(function(b){b.classList.remove('active');});}var wrap=document.getElementById('edit-'+(type==='task'?'task':'deleg')+'-fields');if(wrap){wrap.querySelectorAll('.modal-tab').forEach(function(b,i){b.classList.toggle('active',i===0);});wrap.querySelectorAll('.modal-tab-content').forEach(function(c,i){c.classList.toggle('active',i===0);});}}
