@@ -1333,6 +1333,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
             <button class="note-hl-btn" style="background:var(--bg3);color:var(--fog);border:1px solid var(--line)" onclick="applyNoteHighlight(null)" title="Hapus highlight">✕</button>
             <div style="width:1px;height:16px;background:var(--line);margin:0 4px"></div>
             <span style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px">Warna kartu</span>
+            <span id="note-color-target" style="font-size:9px;color:var(--accent2);display:none"></span>
             <span onclick="setNoteColor('#fbbf24')" title="Kuning" style="width:14px;height:14px;border-radius:50%;background:#fbbf24;border:1.5px solid #fbbf24;cursor:pointer;display:inline-block;flex-shrink:0"></span>
             <span onclick="setNoteColor('#4ade80')" title="Hijau" style="width:14px;height:14px;border-radius:50%;background:#4ade80;border:1.5px solid #4ade80;cursor:pointer;display:inline-block;flex-shrink:0"></span>
             <span onclick="setNoteColor('#f87171')" title="Merah" style="width:14px;height:14px;border-radius:50%;background:#f87171;border:1.5px solid #f87171;cursor:pointer;display:inline-block;flex-shrink:0"></span>
@@ -3045,6 +3046,8 @@ window.renderNotes = function renderNotes(){
       // Update pin button
       const pb=document.getElementById('note-pin-btn');
       if(pb) pb.style.color=n.pinned?'var(--amber)':'var(--fog)';
+      const ct=document.getElementById('note-color-target');
+      if(ct){ ct.textContent='→ '+( n.title||'note ini'); ct.style.display='inline'; }
     }
   }
 }
@@ -6559,7 +6562,14 @@ window.togglePinNote = async function() {
 // Set color for current note
 window.setNoteColor = async function(color) {
   if (!curNoteId) return;
-  await updateNote(uid, curNoteId, { color: color }); // don't update timestamp
+  // Guard: verify curNoteId matches the note the editor is actually showing
+  const noteTitle = document.getElementById('note-title');
+  const activeNote = D.notes.find(function(n){ return n.id === curNoteId; });
+  if (!activeNote) { toast('Buka catatan dulu sebelum memberi warna', true); return; }
+  await updateNote(uid, curNoteId, { color: color });
+  // Update D.notes in memory immediately so re-render shows correct color
+  activeNote.color = color;
+  renderNotes();
 };
 
 // openNote is defined earlier — no override needed
