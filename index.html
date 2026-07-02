@@ -4894,6 +4894,11 @@ function renderWBSList(projId, items, proj) {
         <button class="act-btn edit" onclick="openSCItemModal('${projId}','${item.id}')" style="width:18px;height:18px;font-size:10px">✎</button>
         <button class="act-btn del" onclick="deleteSCItemCurrent('${projId}','${item.id}')" style="width:18px;height:18px;font-size:10px">✕</button>
       </div>
+    </div>
+    <div class="sc-insert-row" style="height:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .15s"
+      onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0"
+      onclick="openInsertItemModal('${projId}','${item.category||''}','${item.id}')">
+      <span style="font-size:9px;color:var(--accent);background:var(--bg);border:1px dashed var(--accent);border-radius:8px;padding:1px 14px;white-space:nowrap">+ sisipkan item di sini</span>
     </div>`;
   }).join('');
 }
