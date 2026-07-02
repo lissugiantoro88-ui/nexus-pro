@@ -3030,7 +3030,8 @@ window.renderNotes = function renderNotes(){
     if(n){
       document.getElementById('note-title').value=n.title||'';
       const _nb=document.getElementById('note-body');
-      if(_nb){_nb.innerHTML=n.body||'';}
+      // Don't overwrite editor if user is currently typing (would kill cursor position)
+      if(_nb && document.activeElement !== _nb){_nb.innerHTML=n.body||'';}
       document.getElementById('note-tag').value=n.tag||'';
       document.getElementById('note-saved').textContent='Disimpan: '+FMT(n.updated);
       // Update pin button
