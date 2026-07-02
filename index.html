@@ -286,12 +286,19 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 .notes-layout{display:grid;grid-template-columns:230px 1fr;gap:12px;height:calc(100vh - 128px);}
 .notes-list{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);overflow-y:auto;}
 .notes-list-hd{padding:10px 13px;border-bottom:1px solid var(--line);font-size:10px;font-weight:600;color:var(--fog);text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;justify-content:space-between;}
-.note-li{padding:9px 13px;border-bottom:1px solid var(--line);cursor:pointer;transition:all .15s;}
+.note-li{padding:9px 13px;border-bottom:1px solid var(--line);cursor:pointer;transition:all .15s;position:relative;}
 .note-li:hover,.note-li.active{background:var(--ag2);}
 .note-li:last-child{border-bottom:none;}
-.note-li-title{font-size:12px;font-weight:500;color:var(--snow);}
+.note-li-title{font-size:12px;font-weight:500;color:var(--snow);display:flex;align-items:center;gap:5px;}
 .note-li-prev{font-size:10px;color:var(--fog);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .note-li-date{font-size:9px;color:var(--fog);margin-top:3px;font-family:'JetBrains Mono',monospace;}
+.note-color-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block;}
+.note-pin-icon{font-size:9px;color:var(--amber);flex-shrink:0;}
+.note-hl-btn{padding:2px 6px;border-radius:4px;border:none;cursor:pointer;font-size:11px;font-weight:700;transition:transform .1s;}
+.note-hl-btn:hover{transform:scale(1.1);}
+.note-search-wrap{padding:7px 10px;border-bottom:1px solid var(--line);}
+.note-search-in{width:100%;background:var(--bg3);border:1px solid var(--line);border-radius:6px;padding:5px 10px;color:var(--snow);font-size:11px;outline:none;box-sizing:border-box;}
+.note-search-in:focus{border-color:var(--accent);}
 .note-editor{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);display:flex;flex-direction:column;overflow:hidden;}
 .note-ed-hd{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;}
 .note-title-in{flex:1;background:none;border:none;outline:none;font-size:16px;font-weight:600;color:var(--white);font-family:'Inter',sans-serif;}
@@ -1282,7 +1289,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
       <div class="view-hd"><div><div class="view-title">Ideas & Notes</div></div></div>
       <div class="notes-layout">
         <div class="notes-list">
-          <div class="notes-list-hd"><span>Catatan</span><span style="color:var(--accent);cursor:pointer" onclick="newNote()">+ Baru</span></div>
+          <div class="notes-list-hd">
+            <span>Catatan</span>
+            <span style="color:var(--accent);cursor:pointer;font-size:12px" onclick="newNote()">+ Baru</span>
+          </div>
+          <div class="note-search-wrap">
+            <input class="note-search-in" id="note-search" placeholder="🔍 Cari judul atau isi..." oninput="renderNotes()">
+          </div>
           <div id="notes-list-items"></div>
         </div>
         <div class="note-editor">
@@ -1296,6 +1309,25 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
               <option value="rencana">🗓 Rencana</option>
             </select>
             <button class="mbtn cancel" onclick="deleteCurrentNote()" style="font-size:11px;padding:5px 9px;color:var(--rose);border-color:var(--rose)">Hapus</button>
+          </div>
+          <!-- Highlight + color toolbar -->
+          <div style="padding:6px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px">Highlight</span>
+            <button class="note-hl-btn" style="background:#fef08a;color:#713f12" onclick="applyNoteHighlight('#fef08a')" title="Kuning">A</button>
+            <button class="note-hl-btn" style="background:#bbf7d0;color:#14532d" onclick="applyNoteHighlight('#bbf7d0')" title="Hijau">A</button>
+            <button class="note-hl-btn" style="background:#fecaca;color:#7f1d1d" onclick="applyNoteHighlight('#fecaca')" title="Merah">A</button>
+            <button class="note-hl-btn" style="background:#bfdbfe;color:#1e3a5f" onclick="applyNoteHighlight('#bfdbfe')" title="Biru">A</button>
+            <button class="note-hl-btn" style="background:var(--bg3);color:var(--fog);border:1px solid var(--line)" onclick="applyNoteHighlight(null)" title="Hapus highlight">✕</button>
+            <div style="width:1px;height:16px;background:var(--line);margin:0 4px"></div>
+            <span style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px">Warna kartu</span>
+            <span onclick="setNoteColor('#fef9c3')" title="Kuning" style="width:14px;height:14px;border-radius:50%;background:#fef9c3;border:1.5px solid #fef9c3;cursor:pointer;display:inline-block;flex-shrink:0"></span>
+            <span onclick="setNoteColor('#dcfce7')" title="Hijau" style="width:14px;height:14px;border-radius:50%;background:#dcfce7;border:1.5px solid #dcfce7;cursor:pointer;display:inline-block;flex-shrink:0"></span>
+            <span onclick="setNoteColor('#fee2e2')" title="Merah" style="width:14px;height:14px;border-radius:50%;background:#fee2e2;border:1.5px solid #fee2e2;cursor:pointer;display:inline-block;flex-shrink:0"></span>
+            <span onclick="setNoteColor('#dbeafe')" title="Biru" style="width:14px;height:14px;border-radius:50%;background:#dbeafe;border:1.5px solid #dbeafe;cursor:pointer;display:inline-block;flex-shrink:0"></span>
+            <span onclick="setNoteColor('#f3e8ff')" title="Ungu" style="width:14px;height:14px;border-radius:50%;background:#f3e8ff;border:1.5px solid #f3e8ff;cursor:pointer;display:inline-block;flex-shrink:0"></span>
+            <span onclick="setNoteColor('')" title="Default" style="width:14px;height:14px;border-radius:50%;background:var(--bg3);border:1.5px solid var(--line);cursor:pointer;display:inline-block;flex-shrink:0"></span>
+            <div style="width:1px;height:16px;background:var(--line);margin:0 4px"></div>
+            <button onclick="togglePinNote()" id="note-pin-btn" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--fog)" title="Pin catatan">📌</button>
           </div>
           <textarea class="note-body-in" id="note-body" placeholder="Tulis ide atau catatan di sini..." oninput="onNoteInput()"></textarea>
           <div class="note-ed-ft"><span style="font-size:10px;color:var(--fog)" id="note-saved">—</span></div>
@@ -2886,9 +2918,49 @@ window.doDelDel = async id => { await deleteDelegation(uid,id);toast('Delegasi d
 // ── NOTES ─────────────────────────────────────
 function renderNotes(){
   const el=document.getElementById('notes-list-items');if(!el)return;
-  el.innerHTML=D.notes.length===0?'<div class="empty" style="padding:20px"><div class="empty-ttl">Belum ada catatan</div></div>'
-    :[...D.notes].reverse().map(n=>`<div class="note-li ${n.id===curNoteId?'active':''}" onclick="openNote('${n.id}')"><div class="note-li-title">${n.title}</div><div class="note-li-prev">${n.body||'Tidak ada isi'}</div><div class="note-li-date">${FMT(n.updated)}</div></div>`).join('');
-  if(curNoteId){const n=D.notes.find(n=>n.id===curNoteId);if(n){document.getElementById('note-title').value=n.title;document.getElementById('note-body').value=n.body||'';document.getElementById('note-tag').value=n.tag||'';document.getElementById('note-saved').textContent='Disimpan: '+FMT(n.updated);}}
+  const q=(document.getElementById('note-search')||{}).value||'';
+  const ql=q.toLowerCase();
+
+  // Sort: pinned first, then by updated desc
+  let notes=[...D.notes].sort((a,b)=>{
+    if((b.pinned||0)!==(a.pinned||0)) return (b.pinned||0)-(a.pinned||0);
+    return (b.updated||'').localeCompare(a.updated||'');
+  });
+
+  // Filter by search
+  if(ql) notes=notes.filter(n=>(n.title||'').toLowerCase().includes(ql)||(n.body||'').toLowerCase().includes(ql));
+
+  if(notes.length===0){
+    el.innerHTML=q?'<div class="empty" style="padding:20px"><div class="empty-ttl">Tidak ada hasil</div></div>':'<div class="empty" style="padding:20px"><div class="empty-ttl">Belum ada catatan</div></div>';
+  } else {
+    const tagIcon={ide:'💡',catatan:'📝',referensi:'📌',rencana:'🗓'};
+    el.innerHTML=notes.map(n=>{
+      const clr=n.color||'';
+      const dotStyle=clr?`background:${clr};border:1px solid ${clr}`:'background:var(--line)';
+      const pinIcon=n.pinned?'<span class="note-pin-icon">📌</span>':'';
+      const icon=tagIcon[n.tag]||'';
+      // Strip highlight markers from preview
+      const prev=(n.body||'Tidak ada isi').replace(/<mark[^>]*>|<\/mark>/g,'').slice(0,60);
+      return `<div class="note-li ${n.id===curNoteId?'active':''}" onclick="openNote('${n.id}')" style="${clr?'background:'+clr+'22;border-left:3px solid '+clr:''}">
+        <div class="note-li-title"><span class="note-color-dot" style="${dotStyle}"></span>${pinIcon}${icon} ${n.title||'Tanpa judul'}</div>
+        <div class="note-li-prev">${prev}</div>
+        <div class="note-li-date">${FMT(n.updated)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  if(curNoteId){
+    const n=D.notes.find(n=>n.id===curNoteId);
+    if(n){
+      document.getElementById('note-title').value=n.title||'';
+      document.getElementById('note-body').value=n.body||'';
+      document.getElementById('note-tag').value=n.tag||'';
+      document.getElementById('note-saved').textContent='Disimpan: '+FMT(n.updated);
+      // Update pin button
+      const pb=document.getElementById('note-pin-btn');
+      if(pb) pb.style.color=n.pinned?'var(--amber)':'var(--fog)';
+    }
+  }
 }
 window.openNote = id => { curNoteId=id;nav('ideas',null);renderNotes(); };
 window.newNote = async () => {
@@ -6340,6 +6412,57 @@ window.saveSCItem = async function() {
     window._pendingSortOrder = null;
   }
   return _origSaveSCItem.apply(this, arguments);
+};
+
+// ── NOTES: highlight, pin, color ──────────────────────────────────────────────
+
+// Apply highlight to selected text in note-body textarea
+window.applyNoteHighlight = function(color) {
+  const ta = document.getElementById('note-body');
+  if (!ta || !curNoteId) return;
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  if (start === end) { toast('Pilih teks dulu untuk di-highlight', true); return; }
+
+  const body = ta.value;
+  const selected = body.slice(start, end);
+
+  let newText;
+  if (!color) {
+    // Remove highlight markers from selected text
+    newText = selected.replace(/<mark[^>]*>(.*?)<\/mark>/gs, '$1');
+  } else {
+    newText = `<mark style="background:${color};border-radius:2px;padding:0 1px">${selected}</mark>`;
+  }
+
+  ta.value = body.slice(0, start) + newText + body.slice(end);
+  ta.selectionStart = start;
+  ta.selectionEnd = start + newText.length;
+  ta.focus();
+  onNoteInput();
+};
+
+// Toggle pin on current note
+window.togglePinNote = async function() {
+  if (!curNoteId) return;
+  const n = D.notes.find(n => n.id === curNoteId);
+  if (!n) return;
+  const newPinned = n.pinned ? 0 : 1;
+  await updateNote(uid, curNoteId, { pinned: newPinned, updated: TS() });
+  toast(newPinned ? 'Catatan di-pin ✓' : 'Pin dilepas');
+};
+
+// Set color for current note
+window.setNoteColor = async function(color) {
+  if (!curNoteId) return;
+  await updateNote(uid, curNoteId, { color: color, updated: TS() });
+};
+
+// Override openNote to also update pin button state
+const _origOpenNote = window.openNote;
+window.openNote = function(id) {
+  curNoteId = id;
+  nav('ideas', null);
+  renderNotes();
 };
 
 </script>
