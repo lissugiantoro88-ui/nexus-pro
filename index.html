@@ -3064,8 +3064,15 @@ window.onNoteInput = () => {
   noteSaveTimer=setTimeout(async()=>{
     const bodyEl = document.getElementById('note-body');
     const bodyHtml = bodyEl ? bodyEl.innerHTML : '';
-    await updateNote(uid,curNoteId,{title:document.getElementById('note-title').value,body:bodyHtml,tag:document.getElementById('note-tag').value,updated:TS()});
+    const newTitle = document.getElementById('note-title').value;
+    const newTag = document.getElementById('note-tag').value;
+    const nowStr = TS();
+    await updateNote(uid,curNoteId,{title:newTitle,body:bodyHtml,tag:newTag,updated:nowStr});
+    // Update in memory immediately so sort works before Firebase responds
+    const localNote = D.notes.find(function(n){ return n.id === curNoteId; });
+    if(localNote){ localNote.title=newTitle; localNote.body=bodyHtml; localNote.tag=newTag; localNote.updated=nowStr; }
     document.getElementById('note-saved').textContent='Tersimpan ✓';
+    renderNotes();
   },800);
 };
 window.deleteCurrentNote = async () => {
@@ -6519,33 +6526,41 @@ window.applyNoteHighlight = function(color) {
     toast('Pilih teks dulu untuk di-highlight', true); return;
   }
 
-  const range = sel.getRangeAt(0);
-
-  // Remove existing marks within selection first
-  const frag = range.extractContents();
-  const tempDiv = document.createElement('div');
-  tempDiv.appendChild(frag);
-  // Unwrap any nested marks
-  tempDiv.querySelectorAll('mark').forEach(function(m) {
-    while (m.firstChild) m.parentNode.insertBefore(m.firstChild, m);
-    m.parentNode.removeChild(m);
-  });
-
   if (!color) {
-    // Insert all cleaned child nodes back
-    const cleanFrag = document.createDocumentFragment();
-    while (tempDiv.firstChild) cleanFrag.appendChild(tempDiv.firstChild);
-    range.insertNode(cleanFrag);
+    // Remove highlight: use execCommand to strip formatting natively
+    // First try to unwrap marks manually via innerHTML approach
+    const range = sel.getRangeAt(0);
+    const frag = range.extractContents();
+    const tmp = document.createElement('div');
+    tmp.appendChild(frag);
+    // Strip all mark tags, keep text content
+    tmp.querySelectorAll('mark').forEach(function(m) {
+      while (m.firstChild) m.parentNode.insertBefore(m.firstChild, m);
+      m.parentNode.removeChild(m);
+    });
+    const restored = document.createDocumentFragment();
+    while (tmp.firstChild) restored.appendChild(tmp.firstChild);
+    range.insertNode(restored);
+    // Normalize to merge adjacent text nodes
+    editor.normalize();
+    sel.removeAllRanges();
   } else {
+    // Apply highlight
+    const range = sel.getRangeAt(0);
+    const frag = range.extractContents();
+    const tmp = document.createElement('div');
+    tmp.appendChild(frag);
+    // Remove existing marks first
+    tmp.querySelectorAll('mark').forEach(function(m) {
+      while (m.firstChild) m.parentNode.insertBefore(m.firstChild, m);
+      m.parentNode.removeChild(m);
+    });
     const mark = document.createElement('mark');
-    mark.style.background = color;
-    mark.style.borderRadius = '2px';
-    mark.style.padding = '0 2px';
-    while (tempDiv.firstChild) mark.appendChild(tempDiv.firstChild);
+    mark.style.cssText = 'background:' + color + ';border-radius:2px;padding:0 2px';
+    while (tmp.firstChild) mark.appendChild(tmp.firstChild);
     range.insertNode(mark);
+    sel.removeAllRanges();
   }
-
-  sel.removeAllRanges();
   onNoteInput();
 };
 
