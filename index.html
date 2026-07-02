@@ -2076,8 +2076,21 @@ async function deleteSCurveItem(uid, projectId, itemId) {
 }
 function listenSCurveItems(uid, projectId, callback) {
   return onSnapshot(
-    query(collection(db, "users", uid, "scurve", projectId, "items"), orderBy("createdAt", "asc")),
-    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    collection(db, "users", uid, "scurve", projectId, "items"),
+    snap => {
+      const items = snap.docs.map(d => {
+        const dd = d.data();
+        if (dd.sortOrder === undefined) dd.sortOrder = dd.createdAt || 0;
+        return { id: d.id, ...dd };
+      });
+      // Sort by sortOrder if present, fallback to createdAt
+      items.sort(function(a, b) {
+        const ao = a.sortOrder !== undefined ? a.sortOrder : (a.createdAt || 0);
+        const bo = b.sortOrder !== undefined ? b.sortOrder : (b.createdAt || 0);
+        return ao - bo;
+      });
+      callback(items);
+    }
   );
 }
 async function saveSCurveActual(uid, projectId, dateKey, data) {
@@ -5253,7 +5266,7 @@ window.closeSCProjectModal=function(){document.getElementById('sc-project-modal-
 window.saveSCProject=async function(){var name=document.getElementById('sc-proj-name').value.trim();if(!name){toast('Nama project wajib diisi',true);return;}var id=scEditProjId||'sc_'+Date.now().toString(36);var data={name:name,startDate:document.getElementById('sc-proj-start').value,finishDate:document.getElementById('sc-proj-end').value,budget:document.getElementById('sc-proj-budget').value,currency:document.getElementById('sc-proj-currency').value||'IDR',desc:document.getElementById('sc-proj-desc').value.trim()};await saveSCurveProject(uid,id,data);closeSCProjectModal();toast('Project disimpan ✓');if(!scEditProjId)setTimeout(function(){var s=document.getElementById('sc-project-sel');if(s){s.value=id;window.onSCProjectChange(id);}},600);};
 window.openSCItemModal=function(projId,itemId){projId=projId||scCurrentProjectId;if(projId==='__global__'){toast('Pilih project terlebih dahulu',true);return;}scEditItemProjId=projId;scEditItemId=itemId||null;var item=itemId?(D.scItems[projId]||[]).find(function(i){return i.id===itemId;}):null;document.getElementById('sc-item-modal-title').textContent=item?'✎ Edit Item WBS':'+ Item WBS Baru';document.getElementById('sc-item-name').value=item?(item.name||''):'';document.getElementById('sc-item-weight').value=item?(item.weight||''):'';document.getElementById('sc-item-value').value=item?(item.value||''):'';document.getElementById('sc-item-start').value=item?(item.startDate||''):'';document.getElementById('sc-item-finish').value=item?(item.finishDate||''):'';document.getElementById('sc-item-cat').value=item?(item.category||''):'';document.getElementById('sc-item-del-btn').style.display=item?'block':'none';document.getElementById('sc-item-modal-ov').classList.add('open');};
 window.closeSCItemModal=function(){document.getElementById('sc-item-modal-ov').classList.remove('open');};
-window.saveSCItem=async function(){var name=document.getElementById('sc-item-name').value.trim();if(!name){toast('Nama item wajib diisi',true);return;}var weight=parseFloat(document.getElementById('sc-item-weight').value)||0;var value=parseFloat(document.getElementById('sc-item-value').value)||0;var id=scEditItemId||'sci_'+Date.now().toString(36);var data={name:name,weight:weight,value:value,startDate:document.getElementById('sc-item-start').value,finishDate:document.getElementById('sc-item-finish').value,category:document.getElementById('sc-item-cat').value.trim()};if(!scEditItemId)data.createdAt=Date.now();await saveSCurveItem(uid,scEditItemProjId,id,data);closeSCItemModal();toast('Item disimpan ✓');};
+window.saveSCItem=async function(){var name=document.getElementById('sc-item-name').value.trim();if(!name){toast('Nama item wajib diisi',true);return;}var weight=parseFloat(document.getElementById('sc-item-weight').value)||0;var value=parseFloat(document.getElementById('sc-item-value').value)||0;var id=scEditItemId||'sci_'+Date.now().toString(36);var data={name:name,weight:weight,value:value,startDate:document.getElementById('sc-item-start').value,finishDate:document.getElementById('sc-item-finish').value,category:document.getElementById('sc-item-cat').value.trim()};if(!scEditItemId){data.createdAt=Date.now();if(window._pendingSortOrder!==null&&window._pendingSortOrder!==undefined){data.sortOrder=window._pendingSortOrder;}else{data.sortOrder=data.createdAt;}}window._pendingSortOrder=null;await saveSCurveItem(uid,scEditItemProjId,id,data);closeSCItemModal();toast('Item disimpan ✓');};
 window.deleteSCProj=async function(projId){if(!confirm('Hapus project?'))return;await deleteSCurveProject(uid,projId);scCurrentProjectId='__global__';toast('Project dihapus');};
 window.deleteSCItemCurrent=async function(projId,itemId){projId=projId||scEditItemProjId;itemId=itemId||scEditItemId;if(!confirm('Hapus item WBS?'))return;await deleteSCurveItem(uid,projId,itemId);closeSCItemModal();toast('Item dihapus');};
 window.editCurrentSCProject=function(){window.openSCProjectModal(scCurrentProjectId);};
@@ -5692,7 +5705,7 @@ window.generateDashboardPDF = function(exportDate) {
     return da - db; // most negative (worst) first
   });
 
-  const miniW = 220, miniH = 90, miniPadL = 26, miniPadR = 6, miniPadT = 8, miniPadB = 14;
+  const miniW = 220, miniH = 100, miniPadL = 26, miniPadR = 6, miniPadT = 8, miniPadB = 20;
   const miniCW = miniW - miniPadL - miniPadR, miniCH = miniH - miniPadT - miniPadB;
 
   function buildMiniChart(s, color) {
@@ -5749,6 +5762,17 @@ window.generateDashboardPDF = function(exportDate) {
       +'<svg width="'+miniW+'" height="'+miniH+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">'
         +[0,50,100].map(function(v){return '<text x="'+(miniPadL-3)+'" y="'+(py(v)+2.5).toFixed(1)+'" font-size="6" text-anchor="end" fill="#cbd5e1">'+v+'</text><line x1="'+miniPadL+'" y1="'+py(v).toFixed(1)+'" x2="'+(miniW-miniPadR)+'" y2="'+py(v).toFixed(1)+'" stroke="#f1f5f9" stroke-width="0.5"/>';}).join('')
         +(refX?'<line x1="'+refX+'" y1="'+miniPadT+'" x2="'+refX+'" y2="'+(miniH-miniPadB)+'" stroke="#d97706" stroke-width="1" stroke-dasharray="2,2"/>':'')
+        +(function(){
+          var xLbls='';
+          [0,0.5,1].forEach(function(frac){
+            var d=new Date(localMidnight(proj.startDate));
+            d.setDate(d.getDate()+Math.round((n-1)*frac));
+            var x=(miniPadL+frac*miniCW).toFixed(1);
+            var lbl=d.getDate()+'/'+(d.getMonth()+1);
+            xLbls+='<text x="'+x+'" y="'+(miniH-miniPadB+10).toFixed(1)+'" font-size="6" text-anchor="middle" fill="#9ca3af">'+lbl+'</text>';
+          });
+          return xLbls;
+        })()
         +'<polyline points="'+planPts+'" fill="none" stroke="#9ca3af" stroke-width="1.3" stroke-dasharray="3,2"/>'
         +(actLine?'<polyline points="'+actLine+'" fill="none" stroke="'+color+'" stroke-width="1.8"/>':'')
         +(actPts.length?'<circle cx="'+actPts[actPts.length-1].x.toFixed(1)+'" cy="'+actPts[actPts.length-1].y.toFixed(1)+'" r="2.2" fill="'+color+'"/>':'')
@@ -6263,6 +6287,55 @@ window.generateVMBoard = function(exportDate) {
   win.document.close();
 };
 
+
+// ── INSERT ITEM WBS — sisipkan item di antara item lain ───────────────────────
+let _insertAfterItemId = null; // item id after which new item will be inserted
+
+window.openInsertItemModal = function(projId, cat, afterItemId) {
+  _insertAfterItemId = afterItemId;
+  // Open standard item modal, pre-fill category and project
+  window.openSCItemModal(projId, null);
+  // Pre-fill category
+  setTimeout(function() {
+    const catEl = document.getElementById('sc-item-cat');
+    if (catEl) catEl.value = cat || '';
+    // Update title
+    const titleEl = document.getElementById('sc-item-modal-title');
+    if (titleEl) titleEl.textContent = '+ Sisipkan Item WBS';
+  }, 50);
+};
+
+// Patch saveSCItem to support sortOrder for insertion
+const _origSaveSCItem = window.saveSCItem;
+window.saveSCItem = async function() {
+  if (_insertAfterItemId) {
+    // Compute sortOrder = afterItem.sortOrder + 0.5
+    // (or createdAt + 0.5 if no sortOrder)
+    const projId = scEditItemProjId || scCurrentProjectId;
+    const items  = D.scItems[projId] || [];
+    const afterItem = items.find(function(i){ return i.id === _insertAfterItemId; });
+    const afterIdx  = items.indexOf(afterItem);
+    const nextItem  = items[afterIdx + 1];
+
+    let newSortOrder;
+    if (afterItem) {
+      const aOrder = afterItem.sortOrder !== undefined ? afterItem.sortOrder : (afterItem.createdAt || 0);
+      const bOrder = nextItem
+        ? (nextItem.sortOrder !== undefined ? nextItem.sortOrder : (nextItem.createdAt || 0))
+        : aOrder + 2000;
+      newSortOrder = (aOrder + bOrder) / 2;
+    } else {
+      newSortOrder = Date.now();
+    }
+
+    // Store sortOrder to be applied by saveSCItem
+    window._pendingSortOrder = newSortOrder;
+    _insertAfterItemId = null;
+  } else {
+    window._pendingSortOrder = null;
+  }
+  return _origSaveSCItem.apply(this, arguments);
+};
 
 </script>
 </body>
