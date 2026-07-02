@@ -6567,9 +6567,17 @@ window.setNoteColor = async function(color) {
   const activeNote = D.notes.find(function(n){ return n.id === curNoteId; });
   if (!activeNote) { toast('Buka catatan dulu sebelum memberi warna', true); return; }
   await updateNote(uid, curNoteId, { color: color });
-  // Update D.notes in memory immediately so re-render shows correct color
+  // Update D.notes in memory immediately so next render shows correct color
   activeNote.color = color;
-  renderNotes();
+  // Only update this note's card in the DOM, don't re-render all cards
+  var li = document.querySelector('[data-noteid="' + curNoteId + '"]');
+  if (li) {
+    li.style.background = color ? color + '33' : '';
+    li.style.borderLeft = color ? '4px solid ' + color : '';
+    var dot = li.querySelector('.note-color-dot');
+    if (dot) { dot.style.background = color || 'var(--line)'; dot.style.border = color ? '1px solid ' + color : '1px solid var(--line)'; }
+  }
+  toast(color ? 'Warna kartu diubah ✓' : 'Warna direset ✓');
 };
 
 // openNote is defined earlier — no override needed
