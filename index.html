@@ -3030,8 +3030,13 @@ window.renderNotes = function renderNotes(){
     if(n){
       document.getElementById('note-title').value=n.title||'';
       const _nb=document.getElementById('note-body');
-      // Don't overwrite editor if user is currently typing (would kill cursor position)
-      if(_nb && document.activeElement !== _nb){_nb.innerHTML=n.body||'';}
+      // Only skip body update if user is typing in the SAME note
+      // If switching to a different note, always update body
+      const _isTypingInCurrentNote = document.activeElement === _nb && _nb && _nb.dataset.noteId === curNoteId;
+      if(_nb && !_isTypingInCurrentNote){
+        _nb.innerHTML=n.body||'';
+        _nb.dataset.noteId = curNoteId;
+      }
       document.getElementById('note-tag').value=n.tag||'';
       document.getElementById('note-saved').textContent='Disimpan: '+FMT(n.updated);
       // Update pin button
@@ -6520,8 +6525,10 @@ window.applyNoteHighlight = function(color) {
   });
 
   if (!color) {
-    // Just insert the cleaned text/nodes back
-    range.insertNode(tempDiv.firstChild || document.createTextNode(''));
+    // Insert all cleaned child nodes back
+    const cleanFrag = document.createDocumentFragment();
+    while (tempDiv.firstChild) cleanFrag.appendChild(tempDiv.firstChild);
+    range.insertNode(cleanFrag);
   } else {
     const mark = document.createElement('mark');
     mark.style.background = color;
