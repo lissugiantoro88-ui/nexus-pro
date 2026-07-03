@@ -6016,7 +6016,47 @@ window.generateDashboardPDF = function(exportDate) {
           +'R:<span style="color:#4f46e5;font-weight:600">'+s.planCum.toFixed(1)+'%</span>'
           +' A:<span style="color:'+color+';font-weight:600">'+(s.actualCum!==null?s.actualCum.toFixed(1):'&#8212;')+'%</span>'
         +'</div>'
-      +'</div></div>';
+      +'</div>'
+      +(function(){
+        // Show behind items if project is behind
+        if (dev >= 0 || dev === null) return '</div>';
+        var iActs = D.scItemActuals[s.proj.id] || {};
+        var behindItems = s.items.filter(function(it) {
+          if (!it.startDate || it.startDate > refDate) return false;
+          // Check if item has no actual but should have started
+          var cum = 0;
+          s.dailyDates.forEach(function(d) {
+            if (d > refDate) return;
+            var dd = iActs[d]; if (dd && dd[it.id] !== undefined) cum += parseFloat(dd[it.id])||0;
+          });
+          var w = parseFloat(it.weight)||0;
+          return cum < w * 0.98; // not complete
+        }).slice(0, 5); // max 5 items
+        if (behindItems.length === 0) return '</div>';
+        var rows = behindItems.map(function(it) {
+          var cum2 = 0;
+          s.dailyDates.forEach(function(d) {
+            if (d > refDate) return;
+            var dd = iActs[d]; if (dd && dd[it.id] !== undefined) cum2 += parseFloat(dd[it.id])||0;
+          });
+          cum2 = Math.round(cum2*100)/100;
+          var w = parseFloat(it.weight)||0;
+          var pct = w > 0 ? Math.round(cum2/w*100) : 0;
+          var shortName = it.name.replace(/^\d+\.\d+\s*/,'').replace(/^\d+\.\s*/,'');
+          if (shortName.length > 35) shortName = shortName.slice(0,33)+'…';
+          return '<div style="display:flex;align-items:center;gap:6px;padding:2px 0">'
+            +'<div style="flex:1;font-size:8px;color:#374151">▼ '+shortName+'</div>'
+            +'<div style="width:60px;height:3px;background:#fee2e2;border-radius:2px;overflow:hidden">'
+              +'<div style="height:100%;width:'+pct+'%;background:#f87171;border-radius:2px"></div>'
+            +'</div>'
+            +'<div style="font-size:8px;font-family:monospace;color:#dc2626;width:28px;text-align:right">'+cum2.toFixed(1)+'%</div>'
+          +'</div>';
+        }).join('');
+        return '<div style="margin-top:6px;padding:6px 8px;background:#fff5f5;border-radius:4px;border-left:2px solid #fca5a5">'
+          +'<div style="font-size:7px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">▼ Item Behind ('+behindItems.length+')</div>'
+          + rows
+          +'</div></div>';
+      })()
   }).join('');
 
   const html = '<!DOCTYPE html>\n<html lang="id"><head><meta charset="UTF-8">'
