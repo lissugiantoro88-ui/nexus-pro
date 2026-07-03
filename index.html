@@ -2253,6 +2253,11 @@ let authMode = 'login';
 
 // ── HELPERS ───────────────────────────────────
 const TS = () => { const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'); };
+const TSFull = () => {
+  const n = new Date();
+  return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')
+    +' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0');
+};
 const FMT = d => { if(!d) return '—'; return new Date(d+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short'}); };
 // ── DATE HELPERS — timezone-safe (WIB/UTC+7 friendly) ──
 function localMidnight(dateStr) {
@@ -3066,7 +3071,7 @@ window.onNoteInput = () => {
     const bodyHtml = bodyEl ? bodyEl.innerHTML : '';
     const newTitle = document.getElementById('note-title').value;
     const newTag = document.getElementById('note-tag').value;
-    const nowStr = TS();
+    const nowStr = TSFull();
     await updateNote(uid,curNoteId,{title:newTitle,body:bodyHtml,tag:newTag,updated:nowStr});
     // Update in memory immediately so sort works before Firebase responds
     const localNote = D.notes.find(function(n){ return n.id === curNoteId; });
@@ -6527,39 +6532,19 @@ window.applyNoteHighlight = function(color) {
   }
 
   if (!color) {
-    // Remove highlight: use execCommand to strip formatting natively
-    // First try to unwrap marks manually via innerHTML approach
-    const range = sel.getRangeAt(0);
-    const frag = range.extractContents();
-    const tmp = document.createElement('div');
-    tmp.appendChild(frag);
-    // Strip all mark tags, keep text content
-    tmp.querySelectorAll('mark').forEach(function(m) {
-      while (m.firstChild) m.parentNode.insertBefore(m.firstChild, m);
-      m.parentNode.removeChild(m);
+    // Remove highlight: replace innerHTML, stripping only <mark> tags from selection
+    // Use execCommand removeFormat to safely strip inline styles
+    document.execCommand('removeFormat', false, null);
+    // Also strip any remaining mark tags from entire editor
+    editor.querySelectorAll('mark').forEach(function(m) {
+      var text = document.createTextNode(m.textContent);
+      m.parentNode.replaceChild(text, m);
     });
-    const restored = document.createDocumentFragment();
-    while (tmp.firstChild) restored.appendChild(tmp.firstChild);
-    range.insertNode(restored);
-    // Normalize to merge adjacent text nodes
     editor.normalize();
-    sel.removeAllRanges();
   } else {
-    // Apply highlight
-    const range = sel.getRangeAt(0);
-    const frag = range.extractContents();
-    const tmp = document.createElement('div');
-    tmp.appendChild(frag);
-    // Remove existing marks first
-    tmp.querySelectorAll('mark').forEach(function(m) {
-      while (m.firstChild) m.parentNode.insertBefore(m.firstChild, m);
-      m.parentNode.removeChild(m);
-    });
-    const mark = document.createElement('mark');
-    mark.style.cssText = 'background:' + color + ';border-radius:2px;padding:0 2px';
-    while (tmp.firstChild) mark.appendChild(tmp.firstChild);
-    range.insertNode(mark);
-    sel.removeAllRanges();
+    // Remove existing marks from selection area first, then apply new color
+    // Use execCommand backColor — native browser highlight, works across all nodes
+    document.execCommand('backColor', false, color);
   }
   onNoteInput();
 };
