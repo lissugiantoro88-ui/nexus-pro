@@ -1456,7 +1456,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
           <button onclick="resetSCRefDate()" style="background:none;border:none;color:var(--fog);cursor:pointer;font-size:12px;padding:0" title="Reset">↺</button>
         </div>
         <button class="tb-btn" onclick="exportSCurvePDF()" style="white-space:nowrap" title="Export PDF">⬇ PDF</button>
-        <button class="tb-btn" onclick="openVMBoardExport()" style="white-space:nowrap" title="Visual Management Board">⬇ VM Board</button>
+        <button class="tb-btn" onclick="openVMBoardExport(scCurrentProjectId)" style="white-space:nowrap" title="Visual Management Board">⬇ VM Board</button>
         <button class="tb-btn primary" id="sc-topbar-add-btn" onclick="handleTopbarAdd()" style="white-space:nowrap">+ Project</button>
       </div>
 
@@ -5942,7 +5942,11 @@ window.generateDashboardPDF = function(exportDate) {
       +'</div>'
       +'<svg width="'+miniW+'" height="'+miniH+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">'
         +[0,50,100].map(function(v){return '<text x="'+(miniPadL-3)+'" y="'+(py(v)+2.5).toFixed(1)+'" font-size="6" text-anchor="end" fill="#cbd5e1">'+v+'</text><line x1="'+miniPadL+'" y1="'+py(v).toFixed(1)+'" x2="'+(miniW-miniPadR)+'" y2="'+py(v).toFixed(1)+'" stroke="#f1f5f9" stroke-width="0.5"/>';}).join('')
-        +(refX?'<line x1="'+refX+'" y1="'+miniPadT+'" x2="'+refX+'" y2="'+(miniH-miniPadB)+'" stroke="#d97706" stroke-width="1" stroke-dasharray="2,2"/>':'')
+        +(refX?'<line x1="'+refX+'" y1="'+miniPadT+'" x2="'+refX+'" y2="'+(miniH-miniPadB)+'" stroke="#d97706" stroke-width="1" stroke-dasharray="2,2"/>'
+          +'<text x="'+refX+'" y="'+(miniPadT-3)+'" font-size="6.5" text-anchor="middle" fill="#d97706" font-weight="bold">'
+          +(function(){var rd=new Date(localMidnight(refDate));return rd.getDate()+'/'+(rd.getMonth()+1);})()
+          +'</text>'
+        :'')
         +(function(){
           var xLbls='';
           [0,0.5,1].forEach(function(frac){
@@ -6244,9 +6248,13 @@ window.openItemFocusInput = function(projId, itemId) {
 };
 
 // ── VISUAL MANAGEMENT BOARD — PDF EXPORT ─────────────────────────────────────
-window.openVMBoardExport = function() {
-  const dashProjects = getDashboardProjects();
+window.openVMBoardExport = function(projId) {
+  const isIndividual = projId && projId !== '__global__';
+  const dashProjects = isIndividual
+    ? D.scProjects.filter(function(p){ return p.id === projId; })
+    : getDashboardProjects();
   if (dashProjects.length === 0) { toast('Tidak ada project untuk ditampilkan', true); return; }
+  window._vmProjects = dashProjects;
 
   const modal = document.createElement('div');
   modal.id = 'vm-board-modal';
@@ -6260,16 +6268,16 @@ window.openVMBoardExport = function() {
     + '<div style="font-size:10px;color:var(--fog);margin-top:4px">Status ditentukan dari progress aktual s/d tanggal ini.</div></div>'
     + '<div style="display:flex;gap:8px;margin-top:16px">'
     + '<button onclick="document.getElementById(\'vm-board-modal\').remove()" style="flex:1;padding:9px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:12px">Batal</button>'
-    + '<button onclick="generateVMBoard(document.getElementById(\'vm-export-date\').value)" style="flex:2;padding:9px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:12px;font-weight:600">&#11015; Generate PDF</button>'
+    + '<button onclick="generateVMBoard(document.getElementById(\'vm-export-date\').value,window._vmProjects)" style="flex:2;padding:9px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:12px;font-weight:600">&#11015; Generate PDF</button>'
     + '</div></div>';
   document.body.appendChild(modal);
   modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
 };
 
-window.generateVMBoard = function(exportDate) {
+window.generateVMBoard = function(exportDate, projectsOverride) {
   document.getElementById('vm-board-modal') && document.getElementById('vm-board-modal').remove();
   const refDate = exportDate || TS();
-  const dashProjects = getDashboardProjects();
+  const dashProjects = projectsOverride || window._vmProjects || getDashboardProjects();
 
   // ── Determine item status from actual progress vs plan ──────────────────────
   function getItemStatus(proj, item) {
