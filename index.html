@@ -4646,7 +4646,7 @@ function renderSCurve() {
       const isImproving = deltaVal > 0; // deviasi makin positif = makin baik
       const isWorsening = deltaVal < 0;
       const deltaClr = isImproving ? 'var(--lime)' : isWorsening ? 'var(--rose)' : 'var(--teal)';
-      const deltaTxt = isImproving ? '↑ Membaik' : isWorsening ? '↓ Memburuk' : '→ Stabil';
+      const deltaTxt = isImproving ? '↑ Mengecil' : isWorsening ? '↓ Melebar' : '→ Stabil';
       const cmpLabel = scCompareDate.slice(8)+'/'+scCompareDate.slice(5,7);
       const refLbl2  = refDate.slice(8)+'/'+refDate.slice(5,7);
       const deltaRow = '<div style="margin-top:6px;padding:6px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--line2);display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
@@ -6125,7 +6125,7 @@ window.generateDashboardPDF = function(exportDate) {
         var clr=dv>0?'#16a34a':dv<0?'#dc2626':'#0891b2';
         var cmpLbl=scCompareDate.slice(8)+'/'+scCompareDate.slice(5,7);
         return '<div style="margin-top:4px;padding:3px 8px;background:'+(dv>0?'#f0fdf4':dv<0?'#fff5f5':'#f0f9ff')+';border-radius:4px;font-size:9px;color:'+clr+';font-weight:700">'
-          +'Δ dev vs '+cmpLbl+': '+(dv>=0?'+':'')+dv.toFixed(1)+'% '+(dv>0?'↑ Membaik':dv<0?'↓ Memburuk':'→ Stabil')+'</div>';
+          +'Δ dev vs '+cmpLbl+': '+(dv>=0?'+':'')+dv.toFixed(1)+'% '+(dv>0?'↑ Mengecil':dv<0?'↓ Melebar':'→ Stabil')+'</div>';
       })()
       +'</div>'
       +(function(){
