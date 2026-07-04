@@ -1455,6 +1455,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
           <input type="date" id="sc-ref-date" style="background:transparent;border:none;color:var(--snow);font-size:11px;font-family:JetBrains Mono,monospace;outline:none;width:110px" onchange="onSCRefDateChange(this.value)">
           <button onclick="resetSCRefDate()" style="background:none;border:none;color:var(--fog);cursor:pointer;font-size:12px;padding:0" title="Reset">↺</button>
         </div>
+        <div style="display:flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--line2);border-radius:var(--rs);padding:3px 8px" title="Tanggal pembanding deviasi">
+          <span style="font-size:10px;color:var(--fog)">Δ vs</span>
+          <input type="date" id="sc-compare-date" style="background:transparent;border:none;color:var(--mist);font-size:11px;font-family:JetBrains Mono,monospace;outline:none;width:110px" onchange="onSCCompareDateChange(this.value)" placeholder="Bandingkan">
+          <button onclick="clearSCCompareDate()" style="background:none;border:none;color:var(--fog);cursor:pointer;font-size:11px;padding:0" title="Hapus pembanding">✕</button>
+        </div>
         <button class="tb-btn" onclick="exportSCurvePDF()" style="white-space:nowrap" title="Export PDF">⬇ PDF</button>
         <button class="tb-btn" onclick="openVMBoardExport(scCurrentProjectId)" style="white-space:nowrap" title="Visual Management Board">⬇ VM Board</button>
         <button class="tb-btn primary" id="sc-topbar-add-btn" onclick="handleTopbarAdd()" style="white-space:nowrap">+ Project</button>
@@ -4074,9 +4079,12 @@ function loadAllSubtasks() {
 let scInterval = 'week';
 let scCurrentProjectId = '__global__';
 let scRefDate = null;
+let scCompareDate = null; // date to compare deviation against
 let scGlobalUnsubs = {}; // per-project lightweight listeners for dashboard
 function getSCRefDate(){return scRefDate||TS();}
-window.onSCRefDateChange=function(v){scRefDate=v||null;renderSCurve();};
+window.onSCRefDateChange=function(v){scRefDate=v||null;renderSCurve();}
+window.onSCCompareDateChange=function(v){scCompareDate=v||null;renderSCurve();}
+window.clearSCCompareDate=function(){scCompareDate=null;var el=document.getElementById('sc-compare-date');if(el)el.value='';renderSCurve();};
 window.resetSCRefDate=function(){scRefDate=null;var dp=document.getElementById('sc-ref-date');if(dp)dp.value=TS();renderSCurve();};
 let scItemUnsubs = [];
 let scEditingItemId = null;
@@ -4459,6 +4467,50 @@ function drawSCurve(periods, planned, actual, todayIdx) {
 }
 
 // ── RENDER S-CURVE PAGE ───────────────────────
+// ── Compute cumulative deviation at a specific date ──────────────────────────
+function getDeviationAt(projId, atDate) {
+  const proj  = D.scProjects.find(function(p){ return p.id === projId; });
+  const items = D.scItems[projId] || [];
+  const iActs = D.scItemActuals[projId] || {};
+  if (!proj || !proj.startDate || !proj.finishDate || items.length === 0) return null;
+
+  let planCum = 0, actualCum = 0, hasActual = false;
+  let cur = localMidnight(proj.startDate);
+  const end = localMidnight(proj.finishDate);
+
+  while (cur <= end) {
+    const d = localDateStr(cur);
+    if (d > atDate) break;
+
+    // Plan daily for date
+    items.forEach(function(it) {
+      if (!it.startDate || !it.finishDate) return;
+      const iS = localMidnight(it.startDate), iE = localMidnight(it.finishDate);
+      const dur = Math.round((iE - iS) / 86400000) + 1;
+      if (localMidnight(d) >= iS && localMidnight(d) <= iE) {
+        planCum += (parseFloat(it.weight)||0) / dur;
+      }
+    });
+
+    // Actual for date
+    const dayActs = iActs[d];
+    if (dayActs) {
+      items.forEach(function(it) {
+        if (dayActs[it.id] !== undefined) { actualCum += parseFloat(dayActs[it.id])||0; hasActual = true; }
+      });
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  if (!hasActual && planCum === 0) return null;
+  const effectiveActual = hasActual ? actualCum : 0;
+  return {
+    plan: Math.round(planCum * 10) / 10,
+    actual: Math.round(effectiveActual * 10) / 10,
+    dev: Math.round((effectiveActual - planCum) * 10) / 10
+  };
+}
+
 function renderSCurve() {
   if (curView !== 'scurve') return;
 
@@ -4583,6 +4635,31 @@ function renderSCurve() {
       '<div style="font-size:20px;font-weight:700;font-family:JetBrains Mono,monospace;color:var(--accent2)">'+planCumAtRef.toFixed(1)+'%</div></div>' +
       '<div style="font-size:12px;color:var(--fog)">— Belum ada data aktual</div>' +
       '</div>';
+  }
+
+  // ── Delta deviasi row (if compare date is set) ──────────────────────────
+  if (scCompareDate && scCompareDate < refDate) {
+    const cmpResult = getDeviationAt(projId, scCompareDate);
+    const refResult = getDeviationAt(projId, refDate);
+    if (cmpResult !== null && refResult !== null) {
+      const deltaVal = Math.round((refResult.dev - cmpResult.dev) * 10) / 10;
+      const isImproving = deltaVal > 0; // deviasi makin positif = makin baik
+      const isWorsening = deltaVal < 0;
+      const deltaClr = isImproving ? 'var(--lime)' : isWorsening ? 'var(--rose)' : 'var(--teal)';
+      const deltaTxt = isImproving ? '↑ Membaik' : isWorsening ? '↓ Memburuk' : '→ Stabil';
+      const cmpLabel = scCompareDate.slice(8)+'/'+scCompareDate.slice(5,7);
+      const refLbl2  = refDate.slice(8)+'/'+refDate.slice(5,7);
+      const deltaRow = '<div style="margin-top:6px;padding:6px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--line2);display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
+        + '<span style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">Δ Deviasi ' + cmpLabel + ' → ' + refLbl2 + '</span>'
+        + '<span style="font-size:15px;font-weight:700;font-family:JetBrains Mono,monospace;color:' + deltaClr + '">'
+          + (deltaVal >= 0 ? '+' : '') + deltaVal.toFixed(1) + '%'
+        + '</span>'
+        + '<span style="font-size:11px;font-weight:600;color:' + deltaClr + '">' + deltaTxt + '</span>'
+        + '<span style="font-size:9px;color:var(--fog)">Deviasi ' + cmpLabel + ': ' + (cmpResult.dev >= 0 ? '+' : '') + cmpResult.dev.toFixed(1) + '% → ' + refLbl2 + ': ' + (refResult.dev >= 0 ? '+' : '') + refResult.dev.toFixed(1) + '%</span>'
+        + '</div>';
+      const sb = document.getElementById('sc-status-bar');
+      if (sb) sb.innerHTML += deltaRow;
+    }
   }
 
   renderWBSList(projId, items, proj);
@@ -4885,6 +4962,15 @@ function renderSCurveGlobal() {
           <div style="font-size:10px;color:var(--fog);margin-top:1px">${FMT(p.startDate)} → ${FMT(p.finishDate)} · ${s.items.length} item</div>
         </div>
         <div style="padding:3px 10px;border-radius:14px;background:${badge.bg};border:1px solid ${badge.bd};color:${badge.clr};font-size:10px;font-weight:700;white-space:nowrap">${badge.txt}</div>
+        ${(function(){
+          if(!scCompareDate||scCompareDate>=refDate) return '';
+          const cr=getDeviationAt(p.id,scCompareDate);
+          const rr=getDeviationAt(p.id,refDate);
+          if(!cr||!rr) return '';
+          const dv=Math.round((rr.dev-cr.dev)*10)/10;
+          const clr=dv>0?'var(--lime)':dv<0?'var(--rose)':'var(--teal)';
+          return '<div style="font-size:9px;font-weight:700;color:'+clr+';white-space:nowrap">'+(dv>=0?'↑':'↓')+(dv>=0?'+':'')+dv.toFixed(1)+'% Δdev</div>';
+        })()}
         <button class="act-btn edit" onclick="event.stopPropagation();openSCProjectModal('${p.id}')" title="Edit" style="width:22px;height:22px">✎</button>
         <button class="act-btn del" onclick="event.stopPropagation();deleteSCProj('${p.id}')" title="Hapus" style="width:22px;height:22px">✕</button>
       </div>
@@ -5739,6 +5825,16 @@ window.generateSCurvePDF = function(exportDate) {
     ['Rencana s/d '+refDate.slice(8)+'/'+refDate.slice(5,7), planAtRef.toFixed(1)+'%', '#4f46e5'],
     ['Aktual tercapai', hasActual?actualVal.toFixed(1)+'%':'&#8212;', '#16a34a'],
     ['Deviasi', effectiveDev!==null?(effectiveDev>=0?'+':'')+effectiveDev.toFixed(1)+'%':'&#8212;', effectiveDev===null?'#9ca3af':isBehind?'#dc2626':'#16a34a'],
+    (function(){
+      if(!scCompareDate||scCompareDate>=exportDate) return null;
+      var cr=getDeviationAt(projId,scCompareDate);
+      var rr=getDeviationAt(projId,exportDate);
+      if(!cr||!rr) return null;
+      var dv=Math.round((rr.dev-cr.dev)*10)/10;
+      var clr=dv>0?'#16a34a':dv<0?'#dc2626':'#0891b2';
+      var lbl='Δ vs '+scCompareDate.slice(8)+'/'+scCompareDate.slice(5,7);
+      return [lbl,(dv>=0?'+':'')+dv.toFixed(1)+'% '+(dv>0?'↑':dv<0?'↓':'→'), clr];
+    })(),
     ['Sisa durasi', remDays+' hari', '#6b7280'],
   ].map(function(arr){
     return '<div style="background:#f9fafb;border-radius:6px;padding:9px 11px;border:1px solid #e5e7eb"><div style="font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">'+arr[0]+'</div><div style="font-size:19px;font-weight:700;color:'+arr[2]+';font-family:monospace;line-height:1">'+arr[1]+'</div></div>';
@@ -5982,7 +6078,7 @@ window.generateDashboardPDF = function(exportDate) {
     ['On Schedule', onTrackCount, '#0891b2'],
     ['Behind', behindCount, '#dc2626'],
     ['Rata² Deviasi', avgDev!==null ? (avgDev>=0?'+':'')+avgDev.toFixed(1)+'%' : '—', avgDev===null?'#9ca3af':avgDev>=0?'#16a34a':'#dc2626'],
-  ].map(function(arr) {
+  ].filter(Boolean).map(function(arr) {
     return '<div style="background:#f9fafb;border-radius:6px;padding:10px 8px;border:1px solid #e5e7eb;text-align:center">'
       +'<div style="font-size:18px;font-weight:700;color:'+arr[2]+';font-family:monospace;line-height:1">'+arr[1]+'</div>'
       +'<div style="font-size:8px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-top:4px">'+arr[0]+'</div>'
@@ -6020,6 +6116,17 @@ window.generateDashboardPDF = function(exportDate) {
           +'R:<span style="color:#4f46e5;font-weight:600">'+s.planCum.toFixed(1)+'%</span>'
           +' A:<span style="color:'+color+';font-weight:600">'+(s.actualCum!==null?s.actualCum.toFixed(1):'&#8212;')+'%</span>'
         +'</div>'
+      +(function(){
+        if(!scCompareDate||scCompareDate>=refDate) return '';
+        var cr=getDeviationAt(s.proj.id,scCompareDate);
+        var rr=getDeviationAt(s.proj.id,refDate);
+        if(!cr||!rr) return '';
+        var dv=Math.round((rr.dev-cr.dev)*10)/10;
+        var clr=dv>0?'#16a34a':dv<0?'#dc2626':'#0891b2';
+        var cmpLbl=scCompareDate.slice(8)+'/'+scCompareDate.slice(5,7);
+        return '<div style="margin-top:4px;padding:3px 8px;background:'+(dv>0?'#f0fdf4':dv<0?'#fff5f5':'#f0f9ff')+';border-radius:4px;font-size:9px;color:'+clr+';font-weight:700">'
+          +'Δ dev vs '+cmpLbl+': '+(dv>=0?'+':'')+dv.toFixed(1)+'% '+(dv>0?'↑ Membaik':dv<0?'↓ Memburuk':'→ Stabil')+'</div>';
+      })()
       +'</div>'
       +(function(){
         // Show behind items if project is behind
