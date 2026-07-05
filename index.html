@@ -2718,7 +2718,17 @@ function renderDashboard(){
 
   const at=[...t].reverse().filter(x=>x.status!=='done').slice(0,5);
   document.getElementById('dash-tasks').innerHTML=at.length===0?emptyHTML('◈','Tidak ada task aktif','Klik + Tambah untuk mulai')
-    :at.map(x=>`<div class="ti"><div class="ti-check ${x.status==='done'?'done':''}" onclick="doMarkDone('${x.id}')"></div><div class="ti-name">${x.name}</div><div class="pdot ${x.priority}"></div><div class="tdate ${isOv(x.due)&&x.status!=='done'?'ov':''}">${FMT(x.due)}</div><div class="tag ${sTag(x.status)}">${sLbl(x.status)}</div></div>`).join('');
+    :at.map(x=>{
+    const catClr = getCategoryColor(x.category,'task');
+    const border = catClr ? 'border-left:3px solid '+catClr+';' : '';
+    return `<div class="ti" style="cursor:pointer;${border}" onclick="openQuickDetail('task','${x.id}')">
+      <div class="ti-check ${x.status==='done'?'done':''}" onclick="event.stopPropagation();doMarkDone('${x.id}')"></div>
+      <div class="ti-name" style="flex:1">${x.name}${x.category?`<span style="font-size:9px;color:var(--fog);margin-left:5px">${x.category}</span>`:''}</div>
+      <div class="pdot ${x.priority}"></div>
+      <div class="tdate ${isOv(x.due)&&x.status!=='done'?'ov':''}">${FMT(x.due)}</div>
+      <div class="tag ${sTag(x.status)}">${sLbl(x.status)}</div>
+    </div>`;
+  }).join('');
 
   document.getElementById('dash-habits').innerHTML=D.habits.length===0?emptyHTML('◉','Belum ada habit')
     :[...D.habits].reverse().slice(0,4).map(h=>{const logs=D.habitLogs[h.id]||{};const streak=calcStreak(h.id);
@@ -2726,7 +2736,19 @@ function renderDashboard(){
 
   const ad=[...D.delegations].reverse().filter(d=>d.status!=='done').slice(0,4);
   document.getElementById('dash-deleg').innerHTML=ad.length===0?emptyHTML('◎','Tidak ada delegasi aktif')
-    :ad.map(d=>`<div class="dmi"><div class="avatar">${d.person?d.person[0].toUpperCase():'?'}</div><div class="dmi-info"><div class="dmi-task">${d.name}</div><div class="dmi-who">${d.person||'—'}</div></div><div class="tag ${d.status==='inprogress'?'b':'y'}">${sLbl(d.status)}</div><div class="tdate ${isOv(d.due)?'ov':''}">${FMT(d.due)}</div></div>`).join('');
+    :ad.map(d=>{
+    const catClr = getCategoryColor(d.category,'deleg');
+    const border = catClr ? 'border-left:3px solid '+catClr+';' : '';
+    return `<div class="dmi" style="cursor:pointer;${border}" onclick="openQuickDetail('deleg','${d.id}')">
+      <div class="avatar" style="${catClr?'background:'+catClr+';color:#fff':''}">${d.person?d.person[0].toUpperCase():'?'}</div>
+      <div class="dmi-info" style="flex:1">
+        <div class="dmi-task">${d.name}</div>
+        <div class="dmi-who">${d.person||'—'}${d.category?` · <span style="color:var(--fog);font-size:9px">${d.category}</span>`:''}</div>
+      </div>
+      <div class="tag ${d.status==='inprogress'?'b':'y'}">${sLbl(d.status)}</div>
+      <div class="tdate ${isOv(d.due)?'ov':''}">${FMT(d.due)}</div>
+    </div>`;
+  }).join('');
 
   document.getElementById('dash-ideas').innerHTML=D.notes.length===0?emptyHTML('◇','Belum ada ide tersimpan')
     :[...D.notes].reverse().slice(0,3).map(n=>`<div class="imi"><div class="imi-title" onclick="openNote('${n.id}')" style="cursor:pointer">${n.title}</div><div class="imi-prev">${n.body||'Tidak ada isi'}</div><div class="item-actions" style="margin-top:5px"><button class="act-btn edit" onclick="openEditIdea('${n.id}')" style="width:20px;height:20px;font-size:10px" title="Edit">✎</button><button class="act-btn del" onclick="doDelIdea('${n.id}')" style="width:20px;height:20px;font-size:10px" title="Hapus">✕</button></div></div>`).join('');
@@ -6759,6 +6781,168 @@ setTimeout(function() {
     });
   }
 }, 500);
+
+// ── CATEGORY COLOR SYSTEM ─────────────────────────────────────────────────────
+const CATEGORY_COLORS_KEY = 'nexus_cat_colors';
+let _catColors = null;
+
+function loadCatColors() {
+  if (_catColors) return _catColors;
+  try { _catColors = JSON.parse(localStorage.getItem(CATEGORY_COLORS_KEY)||'{}'); }
+  catch(e) { _catColors = {}; }
+  return _catColors;
+}
+
+function saveCatColors() {
+  localStorage.setItem(CATEGORY_COLORS_KEY, JSON.stringify(_catColors||{}));
+}
+
+function getCategoryColor(cat, type) {
+  if (!cat) return null;
+  const colors = loadCatColors();
+  const key = (type||'task') + ':' + cat.toLowerCase().trim();
+  return colors[key] || null;
+}
+
+window.setCategoryColor = function(cat, type, color) {
+  const colors = loadCatColors();
+  const key = (type||'task') + ':' + cat.toLowerCase().trim();
+  if (color) colors[key] = color;
+  else delete colors[key];
+  _catColors = colors;
+  saveCatColors();
+  renderDashboard();
+  renderTasks();
+  renderDelegation();
+  toast('Warna kategori disimpan ✓');
+};
+
+// ── QUICK DETAIL PANEL ────────────────────────────────────────────────────────
+window.openQuickDetail = function(type, id) {
+  const item = type === 'task'
+    ? D.tasks.find(function(t){ return t.id === id; })
+    : D.delegations.find(function(d){ return d.id === id; });
+  if (!item) return;
+
+  // Remove existing panel
+  const existing = document.getElementById('quick-detail-panel');
+  if (existing) existing.remove();
+
+  const prioMap = { high:'🔴 High', medium:'🟡 Medium', low:'🟢 Low' };
+  const statusMap = { todo:'To Do', inprogress:'In Progress', review:'Review', done:'Selesai' };
+  const catClr = getCategoryColor(item.category, type);
+
+  // Eval summary
+  const eval_ = item.eval || {};
+  const stars = eval_.rating ? '⭐'.repeat(eval_.rating) : '';
+  const ontarget = {yes:'✓ Ya', partial:'~ Sebagian', no:'✕ Tidak'}[eval_.onTarget] || '';
+
+  const panel = document.createElement('div');
+  panel.id = 'quick-detail-panel';
+  panel.style.cssText = 'position:fixed;right:0;top:0;bottom:0;width:340px;background:var(--bg2);'
+    + 'border-left:1px solid var(--line2);z-index:800;display:flex;flex-direction:column;'
+    + 'box-shadow:-4px 0 20px rgba(0,0,0,.3);animation:slideInRight .2s ease';
+
+  const isOv_ = item.due && item.due < TS() && item.status !== 'done';
+
+  panel.innerHTML = `
+    <style>
+      @keyframes slideInRight { from { transform:translateX(100%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+      .qd-section { padding:12px 18px; border-bottom:1px solid var(--line); }
+      .qd-label { font-size:9px; color:var(--fog); text-transform:uppercase; letter-spacing:1px; margin-bottom:3px; }
+      .qd-value { font-size:13px; color:var(--snow); }
+    </style>
+    <!-- Header -->
+    <div style="padding:14px 18px;border-bottom:1px solid var(--line2);display:flex;align-items:flex-start;gap:10px;${catClr?'border-top:3px solid '+catClr:''}">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;color:var(--fog);margin-bottom:3px">${type==='task'?'Task':'Delegasi'}</div>
+        <div style="font-size:15px;font-weight:700;color:var(--white);line-height:1.3">${item.name}</div>
+        ${item.category ? `<div style="margin-top:5px;display:inline-flex;align-items:center;gap:5px">
+          <span style="font-size:10px;padding:2px 9px;border-radius:10px;background:${catClr||'var(--bg3)'};${catClr?'color:#fff':'color:var(--fog)'};border:1px solid ${catClr||'var(--line)'};">${item.category}</span>
+          <button onclick="openCategoryColorPicker('${item.category}','${type}')" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--fog);padding:0" title="Atur warna kategori">🎨</button>
+        </div>` : ''}
+      </div>
+      <button onclick="document.getElementById('quick-detail-panel').remove()" style="background:none;border:none;cursor:pointer;color:var(--fog);font-size:16px;padding:0;flex-shrink:0">✕</button>
+    </div>
+
+    <!-- Status row -->
+    <div class="qd-section" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div><div class="qd-label">Status</div>
+        <div style="font-size:12px;font-weight:600;color:${item.status==='done'?'var(--lime)':item.status==='inprogress'?'var(--teal)':'var(--fog)'}">${statusMap[item.status]||item.status}</div></div>
+      ${type==='task'?`<div><div class="qd-label">Prioritas</div>
+        <div style="font-size:12px">${prioMap[item.priority]||'—'}</div></div>`:''}
+      <div><div class="qd-label">Due Date</div>
+        <div style="font-size:12px;font-weight:600;color:${isOv_?'var(--rose)':'var(--snow)'}">${FMT(item.due)||'—'}</div></div>
+      ${type==='deleg'?`<div><div class="qd-label">Dikerjakan Oleh</div>
+        <div style="font-size:12px;color:var(--snow)">${item.person||'—'}</div></div>`:''}
+    </div>
+
+    <!-- Notes -->
+    ${item.notes ? `<div class="qd-section">
+      <div class="qd-label">Catatan</div>
+      <div style="font-size:12px;color:var(--mist);line-height:1.6;white-space:pre-wrap">${item.notes}</div>
+    </div>` : ''}
+
+    <!-- Eval summary (if any) -->
+    ${(eval_.result||eval_.obstacle||eval_.lesson||stars) ? `<div class="qd-section">
+      <div class="qd-label">Evaluasi</div>
+      ${stars ? `<div style="font-size:13px;margin-bottom:4px">${stars} ${ontarget}</div>` : ''}
+      ${eval_.result ? `<div style="font-size:11px;color:var(--mist);margin-top:4px"><b style="color:var(--fog)">Hasil:</b> ${eval_.result}</div>` : ''}
+      ${eval_.obstacle ? `<div style="font-size:11px;color:var(--mist);margin-top:3px"><b style="color:var(--fog)">Hambatan:</b> ${eval_.obstacle}</div>` : ''}
+      ${eval_.lesson ? `<div style="font-size:11px;color:var(--mist);margin-top:3px"><b style="color:var(--fog)">Lesson:</b> ${eval_.lesson}</div>` : ''}
+    </div>` : ''}
+
+    <!-- Actions -->
+    <div style="padding:14px 18px;margin-top:auto;display:flex;gap:8px;border-top:1px solid var(--line)">
+      ${item.status!=='done'?`<button onclick="doMarkDone('${id}');document.getElementById('quick-detail-panel').remove()" style="flex:1;padding:9px;background:var(--limed);border:1px solid rgba(168,255,87,.3);border-radius:var(--rs);color:var(--lime);cursor:pointer;font-size:12px;font-weight:600">✓ Selesai</button>`:''}
+      <button onclick="document.getElementById('quick-detail-panel').remove();${type==='task'?'openEditTask':'openEditDeleg'}('${id}')" style="flex:2;padding:9px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:12px;font-weight:600">✎ Edit</button>
+    </div>
+  `;
+
+  document.body.appendChild(panel);
+
+  // Close on outside click
+  setTimeout(function() {
+    document.addEventListener('click', function handler(e) {
+      if (!panel.contains(e.target)) {
+        panel.remove();
+        document.removeEventListener('click', handler);
+      }
+    });
+  }, 100);
+};
+
+// ── CATEGORY COLOR PICKER ─────────────────────────────────────────────────────
+const CAT_PALETTE = ['#7c6fff','#16a34a','#d97706','#e11d48','#0891b2','#7c3aed','#ec4899','#84cc16','#f59e0b','#64748b'];
+
+window.openCategoryColorPicker = function(cat, type) {
+  const existing = document.getElementById('cat-color-picker');
+  if (existing) { existing.remove(); return; }
+
+  const currentClr = getCategoryColor(cat, type);
+  const picker = document.createElement('div');
+  picker.id = 'cat-color-picker';
+  picker.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+
+  picker.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--line2);border-radius:12px;padding:20px;width:280px">
+    <div style="font-size:13px;font-weight:700;color:var(--snow);margin-bottom:4px">Warna Kategori</div>
+    <div style="font-size:11px;color:var(--fog);margin-bottom:14px">Kategori: <b style="color:var(--accent2)">${cat}</b></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+      ${CAT_PALETTE.map(function(c){
+        return '<span onclick="setCategoryColor(\''+cat+'\',\''+type+'\',\''+c+'\');document.getElementById(\'cat-color-picker\').remove()" '
+          +'style="width:28px;height:28px;border-radius:6px;background:'+c+';cursor:pointer;display:inline-block;'
+          +(c===currentClr?'outline:2px solid #fff;outline-offset:2px;':'')+'" title="'+c+'"></span>';
+      }).join('')}
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="setCategoryColor('${cat}','${type}',null);document.getElementById('cat-color-picker').remove()" style="flex:1;padding:8px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:11px">✕ Hapus Warna</button>
+      <button onclick="document.getElementById('cat-color-picker').remove()" style="flex:1;padding:8px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:11px">Batal</button>
+    </div>
+  </div>`;
+
+  document.body.appendChild(picker);
+  picker.addEventListener('click', function(e){ if(e.target===picker) picker.remove(); });
+};
 
 </script>
 </body>
