@@ -3009,8 +3009,14 @@ function renderDelegation(){
   const rows=document.getElementById('deleg-rows');if(!rows)return;
   rows.innerHTML=D.delegations.length===0?`<div class="empty"><div class="empty-ico">◎</div><div class="empty-ttl">Belum ada delegasi</div></div>`
     :[...D.delegations].reverse().map(d=>{const ov=isOv(d.due)&&d.status!=='done';
-      return`<div class="dtable-row"><div><div style="font-size:12px;font-weight:500;color:var(--snow)">${d.name}</div>${d.notes?`<div style="font-size:10px;color:var(--fog)">${d.notes}</div>`:''}</div>
-        <div style="display:flex;align-items:center;gap:7px"><div class="avatar" style="background:var(--teal);color:#000">${d.person?d.person[0].toUpperCase():'?'}</div><span style="font-size:12px;color:var(--mist)">${d.person||'—'}</span></div>
+      const _dc=getCategoryColor(d.category,'deleg');
+      return`<div class="dtable-row" style="${_dc?'border-left:3px solid '+_dc+';padding-left:9px':''};cursor:pointer" onclick="openQuickDetail('deleg','${d.id}')" onmouseenter="this.style.background='var(--ag2)'" onmouseleave="this.style.background=''">
+        <div>
+          <div style="font-size:12px;font-weight:500;color:var(--snow)">${d.name}</div>
+          ${d.notes?`<div style="font-size:10px;color:var(--fog)">${d.notes}</div>`:''}
+          ${d.category?`<span style="font-size:9px;color:${_dc||'var(--fog)'};cursor:pointer" onclick="event.stopPropagation();openCategoryColorPicker('${d.category}','deleg')" title="Klik untuk atur warna">${d.category} 🎨</span>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:7px"><div class="avatar" style="background:${_dc||'var(--teal)'};color:#000">${d.person?d.person[0].toUpperCase():'?'}</div><span style="font-size:12px;color:var(--mist)">${d.person||'—'}</span></div>
         <div><div class="spill ${ov?'overdue':d.status}">${ov?'Terlambat':sLbl(d.status)}</div></div>
         <div class="tdate ${ov?'ov':''}">${FMT(d.due)}</div>
         <div class="item-actions"><div class="pdot ${d.priority}" style="margin-right:2px"></div><button class="act-btn" onclick="doCycleDel('${d.id}')" title="Ganti status">⟳</button><button class="act-btn edit" onclick="openEditDeleg('${d.id}')" title="Edit">✎</button><button class="act-btn ${hasReminder(d.id)?'bell-on':'bell-off'}" onclick="openReminderModal('${d.id}','delegation','${d.name.replace(/'/g,'')}','${d.due||''}')" title="${hasReminder(d.id)?'⏰ Ada reminder aktif':'Tambah reminder'}">🔔</button><button class="act-btn del" onclick="doDelDel('${d.id}')" title="Hapus">✕</button></div>
