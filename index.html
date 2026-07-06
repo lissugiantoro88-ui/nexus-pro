@@ -7106,7 +7106,7 @@ function renderHighlightPanel(projId) {
 
         + '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Issue</div>'
         + '<textarea rows="2" style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:5px 7px;color:var(--snow);font-size:11px;resize:none;box-sizing:border-box;font-family:Inter,sans-serif" '
-        + 'onchange="updateHighlightField(window._hlProjId,' + i + ',\x27issue\x27,this.value)" placeholder="Deskripsi issue...">' + (row.issue||'') + '</textarea></div>'
+        + 'oninput="updateHighlightField(window._hlProjId,' + i + ',\x27issue\x27,this.value)" placeholder="Deskripsi issue...">' + (row.issue||'') + '</textarea></div>'
 
         + '<div style="min-width:90px"><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Impact</div>'
         + '<select style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:5px 6px;color:' + clr + ';font-size:11px;font-weight:700" onchange="updateHighlightField(window._hlProjId,' + i + ',\x27impact\x27,this.value)">'
@@ -7115,11 +7115,11 @@ function renderHighlightPanel(projId) {
 
         + '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Mitigation</div>'
         + '<textarea rows="2" style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:5px 7px;color:var(--snow);font-size:11px;resize:none;box-sizing:border-box;font-family:Inter,sans-serif" '
-        + 'onchange="updateHighlightField(window._hlProjId,' + i + ',\x27mitigation\x27,this.value)" placeholder="Langkah mitigasi...">' + (row.mitigation||'') + '</textarea></div>'
+        + 'oninput="updateHighlightField(window._hlProjId,' + i + ',\x27mitigation\x27,this.value)" placeholder="Langkah mitigasi...">' + (row.mitigation||'') + '</textarea></div>'
 
         + '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">PIC</div>'
         + '<input type="text" value="' + (row.pic||'') + '" style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:5px 7px;color:var(--snow);font-size:11px;box-sizing:border-box" '
-        + 'onchange="updateHighlightField(window._hlProjId,' + i + ',\x27pic\x27,this.value)" placeholder="Nama PIC..."></div>'
+        + 'oninput="updateHighlightField(window._hlProjId,' + i + ',\x27pic\x27,this.value)" placeholder="Nama PIC..."></div>'
 
         + '</div></div>';
     });
@@ -7147,15 +7147,19 @@ window.deleteHighlightRow = async function(projId, idx) {
   renderHighlightPanel(projId);
 };
 
-window.updateHighlightField = async function(projId, idx, field, value) {
+var _hlSaveTimer = {};
+window.updateHighlightField = function(projId, idx, field, value) {
   const proj = D.scProjects.find(function(p){ return p.id === projId; });
   if (!proj) return;
   const rows = proj.highlights ? [...proj.highlights] : [];
   if (!rows[idx]) return;
   rows[idx][field] = value;
   proj.highlights = rows;
-  await saveSCurveProject(uid, projId, { highlights: rows });
-  // Don't re-render panel — keep focus on current field
+  // Debounce Firebase save — 800ms after last keystroke
+  clearTimeout(_hlSaveTimer[projId]);
+  _hlSaveTimer[projId] = setTimeout(async function() {
+    await saveSCurveProject(uid, projId, { highlights: rows });
+  }, 800);
 };
 
 </script>
