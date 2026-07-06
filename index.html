@@ -7069,7 +7069,7 @@ window.switchSCTab = function(tab) {
     renderHighlightPanel(scCurrentProjectId);
   } else {
     if (wbsEl) wbsEl.style.display = '';
-    if (tblHd) tblHd.style.display = '';
+    if (tblHd) tblHd.style.display = 'grid'; // must restore to 'grid', not ''
     if (hlEl)  hlEl.style.display  = 'none';
     if (btn)   { btn.style.background = 'transparent'; btn.style.color = 'var(--accent2)'; btn.textContent = '📌 Highlight'; btn.onclick = function(){ switchSCTab('highlight'); }; }
   }
