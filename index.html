@@ -1499,8 +1499,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
             <button id="sc-hl-tab-btn" onclick="switchSCTab('highlight')" style="font-size:10px;padding:4px 8px;border-radius:var(--rs);border:1px solid var(--accent2);background:transparent;color:var(--accent2);cursor:pointer">📌 Highlight</button>
           </div>
           <!-- Table header -->
-          <div style="display:grid;grid-template-columns:1fr 60px 70px 60px 60px 40px;padding:7px 14px;border-bottom:1px solid var(--line);font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">
-            <div>Item</div><div style="text-align:center">Bobot</div><div style="text-align:center">Nilai</div><div style="text-align:center">Start</div><div style="text-align:center">Finish</div><div></div>
+          <div style="display:grid;grid-template-columns:1fr 60px 70px 60px 60px 40px;padding:6px 14px;border-bottom:2px solid var(--line2);font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.8px;background:var(--bg3)">
+            <div style="padding:2px 0">Item</div>
+            <div style="text-align:center;padding:2px 0;border-left:1px solid var(--line)">Bobot</div>
+            <div style="text-align:center;padding:2px 0;border-left:1px solid var(--line)">Nilai</div>
+            <div style="text-align:center;padding:2px 0;border-left:1px solid var(--line)">Start</div>
+            <div style="text-align:center;padding:2px 0;border-left:1px solid var(--line)">Finish</div>
+            <div style="border-left:1px solid var(--line)"></div>
           </div>
           <div id="sc-wbs-list" style="max-height:320px;overflow-y:auto"></div>
           <div id="sc-highlight-panel" style="display:none;padding:10px 14px;max-height:380px;overflow-y:auto"></div>
@@ -5877,45 +5882,39 @@ window.generateSCurvePDF = function(exportDate) {
   // Behind items for highlight fallback
   var behindItems=items.map(function(it){var pl=getItemPlanAtDate(it,refDate);var ac=getItemActualAtDate(it.id,refDate);return{name:it.name,dev:ac.hasData?Math.round((ac.val-pl)*10)/10:null};}).filter(function(it){return it.dev!==null&&it.dev<0;}).sort(function(a,b){return a.dev-b.dev;});
 
-  // Analysis section
-  var highlightHtml = rtl.highlight
-    ? '<div style="font-size:11px;color:#374151;line-height:1.6">'+rtl.highlight.split('\n').join('<br>')+'</div>'
-    : behindItems.slice(0,4).map(function(it){return '<div style="font-size:11px;color:#374151;margin-bottom:3px;display:flex;justify-content:space-between"><span>'+it.name+'</span><span style="color:#dc2626;font-family:monospace">'+it.dev.toFixed(1)+'%</span></div>';}).join('') || '<div style="font-size:11px;color:#9ca3af">-</div>';
+  // Highlight section — reads from proj.highlights array
+  var _hlRows = proj.highlights || [];
+  var _iClr = {high:'#dc2626',medium:'#d97706',low:'#16a34a'};
+  var _iBg  = {high:'#fee2e2',medium:'#fef3c7',low:'#dcfce7'};
 
-  var actionHtml = rtl.action
-    ? rtl.action.split('\n').filter(Boolean).map(function(l){return '<div style="font-size:11px;color:#374151;margin-bottom:4px">'+l+'</div>';}).join('')
-    : '<div style="font-size:11px;color:#9ca3af;font-style:italic">Belum diisi</div>';
+  function buildHighlightTable(bgHdr, borderClr, titleClr) {
+    if (!_hlRows.length) return '<div style="background:#fff;padding:12px 14px;color:#9ca3af;font-style:italic;font-size:11px">Belum ada highlight.</div>';
+    var trs = _hlRows.map(function(r){
+      var _c=_iClr[r.impact]||'#374151', _b=_iBg[r.impact]||'#f9fafb';
+      return '<tr style="border-bottom:1px solid #f3f4f6">'
+        +'<td style="padding:6px 10px;font-size:10px;color:#374151;vertical-align:top;width:35%">'+(r.issue||'—')+'</td>'
+        +'<td style="padding:6px 10px;text-align:center;vertical-align:top;width:12%"><span style="padding:2px 7px;border-radius:10px;background:'+_b+';color:'+_c+';font-size:9px;font-weight:700">'+(r.impact?(r.impact.charAt(0).toUpperCase()+r.impact.slice(1)):'—')+'</span></td>'
+        +'<td style="padding:6px 10px;font-size:10px;color:#374151;vertical-align:top;width:35%">'+(r.mitigation||'—')+'</td>'
+        +'<td style="padding:6px 10px;font-size:10px;color:#374151;vertical-align:top;width:18%">'+(r.pic||'—')+'</td>'
+        +'</tr>';
+    }).join('');
+    return '<div style="background:#fff;padding:0 14px 12px">'
+      +'<table style="width:100%;border-collapse:collapse;margin-top:6px">'
+      +'<thead><tr style="background:'+bgHdr+';border-bottom:2px solid '+borderClr+'">'
+      +'<th style="padding:5px 10px;font-size:9px;font-weight:700;color:'+titleClr+';text-align:left;text-transform:uppercase;letter-spacing:.5px">Issue</th>'
+      +'<th style="padding:5px 10px;font-size:9px;font-weight:700;color:'+titleClr+';text-align:center;text-transform:uppercase;letter-spacing:.5px">Impact</th>'
+      +'<th style="padding:5px 10px;font-size:9px;font-weight:700;color:'+titleClr+';text-align:left;text-transform:uppercase;letter-spacing:.5px">Mitigation</th>'
+      +'<th style="padding:5px 10px;font-size:9px;font-weight:700;color:'+titleClr+';text-align:left;text-transform:uppercase;letter-spacing:.5px">PIC</th>'
+      +'</tr></thead><tbody>'+trs+'</tbody></table></div>';
+  }
 
   var analysisSection = !hasActual ? '' : isBehind
     ? '<div style="margin-top:16px;border:1px solid #fecaca;border-radius:8px;overflow:hidden">'
       +'<div style="background:#fef2f2;padding:8px 14px;border-bottom:1px solid #fecaca"><div style="font-size:10px;font-weight:700;color:#991b1b;text-transform:uppercase;letter-spacing:.5px">Highlight</div></div>'
-      +(function(){
-      var _proj = D.scProjects.find(function(p){return p.id===projId;});
-      var _rows = (_proj && _proj.highlights) ? _proj.highlights : [];
-      if (!_rows.length) return '<div style="background:#fff;padding:12px 14px;color:#9ca3af;font-style:italic;font-size:11px">Belum ada highlight.</div></div>';
-      var _iClr = {high:'#dc2626',medium:'#d97706',low:'#16a34a'};
-      var _iBg  = {high:'#fee2e2',medium:'#fef3c7',low:'#dcfce7'};
-      var _trs = _rows.map(function(r){
-        var _c=_iClr[r.impact]||'#374151',_b=_iBg[r.impact]||'#f9fafb';
-        return '<tr style="border-bottom:1px solid #f3f4f6">'
-          +'<td style="padding:6px 10px;font-size:10px;color:#374151;vertical-align:top;width:35%">'+(r.issue||'—')+'</td>'
-          +'<td style="padding:6px 10px;text-align:center;vertical-align:top;width:12%"><span style="padding:2px 7px;border-radius:10px;background:'+_b+';color:'+_c+';font-size:9px;font-weight:700">'+(r.impact?(r.impact.charAt(0).toUpperCase()+r.impact.slice(1)):'—')+'</span></td>'
-          +'<td style="padding:6px 10px;font-size:10px;color:#374151;vertical-align:top;width:35%">'+(r.mitigation||'—')+'</td>'
-          +'<td style="padding:6px 10px;font-size:10px;color:#374151;vertical-align:top;width:18%">'+(r.pic||'—')+'</td>'
-          +'</tr>';
-      }).join('');
-      return '<div style="background:#fff;padding:0 14px 12px">'
-        +'<table style="width:100%;border-collapse:collapse;margin-top:6px">'
-        +'<thead><tr style="background:#fef2f2;border-bottom:2px solid #fecaca">'
-        +'<th style="padding:5px 10px;font-size:9px;font-weight:700;color:#991b1b;text-align:left;text-transform:uppercase;letter-spacing:.5px">Issue</th>'
-        +'<th style="padding:5px 10px;font-size:9px;font-weight:700;color:#991b1b;text-align:center;text-transform:uppercase;letter-spacing:.5px">Impact</th>'
-        +'<th style="padding:5px 10px;font-size:9px;font-weight:700;color:#991b1b;text-align:left;text-transform:uppercase;letter-spacing:.5px">Mitigation</th>'
-        +'<th style="padding:5px 10px;font-size:9px;font-weight:700;color:#991b1b;text-align:left;text-transform:uppercase;letter-spacing:.5px">PIC</th>'
-        +'</tr></thead><tbody>'+_trs+'</tbody></table></div></div>';
-    })()
+      +buildHighlightTable('#fef2f2','#fecaca','#991b1b')+'</div>'
     : '<div style="margin-top:16px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px">'
-      +'<div style="font-size:11px;font-weight:700;color:#15803d;margin-bottom:3px">&#10003; Ahead of schedule +'+Math.abs(dev).toFixed(1)+'%</div>'
-      +(rtl.action?'<div style="font-size:11px;color:#374151">'+rtl.action+'</div>':'')
+      +'<div style="font-size:11px;font-weight:700;color:#15803d;margin-bottom:6px">&#10003; Ahead of schedule +'+Math.abs(dev).toFixed(1)+'%</div>'
+      +(_hlRows.length ? buildHighlightTable('#f0fdf4','#bbf7d0','#15803d') : '')
       +'</div>';
 
   // KPI
