@@ -1496,12 +1496,14 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
             <button class="tb-btn" style="font-size:10px;padding:4px 8px" onclick="openSCProjectModal(scCurrentProjectId)">✎ Edit</button>
             <button class="tb-btn" style="font-size:10px;padding:4px 8px;border-color:var(--rose);color:var(--rose)" onclick="deleteSCProj(scCurrentProjectId)">🗑 Hapus</button>
             <button class="tb-btn primary" style="font-size:10px;padding:4px 8px" onclick="openSCItemModal()">+ Item</button>
+            <button id="sc-hl-tab-btn" onclick="switchSCTab('highlight')" style="font-size:10px;padding:4px 8px;border-radius:var(--rs);border:1px solid var(--accent2);background:transparent;color:var(--accent2);cursor:pointer">📌 Highlight</button>
           </div>
           <!-- Table header -->
           <div style="display:grid;grid-template-columns:1fr 60px 70px 60px 60px 40px;padding:7px 14px;border-bottom:1px solid var(--line);font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:1px">
             <div>Item</div><div style="text-align:center">Bobot</div><div style="text-align:center">Nilai</div><div style="text-align:center">Start</div><div style="text-align:center">Finish</div><div></div>
           </div>
           <div id="sc-wbs-list" style="max-height:320px;overflow-y:auto"></div>
+          <div id="sc-highlight-panel" style="display:none;padding:10px 14px;max-height:380px;overflow-y:auto"></div>
           <div style="padding:8px 14px;border-top:1px solid var(--line);background:var(--bg3);display:flex;justify-content:space-between;font-size:11px;font-weight:600">
             <span style="color:var(--mist)">Total Bobot</span>
             <span id="sc-total-weight" style="font-family:'JetBrains Mono',monospace">0%</span>
@@ -5018,6 +5020,62 @@ function renderSCurveGlobal() {
     </div>`;
   }).join('');
 
+  // ── Aggregate Highlight table (global) ──────────────────────────────────
+  (function() {
+    var existingHl = document.getElementById('sc-global-highlight');
+    if (existingHl) existingHl.remove();
+
+    var allHighlights = []; // [{projName, issue, impact, mitigation, pic, projId, rowIdx}]
+    dashProjects.forEach(function(p) {
+      var proj = D.scProjects.find(function(x){ return x.id === p.id; });
+      if (!proj || !proj.highlights || !proj.highlights.length) return;
+      proj.highlights.forEach(function(row, ri) {
+        allHighlights.push({ projName: proj.name, projId: p.id, rowIdx: ri,
+          issue: row.issue||'', impact: row.impact||'medium',
+          mitigation: row.mitigation||'', pic: row.pic||'' });
+      });
+    });
+
+    var container = document.getElementById('sc-scores-list');
+    if (!container) return;
+
+    var impactClr = {high:'var(--rose)',medium:'var(--amber)',low:'var(--lime)'};
+    var impactLbl = {high:'🔴 High',medium:'🟡 Medium',low:'🟢 Low'};
+
+    var hlDiv = document.createElement('div');
+    hlDiv.id = 'sc-global-highlight';
+    hlDiv.style.cssText = 'margin-top:12px;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);overflow:hidden';
+
+    var headerHtml = '<div style="padding:10px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between">'
+      + '<div style="font-size:12px;font-weight:700;color:var(--snow)">📌 Highlight</div>'
+      + '</div>';
+
+    if (!allHighlights.length) {
+      hlDiv.innerHTML = headerHtml + '<div style="padding:16px 14px;color:var(--fog);font-size:12px;text-align:center">Belum ada highlight di semua project.</div>';
+    } else {
+      var rows = allHighlights.map(function(h) {
+        var iClr = impactClr[h.impact] || 'var(--fog)';
+        return '<div style="display:grid;grid-template-columns:120px 1fr 80px 1fr 100px;gap:0;border-bottom:1px solid var(--line);align-items:stretch">'
+          + '<div style="padding:8px 10px;font-size:10px;font-weight:600;color:var(--accent2);border-right:1px solid var(--line);background:var(--bg3)">' + h.projName.replace('VALVE ','') + '</div>'
+          + '<div style="padding:8px 10px;font-size:11px;color:var(--snow);border-right:1px solid var(--line)">' + (h.issue||'—') + '</div>'
+          + '<div style="padding:8px 6px;font-size:10px;font-weight:700;color:'+iClr+';text-align:center;border-right:1px solid var(--line)">' + (impactLbl[h.impact]||'—') + '</div>'
+          + '<div style="padding:8px 10px;font-size:11px;color:var(--mist);border-right:1px solid var(--line)">' + (h.mitigation||'—') + '</div>'
+          + '<div style="padding:8px 10px;font-size:11px;color:var(--fog)">' + (h.pic||'—') + '</div>'
+          + '</div>';
+      }).join('');
+
+      var thead = '<div style="display:grid;grid-template-columns:120px 1fr 80px 1fr 100px;gap:0;border-bottom:1px solid var(--line2);background:var(--bg3)">'
+        + ['Project','Issue','Impact','Mitigation','PIC'].map(function(h){
+            return '<div style="padding:6px 10px;font-size:9px;font-weight:700;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;border-right:1px solid var(--line)">' + h + '</div>';
+          }).join('')
+        + '</div>';
+
+      hlDiv.innerHTML = headerHtml + thead + rows;
+    }
+
+    container.appendChild(hlDiv);
+  })();
+
   document.getElementById('sc-actual-input-list').innerHTML =
     '<div style="padding:14px;color:var(--fog);font-size:12px;text-align:center">' +
     '<div style="font-size:24px;margin-bottom:8px">◬</div>' +
@@ -5659,17 +5717,8 @@ window.generateSCurvePDF = function(exportDate) {
   const actuals  = D.scActuals[projId] || [];
   const iActuals = D.scItemActuals[projId] || {};
   const refDate  = exportDate || getSCRefDate();
-  // Read RTL directly from DOM (in case user hasn't triggered onchange yet)
-  const rtlFromDom = {
-    highlight: (document.getElementById('sc-rtl-highlight') || {}).value || '',
-    action:    (document.getElementById('sc-rtl-action')    || {}).value || '',
-    target:    (document.getElementById('sc-rtl-target')    || {}).value || '',
-  };
-  // Use DOM values if any field is filled, else fall back to saved proj.rtl
-  const rtlSaved = proj.rtl || {};
-  const rtl = (rtlFromDom.highlight || rtlFromDom.action || rtlFromDom.target)
-    ? rtlFromDom
-    : rtlSaved;
+  // Highlights stored per-project in proj.highlights array
+  const highlights = proj.highlights || [];
 
   const allPeriods = generatePeriods(proj.startDate, proj.finishDate, 'day');
 
@@ -5839,16 +5888,31 @@ window.generateSCurvePDF = function(exportDate) {
 
   var analysisSection = !hasActual ? '' : isBehind
     ? '<div style="margin-top:16px;border:1px solid #fecaca;border-radius:8px;overflow:hidden">'
-      +'<div style="background:#fef2f2;padding:8px 14px;border-bottom:1px solid #fecaca"><div style="font-size:10px;font-weight:700;color:#991b1b;text-transform:uppercase;letter-spacing:.5px">Analisis keterlambatan &amp; rencana tindak lanjut</div></div>'
-      +'<div style="background:#fff;padding:12px 14px"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">'
-      +'<div style="padding:10px 12px;border-radius:6px;border:1px solid #fee2e2"><div style="font-size:9px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Highlight</div>'+highlightHtml+'</div>'
-      +'<div style="padding:10px 12px;border-radius:6px;border:1px solid #fde68a"><div style="font-size:9px;font-weight:700;color:#d97706;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Rencana tindak lanjut</div>'+actionHtml+'</div>'
-      +'<div style="padding:10px 12px;border-radius:6px;border:1px solid #e9d5ff"><div style="font-size:9px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Target</div>'
-      +'<div style="font-size:11px;color:#374151;margin-bottom:4px;display:flex;justify-content:space-between"><span>Sisa durasi</span><b>'+remDays+' hari</b></div>'
-      +'<div style="font-size:11px;color:#374151;margin-bottom:4px;display:flex;justify-content:space-between"><span>Perlu kejar</span><b style="color:#dc2626">'+Math.abs(dev).toFixed(1)+'%</b></div>'
-      +'<div style="font-size:11px;color:#374151;margin-bottom:'+(rtl.target?8:0)+'px;display:flex;justify-content:space-between"><span>Rate/hari</span><b>'+(remDays>0?(Math.abs(dev)/remDays).toFixed(2):'-')+'%</b></div>'
-      +(rtl.target?'<div style="font-size:11px;color:#374151;border-top:1px dashed #e5e7eb;padding-top:6px">'+rtl.target+'</div>':'')
-      +'</div></div></div></div>'
+      +'<div style="background:#fef2f2;padding:8px 14px;border-bottom:1px solid #fecaca"><div style="font-size:10px;font-weight:700;color:#991b1b;text-transform:uppercase;letter-spacing:.5px">Highlight</div></div>'
+      +(function(){
+      var _proj = D.scProjects.find(function(p){return p.id===projId;});
+      var _rows = (_proj && _proj.highlights) ? _proj.highlights : [];
+      if (!_rows.length) return '<div style="background:#fff;padding:12px 14px;color:#9ca3af;font-style:italic;font-size:11px">Belum ada highlight.</div></div>';
+      var _iClr = {high:'#dc2626',medium:'#d97706',low:'#16a34a'};
+      var _iBg  = {high:'#fee2e2',medium:'#fef3c7',low:'#dcfce7'};
+      var _trs = _rows.map(function(r){
+        var _c=_iClr[r.impact]||'#374151',_b=_iBg[r.impact]||'#f9fafb';
+        return '<tr style="border-bottom:1px solid #f3f4f6">'
+          +'<td style="padding:6px 10px;font-size:10px;color:#374151;vertical-align:top;width:35%">'+(r.issue||'—')+'</td>'
+          +'<td style="padding:6px 10px;text-align:center;vertical-align:top;width:12%"><span style="padding:2px 7px;border-radius:10px;background:'+_b+';color:'+_c+';font-size:9px;font-weight:700">'+(r.impact?(r.impact.charAt(0).toUpperCase()+r.impact.slice(1)):'—')+'</span></td>'
+          +'<td style="padding:6px 10px;font-size:10px;color:#374151;vertical-align:top;width:35%">'+(r.mitigation||'—')+'</td>'
+          +'<td style="padding:6px 10px;font-size:10px;color:#374151;vertical-align:top;width:18%">'+(r.pic||'—')+'</td>'
+          +'</tr>';
+      }).join('');
+      return '<div style="background:#fff;padding:0 14px 12px">'
+        +'<table style="width:100%;border-collapse:collapse;margin-top:6px">'
+        +'<thead><tr style="background:#fef2f2;border-bottom:2px solid #fecaca">'
+        +'<th style="padding:5px 10px;font-size:9px;font-weight:700;color:#991b1b;text-align:left;text-transform:uppercase;letter-spacing:.5px">Issue</th>'
+        +'<th style="padding:5px 10px;font-size:9px;font-weight:700;color:#991b1b;text-align:center;text-transform:uppercase;letter-spacing:.5px">Impact</th>'
+        +'<th style="padding:5px 10px;font-size:9px;font-weight:700;color:#991b1b;text-align:left;text-transform:uppercase;letter-spacing:.5px">Mitigation</th>'
+        +'<th style="padding:5px 10px;font-size:9px;font-weight:700;color:#991b1b;text-align:left;text-transform:uppercase;letter-spacing:.5px">PIC</th>'
+        +'</tr></thead><tbody>'+_trs+'</tbody></table></div></div>';
+    })()
     : '<div style="margin-top:16px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px">'
       +'<div style="font-size:11px;font-weight:700;color:#15803d;margin-bottom:3px">&#10003; Ahead of schedule +'+Math.abs(dev).toFixed(1)+'%</div>'
       +(rtl.action?'<div style="font-size:11px;color:#374151">'+rtl.action+'</div>':'')
@@ -6162,6 +6226,30 @@ window.generateDashboardPDF = function(exportDate) {
           +'Δ dev vs '+cmpLbl+': '+(dv>=0?'+':'')+dv.toFixed(1)+'% '+(dv>0?'↑ Mengecil':dv<0?'↓ Melebar':'→ Stabil')+'</div>';
       })()
       +'</div>'
+      +(function(){
+        // Highlight table per project
+        var _hp = D.scProjects.find(function(p){return p.id===s.proj.id;});
+        var _hr = (_hp && _hp.highlights) ? _hp.highlights : [];
+        if (_hr.length) {
+          var _iC = {high:'#dc2626',medium:'#d97706',low:'#16a34a'};
+          var _iB = {high:'#fee2e2',medium:'#fef3c7',low:'#dcfce7'};
+          return '<div style="margin-top:6px;border-top:1px solid #f3f4f6;padding-top:6px">'
+            +'<div style="font-size:8px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">📌 Highlight</div>'
+            +'<table style="width:100%;border-collapse:collapse;font-size:9px">'
+            +'<tr style="background:#f9fafb"><th style="padding:3px 6px;text-align:left;color:#6b7280;font-weight:600">Issue</th><th style="padding:3px 6px;text-align:center;color:#6b7280;font-weight:600">Impact</th><th style="padding:3px 6px;text-align:left;color:#6b7280;font-weight:600">Mitigation</th><th style="padding:3px 6px;text-align:left;color:#6b7280;font-weight:600">PIC</th></tr>'
+            +_hr.map(function(r){
+              var c=_iC[r.impact]||'#374151',b=_iB[r.impact]||'#f9fafb';
+              return '<tr style="border-bottom:1px solid #f9fafb">'
+                +'<td style="padding:3px 6px;color:#374151">'+(r.issue||'—')+'</td>'
+                +'<td style="padding:3px 6px;text-align:center"><span style="padding:1px 5px;border-radius:8px;background:'+b+';color:'+c+';font-weight:700">'+(r.impact||'—')+'</span></td>'
+                +'<td style="padding:3px 6px;color:#374151">'+(r.mitigation||'—')+'</td>'
+                +'<td style="padding:3px 6px;color:#374151">'+(r.pic||'—')+'</td>'
+                +'</tr>';
+            }).join('')
+            +'</table></div>';
+        }
+        return '';
+      })()
       +(function(){
         // Show behind items if project is behind
         if (dev >= 0 || dev === null) return '</div>';
@@ -6961,6 +7049,114 @@ window.openCategoryColorPicker = function(cat, type) {
 
   document.body.appendChild(picker);
   picker.addEventListener('click', function(e){ if(e.target===picker) picker.remove(); });
+};
+
+
+// ── HIGHLIGHT SYSTEM ─────────────────────────────────────────────────────────
+let _scTab = 'wbs'; // 'wbs' or 'highlight'
+
+window.switchSCTab = function(tab) {
+  _scTab = tab;
+  const wbsEl = document.getElementById('sc-wbs-list');
+  const hlEl  = document.getElementById('sc-highlight-panel');
+  const tblHd = wbsEl ? wbsEl.previousElementSibling : null;
+  const btn   = document.getElementById('sc-hl-tab-btn');
+
+  if (tab === 'highlight') {
+    if (wbsEl) wbsEl.style.display = 'none';
+    if (tblHd) tblHd.style.display = 'none';
+    if (hlEl)  hlEl.style.display  = 'block';
+    if (btn)   { btn.style.background = 'var(--accent2)'; btn.style.color = '#fff'; btn.textContent = '📋 WBS'; btn.onclick = function(){ switchSCTab('wbs'); }; }
+    renderHighlightPanel(scCurrentProjectId);
+  } else {
+    if (wbsEl) wbsEl.style.display = '';
+    if (tblHd) tblHd.style.display = '';
+    if (hlEl)  hlEl.style.display  = 'none';
+    if (btn)   { btn.style.background = 'transparent'; btn.style.color = 'var(--accent2)'; btn.textContent = '📌 Highlight'; btn.onclick = function(){ switchSCTab('highlight'); }; }
+  }
+};
+
+function getProjectHighlights(projId) {
+  const proj = D.scProjects.find(function(p){ return p.id === projId; });
+  if (!proj) return [];
+  return proj.highlights || [];
+}
+
+function renderHighlightPanel(projId) {
+  const el = document.getElementById('sc-highlight-panel');
+  if (!el || !projId || projId === '__global__') return;
+  window._hlProjId = projId;
+
+  const highlights = getProjectHighlights(projId);
+  const impactClr = {high:'var(--rose)',medium:'var(--amber)',low:'var(--lime)'};
+  const impactLbl = {high:'🔴 High',medium:'🟡 Medium',low:'🟢 Low'};
+
+  let html = '<div style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">'
+    + '<div style="font-size:12px;font-weight:700;color:var(--snow)">📌 Highlight</div>'
+    + '<button onclick="addHighlightRow(window._hlProjId)" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:11px">+ Issue</button>'
+    + '</div>';
+
+  if (!highlights.length) {
+    html += '<div style="color:var(--fog);font-size:12px;text-align:center;padding:20px 0">Belum ada highlight. Klik "+ Issue" untuk menambah.</div>';
+  } else {
+    highlights.forEach(function(row, i) {
+      const clr = impactClr[row.impact] || 'var(--fog)';
+      html += '<div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:10px 12px;margin-bottom:8px;position:relative">'
+        + '<button onclick="deleteHighlightRow(window._hlProjId,' + i + ')" style="position:absolute;top:6px;right:8px;background:none;border:none;color:var(--fog);cursor:pointer;font-size:11px">✕</button>'
+        + '<div style="display:grid;grid-template-columns:1fr auto 1fr 1fr;gap:8px;align-items:start">'
+
+        + '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Issue</div>'
+        + '<textarea rows="2" style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:5px 7px;color:var(--snow);font-size:11px;resize:none;box-sizing:border-box;font-family:Inter,sans-serif" '
+        + 'onchange="updateHighlightField(window._hlProjId,' + i + ',\x27issue\x27,this.value)" placeholder="Deskripsi issue...">' + (row.issue||'') + '</textarea></div>'
+
+        + '<div style="min-width:90px"><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Impact</div>'
+        + '<select style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:5px 6px;color:' + clr + ';font-size:11px;font-weight:700" onchange="updateHighlightField(window._hlProjId,' + i + ',\x27impact\x27,this.value)">'
+        + ['high','medium','low'].map(function(o){return '<option value="'+o+'"'+(row.impact===o?' selected':'')+'>'+(impactLbl[o])+'</option>';}).join('')
+        + '</select></div>'
+
+        + '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Mitigation</div>'
+        + '<textarea rows="2" style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:5px 7px;color:var(--snow);font-size:11px;resize:none;box-sizing:border-box;font-family:Inter,sans-serif" '
+        + 'onchange="updateHighlightField(window._hlProjId,' + i + ',\x27mitigation\x27,this.value)" placeholder="Langkah mitigasi...">' + (row.mitigation||'') + '</textarea></div>'
+
+        + '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">PIC</div>'
+        + '<input type="text" value="' + (row.pic||'') + '" style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:5px 7px;color:var(--snow);font-size:11px;box-sizing:border-box" '
+        + 'onchange="updateHighlightField(window._hlProjId,' + i + ',\x27pic\x27,this.value)" placeholder="Nama PIC..."></div>'
+
+        + '</div></div>';
+    });
+  }
+  el.innerHTML = html;
+}
+
+window.addHighlightRow = async function(projId) {
+  const proj = D.scProjects.find(function(p){ return p.id === projId; });
+  if (!proj) return;
+  const rows = proj.highlights ? [...proj.highlights] : [];
+  rows.push({ issue: '', impact: 'medium', mitigation: '', pic: '' });
+  proj.highlights = rows;
+  await saveSCurveProject(uid, projId, { highlights: rows });
+  renderHighlightPanel(projId);
+};
+
+window.deleteHighlightRow = async function(projId, idx) {
+  const proj = D.scProjects.find(function(p){ return p.id === projId; });
+  if (!proj) return;
+  const rows = proj.highlights ? [...proj.highlights] : [];
+  rows.splice(idx, 1);
+  proj.highlights = rows;
+  await saveSCurveProject(uid, projId, { highlights: rows });
+  renderHighlightPanel(projId);
+};
+
+window.updateHighlightField = async function(projId, idx, field, value) {
+  const proj = D.scProjects.find(function(p){ return p.id === projId; });
+  if (!proj) return;
+  const rows = proj.highlights ? [...proj.highlights] : [];
+  if (!rows[idx]) return;
+  rows[idx][field] = value;
+  proj.highlights = rows;
+  await saveSCurveProject(uid, projId, { highlights: rows });
+  // Don't re-render panel — keep focus on current field
 };
 
 </script>
