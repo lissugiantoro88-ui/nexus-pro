@@ -4383,7 +4383,10 @@ function drawSCurve(periods, planned, actual, todayIdx) {
     ctx.fillStyle = amberClr;
     ctx.font = '9px Inter, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('TODAY', tx, PAD.top - 6);
+    var _todayLbl = (periods[todayIdx] && periods[todayIdx].key)
+      ? periods[todayIdx].key.slice(8)+'/'+periods[todayIdx].key.slice(5,7)
+      : 'Hari ini';
+    ctx.fillText(_todayLbl, tx, PAD.top - 6);
   }
 
   // ── PLANNED CURVE ──
@@ -5088,7 +5091,10 @@ function drawGlobalOverlayChart(statuses, refDate) {
     ctx.beginPath(); ctx.moveTo(refX, PAD.top); ctx.lineTo(refX, PAD.top+chartH); ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = amberClr; ctx.font = '9px Inter, sans-serif'; ctx.textAlign='center';
-    ctx.fillText('REF', refX, PAD.top-8);
+    var _refLbl = (typeof refDate !== 'undefined' && refDate)
+      ? refDate.slice(8)+'/'+refDate.slice(5,7)
+      : 'REF';
+    ctx.fillText(_refLbl, refX, PAD.top-8);
   }
 
   // X axis labels (start / mid / end of overall range)
