@@ -7090,9 +7090,11 @@ function renderHighlightPanel(projId) {
   const impactClr = {high:'var(--rose)',medium:'var(--amber)',low:'var(--lime)'};
   const impactLbl = {high:'🔴 High',medium:'🟡 Medium',low:'🟢 Low'};
 
+  // Embed projId directly — don't rely on window._hlProjId which can be stale
+  const _pid = projId;
   let html = '<div style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">'
     + '<div style="font-size:12px;font-weight:700;color:var(--snow)">📌 Highlight</div>'
-    + '<button onclick="addHighlightRow(window._hlProjId)" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:11px">+ Issue</button>'
+    + '<button onclick="addHighlightRow(\'' + _pid + '\')" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:11px">+ Issue</button>'
     + '</div>';
 
   if (!highlights.length) {
@@ -7101,25 +7103,25 @@ function renderHighlightPanel(projId) {
     highlights.forEach(function(row, i) {
       const clr = impactClr[row.impact] || 'var(--fog)';
       html += '<div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:10px 12px;margin-bottom:8px;position:relative">'
-        + '<button onclick="deleteHighlightRow(window._hlProjId,' + i + ')" style="position:absolute;top:6px;right:8px;background:none;border:none;color:var(--fog);cursor:pointer;font-size:11px">✕</button>'
+        + '<button onclick="deleteHighlightRow(\'' + _pid + '\',' + i + ')" style="position:absolute;top:6px;right:8px;background:none;border:none;color:var(--fog);cursor:pointer;font-size:11px">✕</button>'
         + '<div style="display:grid;grid-template-columns:1fr auto 1fr 1fr;gap:8px;align-items:start">'
 
         + '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Issue</div>'
         + '<textarea rows="2" style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:5px 7px;color:var(--snow);font-size:11px;resize:none;box-sizing:border-box;font-family:Inter,sans-serif" '
-        + 'oninput="updateHighlightField(window._hlProjId,' + i + ',\x27issue\x27,this.value)" placeholder="Deskripsi issue...">' + (row.issue||'') + '</textarea></div>'
+        + 'oninput="updateHighlightField(\'' + _pid + '\',' + i + ',\x27issue\x27,this.value)" placeholder="Deskripsi issue...">' + (row.issue||'') + '</textarea></div>'
 
         + '<div style="min-width:90px"><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Impact</div>'
-        + '<select style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:5px 6px;color:' + clr + ';font-size:11px;font-weight:700" onchange="updateHighlightField(window._hlProjId,' + i + ',\x27impact\x27,this.value)">'
+        + '<select style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:5px 6px;color:' + clr + ';font-size:11px;font-weight:700" onchange="updateHighlightField(\'' + _pid + '\',' + i + ',\x27impact\x27,this.value)">'
         + ['high','medium','low'].map(function(o){return '<option value="'+o+'"'+(row.impact===o?' selected':'')+'>'+(impactLbl[o])+'</option>';}).join('')
         + '</select></div>'
 
         + '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Mitigation</div>'
         + '<textarea rows="2" style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:5px 7px;color:var(--snow);font-size:11px;resize:none;box-sizing:border-box;font-family:Inter,sans-serif" '
-        + 'oninput="updateHighlightField(window._hlProjId,' + i + ',\x27mitigation\x27,this.value)" placeholder="Langkah mitigasi...">' + (row.mitigation||'') + '</textarea></div>'
+        + 'oninput="updateHighlightField(\'' + _pid + '\',' + i + ',\x27mitigation\x27,this.value)" placeholder="Langkah mitigasi...">' + (row.mitigation||'') + '</textarea></div>'
 
         + '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">PIC</div>'
         + '<input type="text" value="' + (row.pic||'') + '" style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:5px 7px;color:var(--snow);font-size:11px;box-sizing:border-box" '
-        + 'oninput="updateHighlightField(window._hlProjId,' + i + ',\x27pic\x27,this.value)" placeholder="Nama PIC..."></div>'
+        + 'oninput="updateHighlightField(\'' + _pid + '\',' + i + ',\x27pic\x27,this.value)" placeholder="Nama PIC..."></div>'
 
         + '</div></div>';
     });
