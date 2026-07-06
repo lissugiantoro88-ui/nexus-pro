@@ -4702,8 +4702,6 @@ function renderSCurve() {
 
   renderWBSList(projId, items, proj);
   renderActualInputs(projId, items, actuals, periods);
-  // Always refresh highlight panel with current project — prevents stale data
-  renderHighlightPanel(projId);
 }
 
 // ── DASHBOARD CUSTOMIZATION: select & reorder projects ───────────────────────
@@ -4842,6 +4840,18 @@ window.openDashboardConfigModal = function() {
 
 
 function renderSCurveGlobal() {
+  // Hide individual-project panels when switching to global
+  const _hlPanelG = document.getElementById('sc-highlight-panel');
+  if (_hlPanelG) _hlPanelG.style.display = 'none';
+  const _wbsListG = document.getElementById('sc-wbs-list');
+  if (_wbsListG) _wbsListG.style.display = 'none';
+  // Hide WBS table header too
+  if (_wbsListG && _wbsListG.previousElementSibling) _wbsListG.previousElementSibling.style.display = 'none';
+  // Reset tab button
+  const _tabBtn = document.getElementById('sc-hl-tab-btn');
+  if (_tabBtn) { _tabBtn.textContent = '📌 Highlight'; _tabBtn.style.background = 'transparent'; _tabBtn.style.color = 'var(--accent2)'; _tabBtn.onclick = function(){ switchSCTab('highlight'); }; }
+  _scTab = 'wbs';
+
   const dashProjects = getDashboardProjects();
   document.getElementById('sc-chart-sub').innerHTML =
     `${dashProjects.length} dari ${D.scProjects.length} project ditampilkan ` +
@@ -7068,8 +7078,7 @@ window.switchSCTab = function(tab) {
     if (tblHd) tblHd.style.display = 'none';
     if (hlEl)  hlEl.style.display  = 'block';
     if (btn)   { btn.style.background = 'var(--accent2)'; btn.style.color = '#fff'; btn.textContent = '📋 WBS'; btn.onclick = function(){ switchSCTab('wbs'); }; }
-    // Always force-refresh with current project ID when tab is opened
-    renderHighlightPanel(scCurrentProjectId || '');
+    renderHighlightPanel(scCurrentProjectId);
   } else {
     if (wbsEl) wbsEl.style.display = '';
     if (tblHd) tblHd.style.display = 'grid'; // must restore to 'grid', not ''
