@@ -4840,18 +4840,6 @@ window.openDashboardConfigModal = function() {
 
 
 function renderSCurveGlobal() {
-  // Hide individual-project panels when switching to global
-  const _hlPanelG = document.getElementById('sc-highlight-panel');
-  if (_hlPanelG) _hlPanelG.style.display = 'none';
-  const _wbsListG = document.getElementById('sc-wbs-list');
-  if (_wbsListG) _wbsListG.style.display = 'none';
-  // Hide WBS table header too
-  if (_wbsListG && _wbsListG.previousElementSibling) _wbsListG.previousElementSibling.style.display = 'none';
-  // Reset tab button
-  const _tabBtn = document.getElementById('sc-hl-tab-btn');
-  if (_tabBtn) { _tabBtn.textContent = '📌 Highlight'; _tabBtn.style.background = 'transparent'; _tabBtn.style.color = 'var(--accent2)'; _tabBtn.onclick = function(){ switchSCTab('highlight'); }; }
-  _scTab = 'wbs';
-
   const dashProjects = getDashboardProjects();
   document.getElementById('sc-chart-sub').innerHTML =
     `${dashProjects.length} dari ${D.scProjects.length} project ditampilkan ` +
@@ -5950,7 +5938,7 @@ window.generateSCurvePDF = function(exportDate) {
   }).join('');
 
   var html = '<!DOCTYPE html>\n<html lang="id"><head><meta charset="UTF-8">'
-    +'<title>S-Curve Report</title>'
+    +'<title>'+(exportDate||TS()).slice(8)+(exportDate||TS()).slice(5,7)+(exportDate||TS()).slice(0,4)+' S-Curve '+proj.name+'</title>'
     +'<style>@page{margin:12mm 10mm}body{font-family:-apple-system,Segoe UI,sans-serif;color:#111;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>'
     +'</head><body><div style="max-width:760px;margin:0 auto;padding:0 0 24px">'
     +'<div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:10px;margin-bottom:14px;border-bottom:2px solid #e5e7eb">'
@@ -6304,7 +6292,7 @@ window.generateDashboardPDF = function(exportDate) {
   }).join('');
 
   const html = '<!DOCTYPE html>\n<html lang="id"><head><meta charset="UTF-8">'
-    +'<title>Dashboard Gabungan S-Curve</title>'
+    +'<title>'+(refDate||TS()).slice(8)+(refDate||TS()).slice(5,7)+(refDate||TS()).slice(0,4)+' Dashboard Gabungan S-Curve</title>'
     +'<style>@page{margin:12mm 10mm}body{font-family:-apple-system,Segoe UI,sans-serif;color:#111;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>'
     +'</head><body><div style="max-width:760px;margin:0 auto;padding:0 0 24px">'
 
@@ -6726,7 +6714,7 @@ window.generateVMBoard = function(exportDate, projectsOverride) {
   const refDateStr = refDt.getDate() + ' ' + months[refDt.getMonth()] + ' ' + refDt.getFullYear();
 
   const html = '<!DOCTYPE html>\n<html lang="id"><head><meta charset="UTF-8">'
-    +'<title>Visual Management Board</title>'
+    +'<title>'+(refDate||TS()).slice(8)+(refDate||TS()).slice(5,7)+(refDate||TS()).slice(0,4)+(isIndividual&&dashProjects.length===1?' VM '+dashProjects[0].name:' VM Gabungan Valve Slurry')+'</title>'
     +'<style>'
     +'@page{margin:10mm 10mm;size:A4 landscape}'
     +'body{font-family:-apple-system,Segoe UI,sans-serif;color:#111;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;margin:0}'
