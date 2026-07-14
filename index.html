@@ -3044,6 +3044,16 @@ function renderDelegation(){
         <div class="tdate ${ov?'ov':''}">${FMT(d.due)}</div>
         <div class="item-actions"><div class="pdot ${d.priority}" style="margin-right:2px"></div><button class="act-btn" onclick="doCycleDel('${d.id}')" title="Ganti status">⟳</button><button class="act-btn edit" onclick="openEditDeleg('${d.id}')" title="Edit">✎</button><button class="act-btn ${hasReminder(d.id)?'bell-on':'bell-off'}" onclick="openReminderModal('${d.id}','delegation','${d.name.replace(/'/g,'')}','${d.due||''}')" title="${hasReminder(d.id)?'⏰ Ada reminder aktif':'Tambah reminder'}">🔔</button><button class="act-btn del" onclick="doDelDel('${d.id}')" title="Hapus">✕</button></div>
       </div>`;}).join('');
+  // Apply person filter if active
+  if (typeof _delegFilterPerson !== 'undefined' && _delegFilterPerson) {
+    rows.querySelectorAll('[data-person]').forEach(function(row) {
+      row.style.display = (row.dataset.person === _delegFilterPerson) ? '' : 'none';
+    });
+  }
+  // Refresh load panel if visible
+  if (typeof _delegTab !== 'undefined' && _delegTab === 'load' && typeof renderDelegLoad === 'function') {
+    renderDelegLoad();
+  }
 }
 window.doCycleDel = async id => {
   const d=D.delegations.find(d=>d.id===id);if(!d)return;
@@ -7202,8 +7212,8 @@ window.switchDelegTab = function(tab) {
     if (loadPanel) loadPanel.style.display = 'none';
     if (tabList)  { tabList.style.background='var(--accent)'; tabList.style.color='#fff'; tabList.style.borderColor='var(--accent)'; }
     if (tabLoad)  { tabLoad.style.background='transparent'; tabLoad.style.color='var(--fog)'; tabLoad.style.borderColor='var(--line)'; }
-    // Re-render delegation list (applies filter if active)
-    if (window.renderDelegation) window.renderDelegation();
+    // Re-render delegation list (filter applied inside renderDelegation)
+    renderDelegation();
   }
 };
 
@@ -7370,21 +7380,7 @@ function renderDelegLoad() {
   el.innerHTML = html;
 }
 
-// After renderDelegation runs, apply person filter and refresh load panel
-const _origRenderDeleg = window.renderDelegation;
-window.renderDelegation = function() {
-  _origRenderDeleg();
-  // Apply person filter using data-person attribute
-  if (_delegFilterPerson) {
-    const rows = document.getElementById('deleg-rows');
-    if (!rows) return;
-    rows.querySelectorAll('[data-person]').forEach(function(row) {
-      row.style.display = (row.dataset.person === _delegFilterPerson) ? '' : 'none';
-    });
-  }
-  // Refresh load panel if visible
-  if (_delegTab === 'load') renderDelegLoad();
-};
+// Filter logic moved into renderDelegation() directly
 
 </script>
 </body>
