@@ -3036,7 +3036,7 @@ function renderDelegation(){
       return`<div class="dtable-row" data-person="${d.person||''}" style="${_dc?'border-left:3px solid '+_dc+';padding-left:9px':''};cursor:pointer" onclick="openQuickDetail('deleg','${d.id}')" onmouseenter="this.style.background='var(--ag2)'" onmouseleave="this.style.background=''">
         <div>
           <div style="font-size:12px;font-weight:500;color:var(--snow)">${d.name}</div>
-          ${d.notes?`<div style="font-size:10px;color:var(--fog)">${d.notes}</div>`:''}
+          ${d.notes?`<div style="font-size:10px;color:var(--fog);white-space:pre-wrap;line-height:1.5">${d.notes}</div>`:''}
           ${d.category?`<span style="font-size:9px;color:${_dc||'var(--fog)'};cursor:pointer" onclick="event.stopPropagation();openCategoryColorPicker('${d.category}','deleg')" title="Klik untuk atur warna">${d.category} 🎨</span>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:7px"><div class="avatar" style="background:${_dc||'var(--teal)'};color:#000">${d.person?d.person[0].toUpperCase():'?'}</div><span style="font-size:12px;color:var(--mist)">${d.person||'—'}</span></div>
