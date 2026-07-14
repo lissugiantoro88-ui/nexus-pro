@@ -1295,7 +1295,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
         <div style="display:flex;gap:6px;align-items:center">
           <button id="deleg-tab-list" onclick="switchDelegTab('list')" style="padding:5px 14px;border-radius:20px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-size:11px;font-weight:600">☰ List</button>
           <button id="deleg-tab-load" onclick="switchDelegTab('load')" style="padding:5px 14px;border-radius:20px;border:1px solid var(--line);background:transparent;color:var(--fog);cursor:pointer;font-size:11px">⚡ Load Analysis</button>
-          <button onclick="openNewDeleg()" style="padding:5px 14px;border-radius:20px;border:none;background:var(--limed);color:var(--lime);cursor:pointer;font-size:11px;font-weight:600">+ Delegasi</button>
+
         </div>
       </div>
       <!-- Filter bar -->
@@ -3033,7 +3033,7 @@ function renderDelegation(){
   rows.innerHTML=D.delegations.length===0?`<div class="empty"><div class="empty-ico">◎</div><div class="empty-ttl">Belum ada delegasi</div></div>`
     :[...D.delegations].reverse().map(d=>{const ov=isOv(d.due)&&d.status!=='done';
       const _dc=getCategoryColor(d.category,'deleg');
-      return`<div class="dtable-row" style="${_dc?'border-left:3px solid '+_dc+';padding-left:9px':''};cursor:pointer" onclick="openQuickDetail('deleg','${d.id}')" onmouseenter="this.style.background='var(--ag2)'" onmouseleave="this.style.background=''">
+      return`<div class="dtable-row" data-person="${d.person||''}" style="${_dc?'border-left:3px solid '+_dc+';padding-left:9px':''};cursor:pointer" onclick="openQuickDetail('deleg','${d.id}')" onmouseenter="this.style.background='var(--ag2)'" onmouseleave="this.style.background=''">
         <div>
           <div style="font-size:12px;font-weight:500;color:var(--snow)">${d.name}</div>
           ${d.notes?`<div style="font-size:10px;color:var(--fog)">${d.notes}</div>`:''}
@@ -7202,6 +7202,8 @@ window.switchDelegTab = function(tab) {
     if (loadPanel) loadPanel.style.display = 'none';
     if (tabList)  { tabList.style.background='var(--accent)'; tabList.style.color='#fff'; tabList.style.borderColor='var(--accent)'; }
     if (tabLoad)  { tabLoad.style.background='transparent'; tabLoad.style.color='var(--fog)'; tabLoad.style.borderColor='var(--line)'; }
+    // Re-render delegation list (applies filter if active)
+    if (window.renderDelegation) window.renderDelegation();
   }
 };
 
@@ -7368,24 +7370,16 @@ function renderDelegLoad() {
   el.innerHTML = html;
 }
 
-// Override renderDelegation to support person filter
+// After renderDelegation runs, apply person filter and refresh load panel
 const _origRenderDeleg = window.renderDelegation;
 window.renderDelegation = function() {
   _origRenderDeleg();
-  // Apply person filter if active
+  // Apply person filter using data-person attribute
   if (_delegFilterPerson) {
     const rows = document.getElementById('deleg-rows');
     if (!rows) return;
-    const allRows = rows.querySelectorAll('.dtable-row');
-    allRows.forEach(function(row) {
-      // Check if this row belongs to filtered person
-      const personCell = row.querySelector('.dmi-who, .avatar');
-      const rowHtml = row.innerHTML;
-      if (rowHtml.indexOf(_delegFilterPerson) === -1) {
-        row.style.display = 'none';
-      } else {
-        row.style.display = '';
-      }
+    rows.querySelectorAll('[data-person]').forEach(function(row) {
+      row.style.display = (row.dataset.person === _delegFilterPerson) ? '' : 'none';
     });
   }
   // Refresh load panel if visible
