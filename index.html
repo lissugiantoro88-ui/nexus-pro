@@ -1290,11 +1290,27 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
 
     <!-- DELEGATION -->
     <div class="view" id="v-delegation">
-      <div class="view-hd"><div><div class="view-title">Delegasi</div><div class="view-sub" id="deleg-sub"></div></div></div>
-      <div class="dtable">
+      <div class="view-hd">
+        <div><div class="view-title">Delegasi</div><div class="view-sub" id="deleg-sub"></div></div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button id="deleg-tab-list" onclick="switchDelegTab('list')" style="padding:5px 14px;border-radius:20px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-size:11px;font-weight:600">☰ List</button>
+          <button id="deleg-tab-load" onclick="switchDelegTab('load')" style="padding:5px 14px;border-radius:20px;border:1px solid var(--line);background:transparent;color:var(--fog);cursor:pointer;font-size:11px">⚡ Load Analysis</button>
+          <button onclick="openNewDeleg()" style="padding:5px 14px;border-radius:20px;border:none;background:var(--limed);color:var(--lime);cursor:pointer;font-size:11px;font-weight:600">+ Delegasi</button>
+        </div>
+      </div>
+      <!-- Filter bar -->
+      <div id="deleg-filter-bar" style="display:none;padding:8px 14px;background:var(--bg3);border-bottom:1px solid var(--line);align-items:center;gap:10px">
+        <span style="font-size:11px;color:var(--fog)">Filter:</span>
+        <span id="deleg-filter-name" style="font-size:12px;font-weight:600;color:var(--accent2)"></span>
+        <button onclick="clearDelegFilter()" style="padding:2px 8px;border-radius:10px;border:1px solid var(--line);background:none;color:var(--fog);cursor:pointer;font-size:10px">✕ Reset</button>
+      </div>
+      <!-- Load Analysis panel -->
+      <div id="deleg-load-panel" style="display:none;padding:14px;overflow-y:auto;max-height:calc(100vh - 160px)"></div>
+      <div class="dtable" id="deleg-list-panel">
         <div class="dtable-hd"><div>Task</div><div>Person</div><div>Status</div><div>Due</div><div>Prioritas</div></div>
         <div id="deleg-rows"></div>
       </div>
+      </div><!-- end deleg-list-panel -->
     </div>
 
     <!-- IDEAS -->
@@ -7162,6 +7178,218 @@ window.updateHighlightField = function(projId, idx, field, value) {
   _hlSaveTimer[projId] = setTimeout(async function() {
     await saveSCurveProject(uid, projId, { highlights: rows });
   }, 800);
+};
+
+// ── DELEGATION LOAD ANALYSIS ─────────────────────────────────────────────────
+let _delegTab = 'list';
+let _delegFilterPerson = null;
+
+window.switchDelegTab = function(tab) {
+  _delegTab = tab;
+  const listPanel  = document.getElementById('deleg-list-panel');
+  const loadPanel  = document.getElementById('deleg-load-panel');
+  const tabList    = document.getElementById('deleg-tab-list');
+  const tabLoad    = document.getElementById('deleg-tab-load');
+
+  if (tab === 'load') {
+    if (listPanel) listPanel.style.display = 'none';
+    if (loadPanel) loadPanel.style.display = 'block';
+    if (tabList)  { tabList.style.background='transparent'; tabList.style.color='var(--fog)'; tabList.style.borderColor='var(--line)'; }
+    if (tabLoad)  { tabLoad.style.background='var(--accent)'; tabLoad.style.color='#fff'; tabLoad.style.borderColor='var(--accent)'; }
+    renderDelegLoad();
+  } else {
+    if (listPanel) listPanel.style.display = 'block';
+    if (loadPanel) loadPanel.style.display = 'none';
+    if (tabList)  { tabList.style.background='var(--accent)'; tabList.style.color='#fff'; tabList.style.borderColor='var(--accent)'; }
+    if (tabLoad)  { tabLoad.style.background='transparent'; tabLoad.style.color='var(--fog)'; tabLoad.style.borderColor='var(--line)'; }
+  }
+};
+
+window.filterDelegByPerson = function(person) {
+  _delegFilterPerson = person;
+  switchDelegTab('list');
+  // Show filter bar
+  const bar = document.getElementById('deleg-filter-bar');
+  const nameEl = document.getElementById('deleg-filter-name');
+  if (bar) bar.style.display = 'flex';
+  if (nameEl) nameEl.textContent = person;
+  renderDelegation();
+};
+
+window.clearDelegFilter = function() {
+  _delegFilterPerson = null;
+  const bar = document.getElementById('deleg-filter-bar');
+  if (bar) bar.style.display = 'none';
+  renderDelegation();
+};
+
+function renderDelegLoad() {
+  const el = document.getElementById('deleg-load-panel');
+  if (!el) return;
+
+  const today = TS();
+  const deleg = D.delegations || [];
+
+  // Group by person
+  const personMap = {};
+  deleg.forEach(function(d) {
+    const p = d.person || '(Tidak ada nama)';
+    if (!personMap[p]) personMap[p] = { active:[], done:[], overdue:[] };
+    if (d.status === 'done') {
+      personMap[p].done.push(d);
+    } else if (d.due && d.due < today) {
+      personMap[p].overdue.push(d);
+      personMap[p].active.push(d);
+    } else {
+      personMap[p].active.push(d);
+    }
+  });
+
+  // Sort persons: most overdue first, then most active
+  const persons = Object.keys(personMap).sort(function(a,b) {
+    const oa = personMap[a].overdue.length, ob = personMap[b].overdue.length;
+    if (oa !== ob) return ob - oa;
+    return personMap[b].active.length - personMap[a].active.length;
+  });
+
+  if (persons.length === 0) {
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--fog)"><div style="font-size:24px;margin-bottom:8px">◎</div>Belum ada delegasi</div>';
+    return;
+  }
+
+  // Summary bar
+  const totalActive   = deleg.filter(function(d){ return d.status!=='done'; }).length;
+  const totalOverdue  = deleg.filter(function(d){ return d.status!=='done' && d.due && d.due<today; }).length;
+  const totalDone     = deleg.filter(function(d){ return d.status==='done'; }).length;
+
+  let html = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'
+    + '<div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--r);padding:12px 16px;text-align:center">'
+      + '<div style="font-size:22px;font-weight:700;color:var(--snow)">' + persons.length + '</div>'
+      + '<div style="font-size:10px;color:var(--fog);margin-top:2px">Total Person</div></div>'
+    + '<div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--r);padding:12px 16px;text-align:center">'
+      + '<div style="font-size:22px;font-weight:700;color:var(--amber)">' + totalActive + '</div>'
+      + '<div style="font-size:10px;color:var(--fog);margin-top:2px">Delegasi Aktif</div></div>'
+    + '<div style="background:var(--rosed);border:1px solid rgba(255,94,136,.3);border-radius:var(--r);padding:12px 16px;text-align:center">'
+      + '<div style="font-size:22px;font-weight:700;color:var(--rose)">' + totalOverdue + '</div>'
+      + '<div style="font-size:10px;color:var(--fog);margin-top:2px">Overdue</div></div>'
+    + '</div>';
+
+  // Legend
+  html += '<div style="display:flex;gap:12px;margin-bottom:12px;font-size:10px;color:var(--fog)">'
+    + '<span>🟢 On Track</span><span>🟡 Perhatian (>2 aktif)</span><span>🔴 Kritis (ada overdue)</span>'
+    + '</div>';
+
+  // Person cards grid
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">';
+
+  persons.forEach(function(person) {
+    const p = personMap[person];
+    const overdueCount = p.overdue.length;
+    const activeCount  = p.active.length;
+    const doneCount    = p.done.length;
+    const total        = activeCount + doneCount;
+
+    // Traffic light logic
+    let trafficClr, trafficBg, trafficBorder, trafficIco;
+    if (overdueCount > 0) {
+      trafficClr = 'var(--rose)'; trafficBg = 'var(--rosed)';
+      trafficBorder = 'rgba(255,94,136,.4)'; trafficIco = '🔴';
+    } else if (activeCount > 2) {
+      trafficClr = 'var(--amber)'; trafficBg = 'var(--amberd)';
+      trafficBorder = 'rgba(251,191,36,.4)'; trafficIco = '🟡';
+    } else {
+      trafficClr = 'var(--lime)'; trafficBg = 'var(--limed)';
+      trafficBorder = 'rgba(163,230,53,.4)'; trafficIco = '🟢';
+    }
+
+    // Progress bar %
+    const pct = total > 0 ? Math.round(doneCount/total*100) : 0;
+
+    // Next deadline
+    const upcoming = p.active
+      .filter(function(d){ return d.due; })
+      .sort(function(a,b){ return a.due.localeCompare(b.due); })[0];
+    const nextDue = upcoming ? upcoming.due.slice(8)+'/'+upcoming.due.slice(5,7) : '—';
+    const isNextOv = upcoming && upcoming.due < today;
+
+    // Overdue items list (max 2)
+    const ovItems = p.overdue.slice(0,2).map(function(d){
+      const days = Math.round((new Date(today)-new Date(d.due))/86400000);
+      return '<div style="font-size:9px;color:var(--rose);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+        + '↳ '+d.name+' <span style="opacity:.7">(+'+days+'h)</span></div>';
+    }).join('');
+
+    html += '<div onclick="filterDelegByPerson(\''+person.replace(/'/g,"\\'")+'\')" '
+      + 'style="background:var(--bg2);border:1px solid '+trafficBorder+';border-top:3px solid '+trafficClr+';'
+      + 'border-radius:var(--r);padding:12px 14px;cursor:pointer;transition:all .15s" '
+      + 'onmouseenter="this.style.background=\'var(--ag2)\'" onmouseleave="this.style.background=\'var(--bg2)\'">'
+      // Header row
+      + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">'
+        + '<div>'
+          + '<div style="font-size:13px;font-weight:700;color:var(--snow)">' + trafficIco + ' ' + person + '</div>'
+          + '<div style="font-size:9px;color:var(--fog);margin-top:1px">' + total + ' delegasi total</div>'
+        + '</div>'
+        + '<div style="text-align:right;flex-shrink:0">'
+          + '<div style="font-size:18px;font-weight:700;color:'+trafficClr+'">' + activeCount + '</div>'
+          + '<div style="font-size:8px;color:var(--fog)">Aktif</div>'
+        + '</div>'
+      + '</div>'
+      // Stats row
+      + '<div style="display:flex;gap:8px;margin-bottom:8px">'
+        + '<div style="flex:1;background:var(--bg3);border-radius:5px;padding:5px 8px;text-align:center">'
+          + '<div style="font-size:12px;font-weight:700;color:var(--rose)">' + overdueCount + '</div>'
+          + '<div style="font-size:8px;color:var(--fog)">Overdue</div>'
+        + '</div>'
+        + '<div style="flex:1;background:var(--bg3);border-radius:5px;padding:5px 8px;text-align:center">'
+          + '<div style="font-size:12px;font-weight:700;color:var(--lime)">' + doneCount + '</div>'
+          + '<div style="font-size:8px;color:var(--fog)">Selesai</div>'
+        + '</div>'
+        + '<div style="flex:1;background:var(--bg3);border-radius:5px;padding:5px 8px;text-align:center">'
+          + '<div style="font-size:12px;font-weight:700;color:'+(isNextOv?'var(--rose)':'var(--mist)')+'">' + nextDue + '</div>'
+          + '<div style="font-size:8px;color:var(--fog)">Next Due</div>'
+        + '</div>'
+      + '</div>'
+      // Progress bar
+      + '<div style="margin-bottom:'+(ovItems?'6px':'0')+'">'
+        + '<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
+          + '<span style="font-size:9px;color:var(--fog)">Completion</span>'
+          + '<span style="font-size:9px;font-weight:600;color:'+trafficClr+'">' + pct + '%</span>'
+        + '</div>'
+        + '<div style="height:4px;background:var(--bg3);border-radius:2px;overflow:hidden">'
+          + '<div style="height:100%;width:'+pct+'%;background:'+trafficClr+';border-radius:2px;transition:width .3s"></div>'
+        + '</div>'
+      + '</div>'
+      // Overdue items
+      + ovItems
+      + '</div>';
+  });
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// Override renderDelegation to support person filter
+const _origRenderDeleg = window.renderDelegation;
+window.renderDelegation = function() {
+  _origRenderDeleg();
+  // Apply person filter if active
+  if (_delegFilterPerson) {
+    const rows = document.getElementById('deleg-rows');
+    if (!rows) return;
+    const allRows = rows.querySelectorAll('.dtable-row');
+    allRows.forEach(function(row) {
+      // Check if this row belongs to filtered person
+      const personCell = row.querySelector('.dmi-who, .avatar');
+      const rowHtml = row.innerHTML;
+      if (rowHtml.indexOf(_delegFilterPerson) === -1) {
+        row.style.display = 'none';
+      } else {
+        row.style.display = '';
+      }
+    });
+  }
+  // Refresh load panel if visible
+  if (_delegTab === 'load') renderDelegLoad();
 };
 
 </script>
