@@ -5957,7 +5957,11 @@ window.generateSCurvePDF = function(exportDate) {
       var lbl='Δ vs '+scCompareDate.slice(8)+'/'+scCompareDate.slice(5,7);
       return [lbl,(dv>=0?'+':'')+dv.toFixed(1)+'% '+(dv>0?'↑':dv<0?'↓':'→'), clr];
     })(),
-    ['Sisa durasi', remDays+' hari', '#6b7280'],
+    ['Target Selesai', (function(){
+      var d=new Date(localMidnight(proj.finishDate));
+      return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();
+    })(), '#7c3aed'],
+    ['Sisa Durasi', remDays+' hari', '#6b7280'],
   ].filter(Boolean).map(function(arr){
     return '<div style="background:#f9fafb;border-radius:6px;padding:9px 11px;border:1px solid #e5e7eb"><div style="font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">'+arr[0]+'</div><div style="font-size:19px;font-weight:700;color:'+arr[2]+';font-family:monospace;line-height:1">'+arr[1]+'</div></div>';
   }).join('');
@@ -6155,7 +6159,12 @@ window.generateDashboardPDF = function(exportDate) {
     return '<div style="border:1px solid '+(dev!==null&&dev<0?'#fecaca':'#e5e7eb')+';border-radius:8px;overflow:hidden;background:#fff">'
       +'<div style="padding:7px 10px;border-bottom:1px solid #f3f4f6;display:flex;justify-content:space-between;align-items:center;gap:6px">'
         +'<div style="min-width:0"><div style="font-size:11px;font-weight:700;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+proj.name+'</div>'
-        +'<div style="font-size:8px;color:#9ca3af">sisa '+s.remDays+' hari</div></div>'
+        +(function(){
+          var fd=new Date(s.proj.finishDate||'');
+          var fmtFin=isNaN(fd)?'-':fd.getDate()+'/'+(fd.getMonth()+1)+'/'+fd.getFullYear();
+          return '<div style="font-size:8px;color:#7c3aed;font-weight:600;margin-top:1px">Target: '+fmtFin+'</div>'
+            +'<div style="font-size:8px;color:#9ca3af">Sisa '+s.remDays+' hari</div></div>';
+        })()
         +'<span style="padding:2px 7px;border-radius:10px;background:'+statusBg+';color:'+statusClr+';font-size:8px;font-weight:700;white-space:nowrap">'+statusTxt+'</span>'
       +'</div>'
       +'<svg width="'+miniW+'" height="'+miniH+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">'
