@@ -1513,6 +1513,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
             <button class="tb-btn" style="font-size:10px;padding:4px 8px;border-color:var(--rose);color:var(--rose)" onclick="deleteSCProj(scCurrentProjectId)">🗑 Hapus</button>
             <button class="tb-btn primary" style="font-size:10px;padding:4px 8px" onclick="openSCItemModal()">+ Item</button>
             <button id="sc-hl-tab-btn" onclick="switchSCTab('highlight')" style="font-size:10px;padding:4px 8px;border-radius:var(--rs);border:1px solid var(--accent2);background:transparent;color:var(--accent2);cursor:pointer">📌 Highlight</button>
+            <button id="sc-global-hl-btn" onclick="toggleGlobalHL()" style="display:none;font-size:10px;padding:4px 8px;border-radius:var(--rs);border:1px solid var(--violet);background:transparent;color:var(--violet);cursor:pointer">📌 Highlight Global</button>
           </div>
           <!-- Table header -->
           <div style="display:grid;grid-template-columns:1fr 60px 70px 60px 60px 40px;padding:6px 14px;border-bottom:2px solid var(--line2);font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.8px;background:var(--bg3)">
@@ -1523,6 +1524,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
             <div style="text-align:center;padding:2px 0;border-left:1px solid var(--line)">Finish</div>
             <div style="border-left:1px solid var(--line)"></div>
           </div>
+          <div id="sc-global-hl-panel" style="display:none;padding:14px;border-bottom:1px solid var(--line);overflow-y:auto;max-height:380px"></div>
           <div id="sc-wbs-list" style="max-height:400px;overflow-y:auto"></div>
           <div id="sc-highlight-panel" style="display:none;padding:10px 14px;max-height:400px;overflow-y:auto"></div>
           <div style="padding:8px 14px;border-top:1px solid var(--line);background:var(--bg3);display:flex;justify-content:space-between;font-size:11px;font-weight:600">
@@ -2414,6 +2416,12 @@ function startListeners(){
   // Load retros on init
   D.retros = {};
   // S-Curve listener
+  // Start global highlight listener
+  _globalHlUnsub = listenGlobalHighlights(uid, function(rows) {
+    D_globalHighlights = rows;
+    renderGlobalHighlightPanel();
+  });
+
   unsubs.push(listenSCurveProjects(uid, projects => {
     D.scProjects = projects;
     updateSCNav();
@@ -5067,7 +5075,7 @@ function renderSCurveGlobal() {
       });
     });
 
-    var container = document.getElementById('sc-scores-list');
+    var container = document.getElementById('sc-wbs-list');
     if (!container) return;
 
     var impactClr = {high:'var(--rose)',medium:'var(--amber)',low:'var(--lime)'};
@@ -6348,6 +6356,34 @@ window.generateDashboardPDF = function(exportDate) {
     +'<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">'
       +'<div style="background:#f3f4f6;padding:8px 14px;border-bottom:1px solid #e5e7eb">'
         +'<div style="font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px">Status per Project</div></div>'
+      +(function(){
+        // Global Highlight section in PDF
+        var ghRows = D_globalHighlights || [];
+        if (!ghRows.length) return '';
+        var _iClr2={high:'#dc2626',medium:'#d97706',low:'#16a34a'};
+        var _iBg2={high:'#fee2e2',medium:'#fef3c7',low:'#dcfce7'};
+        var ghHtml = '<div style="margin-bottom:14px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">'
+          +'<div style="padding:8px 12px;background:#f5f3ff;border-bottom:1px solid #e5e7eb">'
+          +'<div style="font-size:10px;font-weight:700;color:#6d28d9;text-transform:uppercase;letter-spacing:.5px">📌 Highlight Global</div></div>'
+          +'<table style="width:100%;border-collapse:collapse;font-size:10px">'
+          +'<thead><tr style="background:#faf9ff;border-bottom:1px solid #e5e7eb">'
+          +'<th style="padding:5px 10px;text-align:left;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;width:35%">Issue</th>'
+          +'<th style="padding:5px 10px;text-align:center;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;width:12%">Impact</th>'
+          +'<th style="padding:5px 10px;text-align:left;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;width:35%">Mitigation</th>'
+          +'<th style="padding:5px 10px;text-align:left;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;width:18%">PIC</th>'
+          +'</tr></thead><tbody>'
+          + ghRows.map(function(r){
+              var c2=_iClr2[r.impact]||'#374151', b2=_iBg2[r.impact]||'#f9fafb';
+              return '<tr style="border-bottom:1px solid #f3f4f6">'
+                +'<td style="padding:6px 10px;vertical-align:top">'+(r.issue||'—')+'</td>'
+                +'<td style="padding:6px 10px;text-align:center;vertical-align:top"><span style="padding:2px 7px;border-radius:10px;background:'+b2+';color:'+c2+';font-size:9px;font-weight:700">'+(r.impact?r.impact.charAt(0).toUpperCase()+r.impact.slice(1):'—')+'</span></td>'
+                +'<td style="padding:6px 10px;vertical-align:top">'+(r.mitigation||'—')+'</td>'
+                +'<td style="padding:6px 10px;vertical-align:top">'+(r.pic||'—')+'</td>'
+                +'</tr>';
+            }).join('')
+          +'</tbody></table></div>';
+        return ghHtml;
+      })()
       + scoreRows
     +'</div>'
 
@@ -7578,6 +7614,117 @@ window.executeDuplicateSCProject = async function(srcProjId) {
     console.error('Duplicate error:', e);
     toast('Error: ' + e.message, true);
   }
+};
+
+window.toggleGlobalHL = function() {
+  var panel = document.getElementById('sc-global-hl-panel');
+  var btn   = document.getElementById('sc-global-hl-btn');
+  if (!panel) return;
+  var isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  if (btn) {
+    btn.style.background = isOpen ? 'transparent' : 'var(--violet)';
+    btn.style.color      = isOpen ? 'var(--violet)' : '#fff';
+  }
+  if (!isOpen) renderGlobalHighlightPanel();
+};
+
+// ── GLOBAL HIGHLIGHT (cross-project) ─────────────────────────────────────────
+// Stored at: users/{uid}/scurve/__global_hl__ → field highlights: []
+let D_globalHighlights = []; // loaded from Firebase
+let _globalHlUnsub = null;
+
+function listenGlobalHighlights(uid, callback) {
+  return onSnapshot(
+    doc(db, 'users', uid, 'scurve', '__global_hl__'),
+    function(snap) {
+      callback(snap.exists() ? (snap.data().highlights || []) : []);
+    }
+  );
+}
+
+async function saveGlobalHighlights(rows) {
+  await setDoc(
+    doc(db, 'users', uid, 'scurve', '__global_hl__'),
+    { highlights: rows, updatedAt: serverTimestamp() },
+    { merge: true }
+  );
+}
+
+function renderGlobalHighlightPanel() {
+  const el = document.getElementById('sc-global-hl-panel');
+  if (!el) return;
+
+  const rows = D_globalHighlights || [];
+  const impactClr = {high:'var(--rose)', medium:'var(--amber)', low:'var(--lime)'};
+  const impactLbl = {high:'🔴 High', medium:'🟡 Medium', low:'🟢 Low'};
+
+  let html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+    + '<div style="font-size:12px;font-weight:700;color:var(--snow)">📌 Highlight Global</div>'
+    + '<button onclick="addGlobalHighlightRow()" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:11px">+ Issue</button>'
+    + '</div>';
+
+  if (!rows.length) {
+    html += '<div style="padding:16px;text-align:center;color:var(--fog);font-size:12px;background:var(--bg3);border-radius:var(--rs)">Belum ada highlight global. Klik "+ Issue" untuk tambah.</div>';
+  } else {
+    rows.forEach(function(row, i) {
+      var clr = impactClr[row.impact || 'medium'] || 'var(--amber)';
+      html += '<div style="position:relative;background:var(--bg3);border:1px solid var(--line);border-left:3px solid ' + clr + ';border-radius:var(--rs);padding:10px 12px;margin-bottom:8px">'
+        + '<button onclick="deleteGlobalHighlightRow(' + i + ')" style="position:absolute;top:6px;right:8px;background:none;border:none;color:var(--fog);cursor:pointer;font-size:11px">✕</button>'
+        + '<div style="display:grid;grid-template-columns:1fr 100px 1fr 120px;gap:8px">'
+        // Issue
+        + '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Issue</div>'
+        + '<textarea rows="2" style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:5px 7px;color:var(--snow);font-size:11px;resize:none;box-sizing:border-box;font-family:Inter,sans-serif" '
+        + 'oninput="updateGlobalHighlightField(' + i + ',\'issue\',this.value)" placeholder="Deskripsi issue...">' + (row.issue || '') + '</textarea></div>'
+        // Impact
+        + '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Impact</div>'
+        + '<select style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:5px 6px;color:' + clr + ';font-size:11px;font-weight:700" onchange="updateGlobalHighlightField(' + i + ',\'impact\',this.value)">'
+        + ['high','medium','low'].map(function(v){
+            return '<option value="' + v + '"' + (row.impact===v?' selected':'') + '>' + impactLbl[v] + '</option>';
+          }).join('')
+        + '</select></div>'
+        // Mitigation
+        + '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Mitigation</div>'
+        + '<textarea rows="2" style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:5px 7px;color:var(--snow);font-size:11px;resize:none;box-sizing:border-box;font-family:Inter,sans-serif" '
+        + 'oninput="updateGlobalHighlightField(' + i + ',\'mitigation\',this.value)" placeholder="Langkah mitigasi...">' + (row.mitigation || '') + '</textarea></div>'
+        // PIC
+        + '<div><div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">PIC</div>'
+        + '<input type="text" style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:5px 7px;color:var(--snow);font-size:11px;box-sizing:border-box" '
+        + 'oninput="updateGlobalHighlightField(' + i + ',\'pic\',this.value)" placeholder="Nama PIC..." value="' + (row.pic || '') + '"></div>'
+        + '</div></div>';
+    });
+  }
+
+  el.innerHTML = html;
+}
+
+var _globalHlSaveTimer = null;
+window.updateGlobalHighlightField = function(idx, field, value) {
+  var rows = D_globalHighlights ? D_globalHighlights.slice() : [];
+  if (!rows[idx]) return;
+  rows[idx] = Object.assign({}, rows[idx]);
+  rows[idx][field] = value;
+  D_globalHighlights = rows;
+  clearTimeout(_globalHlSaveTimer);
+  _globalHlSaveTimer = setTimeout(function() {
+    saveGlobalHighlights(rows);
+  }, 800);
+};
+
+window.addGlobalHighlightRow = async function() {
+  var rows = (D_globalHighlights || []).slice();
+  rows.push({ issue:'', impact:'medium', mitigation:'', pic:'' });
+  D_globalHighlights = rows;
+  await saveGlobalHighlights(rows);
+  renderGlobalHighlightPanel();
+};
+
+window.deleteGlobalHighlightRow = async function(idx) {
+  var rows = (D_globalHighlights || []).slice();
+  rows.splice(idx, 1);
+  D_globalHighlights = rows;
+  await saveGlobalHighlights(rows);
+  renderGlobalHighlightPanel();
 };
 
 </script>
