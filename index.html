@@ -7401,39 +7401,90 @@ window.openDuplicateSCProject = function(projId) {
   if (!projId || projId === '__global__') {
     toast('Pilih project individual dulu', true); return;
   }
-  const proj = D.scProjects.find(function(p){ return p.id === projId; });
+  var proj = D.scProjects.find(function(p){ return p.id === projId; });
   if (!proj) { toast('Project tidak ditemukan', true); return; }
 
-  // Show input modal
-  const existing = document.getElementById('dup-proj-modal');
+  var existing = document.getElementById('dup-proj-modal');
   if (existing) existing.remove();
 
-  const modal = document.createElement('div');
-  modal.id = 'dup-proj-modal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center';
-  modal.innerHTML = '<div style="background:var(--bg2);border:1px solid var(--line2);border-radius:12px;padding:22px;width:420px;max-width:95vw">'
-    + '<div style="font-size:14px;font-weight:700;color:var(--snow);margin-bottom:4px">⎘ Duplikat Project</div>'
-    + '<div style="font-size:11px;color:var(--fog);margin-bottom:16px">Copy dari: <b style="color:var(--accent2)">' + proj.name + '</b></div>'
-    + '<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--fog);margin-bottom:5px">Nama Project Baru</div>'
-    + '<input id="dup-proj-name" class="fld-in" value="' + (proj.name||'') + ' (Copy)" style="width:100%;box-sizing:border-box" placeholder="Nama project baru..."></div>'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
-    + '<div><div style="font-size:11px;color:var(--fog);margin-bottom:5px">Tanggal Mulai</div>'
-    + '<input id="dup-proj-start" type="date" class="fld-in" value="' + (proj.startDate||'') + '" style="width:100%;box-sizing:border-box"></div>'
-    + '<div><div style="font-size:11px;color:var(--fog);margin-bottom:5px">Tanggal Selesai</div>'
-    + '<input id="dup-proj-end" type="date" class="fld-in" value="' + (proj.finishDate||'') + '" style="width:100%;box-sizing:border-box"></div>'
-    + '</div>'
-    + '<div style="margin-bottom:16px">'
-    + '<label style="display:flex;align-items:center;gap:8px;cursor:pointer">'
-    + '<input type="checkbox" id="dup-include-actuals" checked style="width:14px;height:14px">'
-    + '<span style="font-size:12px;color:var(--mist)">Sertakan data aktual</span>'
-    + '</label></div>'
-    + '<div style="display:flex;gap:8px">'
-    + '<button onclick="window._closeDupModal()" style="flex:1;padding:9px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:12px">Batal</button>'
-    + '<button onclick="window._execDupProj()" style="flex:2;padding:9px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:12px;font-weight:600">⎘ Duplikat Sekarang</button>'
-    + '</div></div>';
-  document.body.appendChild(modal);
-  modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
-  setTimeout(function(){ document.getElementById('dup-proj-name').select(); }, 50);
+  // Build modal using DOM API — avoids onclick string/quote issues
+  var overlay = document.createElement('div');
+  overlay.id = 'dup-proj-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center';
+
+  var box = document.createElement('div');
+  box.style.cssText = 'background:var(--bg2);border:1px solid var(--line2);border-radius:12px;padding:22px;width:420px;max-width:95vw';
+
+  var title = document.createElement('div');
+  title.style.cssText = 'font-size:14px;font-weight:700;color:var(--snow);margin-bottom:4px';
+  title.textContent = '⎘ Duplikat Project';
+  box.appendChild(title);
+
+  var sub = document.createElement('div');
+  sub.style.cssText = 'font-size:11px;color:var(--fog);margin-bottom:16px';
+  sub.innerHTML = 'Copy dari: <b style="color:var(--accent2)">' + (proj.name||'') + '</b>';
+  box.appendChild(sub);
+
+  // Name input
+  var nameWrap = document.createElement('div');
+  nameWrap.style.marginBottom = '12px';
+  nameWrap.innerHTML = '<div style="font-size:11px;color:var(--fog);margin-bottom:5px">Nama Project Baru</div>';
+  var nameIn = document.createElement('input');
+  nameIn.id = 'dup-proj-name'; nameIn.className = 'fld-in';
+  nameIn.value = (proj.name||'') + ' (Copy)';
+  nameIn.style.cssText = 'width:100%;box-sizing:border-box';
+  nameWrap.appendChild(nameIn);
+  box.appendChild(nameWrap);
+
+  // Date grid
+  var grid = document.createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px';
+  var startWrap = document.createElement('div');
+  startWrap.innerHTML = '<div style="font-size:11px;color:var(--fog);margin-bottom:5px">Tanggal Mulai</div>';
+  var startIn = document.createElement('input');
+  startIn.id='dup-proj-start'; startIn.type='date'; startIn.className='fld-in';
+  startIn.value=proj.startDate||''; startIn.style.cssText='width:100%;box-sizing:border-box';
+  startWrap.appendChild(startIn); grid.appendChild(startWrap);
+  var endWrap = document.createElement('div');
+  endWrap.innerHTML = '<div style="font-size:11px;color:var(--fog);margin-bottom:5px">Tanggal Selesai</div>';
+  var endIn = document.createElement('input');
+  endIn.id='dup-proj-end'; endIn.type='date'; endIn.className='fld-in';
+  endIn.value=proj.finishDate||''; endIn.style.cssText='width:100%;box-sizing:border-box';
+  endWrap.appendChild(endIn); grid.appendChild(endWrap);
+  box.appendChild(grid);
+
+  // Checkbox
+  var cbWrap = document.createElement('label');
+  cbWrap.style.cssText = 'display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:16px';
+  var cb = document.createElement('input');
+  cb.type='checkbox'; cb.id='dup-include-actuals'; cb.checked=true;
+  cb.style.cssText='width:14px;height:14px';
+  var cbLabel = document.createElement('span');
+  cbLabel.style.cssText='font-size:12px;color:var(--mist)';
+  cbLabel.textContent='Sertakan data aktual';
+  cbWrap.appendChild(cb); cbWrap.appendChild(cbLabel);
+  box.appendChild(cbWrap);
+
+  // Buttons — use .onclick property, NOT HTML attribute
+  var btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:8px';
+  var cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Batal';
+  cancelBtn.style.cssText = 'flex:1;padding:9px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:12px';
+  cancelBtn.onclick = function(){ overlay.remove(); };
+  var execBtn = document.createElement('button');
+  execBtn.textContent = '⎘ Duplikat Sekarang';
+  execBtn.style.cssText = 'flex:2;padding:9px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:12px;font-weight:600';
+  execBtn.onclick = function(){ executeDuplicateSCProject(projId); };
+  btnRow.appendChild(cancelBtn); btnRow.appendChild(execBtn);
+  box.appendChild(btnRow);
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+  setTimeout(function(){ nameIn.select(); }, 50);
+
+
 };
 
 window.executeDuplicateSCProject = async function(srcProjId) {
