@@ -5747,6 +5747,11 @@ window.exportSCurvePDF = function() {
 };
 
 window.generateSCurvePDF = function(exportDate) {
+  // Flush any pending global highlight saves before generating PDF
+  if (typeof _globalHlSaveTimer !== 'undefined' && _globalHlSaveTimer) {
+    clearTimeout(_globalHlSaveTimer); _globalHlSaveTimer = null;
+    if (typeof D_globalHighlights !== 'undefined') saveGlobalHighlights(D_globalHighlights);
+  }
   document.getElementById('sc-export-modal') && document.getElementById('sc-export-modal').remove();
   const projId = scCurrentProjectId;
   const proj   = D.scProjects.find(p => p.id === projId);
@@ -6015,6 +6020,33 @@ window.generateSCurvePDF = function(exportDate) {
       +'<td style="padding:7px 8px;text-align:center;font-family:monospace;font-size:11px;font-weight:700;color:'+(dev===null?'#dc2626':isBehind?'#dc2626':'#16a34a')+'">'+(dev!==null?(dev>=0?'+':'')+dev.toFixed(1)+'%':('-'+planAtRef.toFixed(1)+'%'))+'</td>'
       +'</tr></tfoot></table></div>'
     +analysisSection
+    +(function(){
+      // Global Highlight section in individual PDF
+      var ghRows = (typeof D_globalHighlights !== 'undefined' ? D_globalHighlights : []);
+      if (!ghRows.length) return '';
+      var _gc={high:'#dc2626',medium:'#d97706',low:'#16a34a'};
+      var _gb={high:'#fee2e2',medium:'#fef3c7',low:'#dcfce7'};
+      return '<div style="margin-top:14px;border:1px solid #ede9fe;border-radius:8px;overflow:hidden">'
+        +'<div style="padding:8px 12px;background:#f5f3ff;border-bottom:1px solid #ede9fe">'
+        +'<div style="font-size:9px;font-weight:700;color:#6d28d9;text-transform:uppercase;letter-spacing:.5px">📌 Highlight Global</div></div>'
+        +'<table style="width:100%;border-collapse:collapse;font-size:10px">'
+        +'<thead><tr style="background:#faf9ff;border-bottom:1px solid #ede9fe">'
+        +'<th style="padding:5px 10px;text-align:left;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;width:35%">Issue</th>'
+        +'<th style="padding:5px 6px;text-align:center;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;width:12%">Impact</th>'
+        +'<th style="padding:5px 10px;text-align:left;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;width:35%">Mitigation</th>'
+        +'<th style="padding:5px 10px;text-align:left;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;width:18%">PIC</th>'
+        +'</tr></thead><tbody>'
+        + ghRows.map(function(r){
+            var c=_gc[r.impact]||'#374151', b=_gb[r.impact]||'#f9fafb';
+            return '<tr style="border-bottom:1px solid #f3f4f6">'
+              +'<td style="padding:6px 10px;vertical-align:top">'+(r.issue||'—')+'</td>'
+              +'<td style="padding:6px 6px;text-align:center;vertical-align:top"><span style="padding:2px 6px;border-radius:10px;background:'+b+';color:'+c+';font-size:9px;font-weight:700">'+(r.impact?r.impact.charAt(0).toUpperCase()+r.impact.slice(1):'—')+'</span></td>'
+              +'<td style="padding:6px 10px;vertical-align:top">'+(r.mitigation||'—')+'</td>'
+              +'<td style="padding:6px 10px;vertical-align:top">'+(r.pic||'—')+'</td>'
+              +'</tr>';
+          }).join('')
+        +'</tbody></table></div>';
+    })()
     +'</div>'
     +'<scr'+'ipt>window.onload=function(){window.print();}<\/scr'+'ipt>'
     +'</body></html>';
@@ -6048,6 +6080,11 @@ window.openDashboardExportModal = function() {
 };
 
 window.generateDashboardPDF = function(exportDate) {
+  // Flush any pending global highlight saves before generating PDF
+  if (typeof _globalHlSaveTimer !== 'undefined' && _globalHlSaveTimer) {
+    clearTimeout(_globalHlSaveTimer); _globalHlSaveTimer = null;
+    if (typeof D_globalHighlights !== 'undefined') saveGlobalHighlights(D_globalHighlights);
+  }
   document.getElementById('sc-dash-export-modal') && document.getElementById('sc-dash-export-modal').remove();
 
   const dashProjects = getDashboardProjects();
