@@ -7390,6 +7390,135 @@ function renderDelegLoad() {
 
 // Filter logic moved into renderDelegation() directly
 
+// ── DUPLICATE S-CURVE PROJECT ─────────────────────────────────────────────────
+window._closeDupModal = function() {
+  var m = document.getElementById('dup-proj-modal');
+  if (m) m.remove();
+};
+window.openDuplicateSCProject = function(projId) {
+  window._dupSrcProjId = projId;
+  if (!projId || projId === '__global__') {
+    toast('Pilih project individual dulu', true); return;
+  }
+  const proj = D.scProjects.find(function(p){ return p.id === projId; });
+  if (!proj) { toast('Project tidak ditemukan', true); return; }
+
+  // Show input modal
+  const existing = document.getElementById('dup-proj-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'dup-proj-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = '<div style="background:var(--bg2);border:1px solid var(--line2);border-radius:12px;padding:22px;width:420px;max-width:95vw">'
+    + '<div style="font-size:14px;font-weight:700;color:var(--snow);margin-bottom:4px">⎘ Duplikat Project</div>'
+    + '<div style="font-size:11px;color:var(--fog);margin-bottom:16px">Copy dari: <b style="color:var(--accent2)">' + proj.name + '</b></div>'
+    + '<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--fog);margin-bottom:5px">Nama Project Baru</div>'
+    + '<input id="dup-proj-name" class="fld-in" value="' + (proj.name||'') + ' (Copy)" style="width:100%;box-sizing:border-box" placeholder="Nama project baru..."></div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
+    + '<div><div style="font-size:11px;color:var(--fog);margin-bottom:5px">Tanggal Mulai</div>'
+    + '<input id="dup-proj-start" type="date" class="fld-in" value="' + (proj.startDate||'') + '" style="width:100%;box-sizing:border-box"></div>'
+    + '<div><div style="font-size:11px;color:var(--fog);margin-bottom:5px">Tanggal Selesai</div>'
+    + '<input id="dup-proj-end" type="date" class="fld-in" value="' + (proj.finishDate||'') + '" style="width:100%;box-sizing:border-box"></div>'
+    + '</div>'
+    + '<div style="margin-bottom:16px">'
+    + '<label style="display:flex;align-items:center;gap:8px;cursor:pointer">'
+    + '<input type="checkbox" id="dup-include-actuals" checked style="width:14px;height:14px">'
+    + '<span style="font-size:12px;color:var(--mist)">Sertakan data aktual</span>'
+    + '</label></div>'
+    + '<div style="display:flex;gap:8px">'
+    + '<button onclick="window._closeDupModal()" style="flex:1;padding:9px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:12px">Batal</button>'
+    + '<button onclick="window._execDupProj()" style="flex:2;padding:9px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:12px;font-weight:600">⎘ Duplikat Sekarang</button>'
+    + '</div></div>';
+  document.body.appendChild(modal);
+  modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
+  setTimeout(function(){ document.getElementById('dup-proj-name').select(); }, 50);
+};
+
+window.executeDuplicateSCProject = async function(srcProjId) {
+  const nameEl  = document.getElementById('dup-proj-name');
+  const startEl = document.getElementById('dup-proj-start');
+  const endEl   = document.getElementById('dup-proj-end');
+  const withAct = document.getElementById('dup-include-actuals').checked;
+
+  const newName  = (nameEl && nameEl.value.trim()) || 'Project Copy';
+  const newStart = startEl && startEl.value;
+  const newEnd   = endEl && endEl.value;
+
+  if (!newStart || !newEnd) { toast('Isi tanggal mulai dan selesai', true); return; }
+
+  // Generate new project ID
+  const newId = 'sc_' + newName.toLowerCase()
+    .replace(/[^a-z0-9]/g, '_').replace(/_+/g,'_').replace(/^_|_$/g,'')
+    .slice(0,20) + '_' + Date.now().toString(36);
+
+  const srcProj = D.scProjects.find(function(p){ return p.id === srcProjId; });
+  if (!srcProj) { toast('Source project tidak ditemukan', true); return; }
+
+  // Close modal and show progress
+  document.getElementById('dup-proj-modal').remove();
+  toast('Menduplikat project...');
+
+  try {
+    const { setDoc, doc, getDocs, collection, serverTimestamp } =
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+
+    // 1. Save new project header (copy all fields, update name/dates)
+    const newProj = Object.assign({}, srcProj, {
+      id: newId,
+      name: newName,
+      startDate: newStart,
+      finishDate: newEnd,
+      highlights: [],
+      rtl: null,
+      updatedAt: serverTimestamp()
+    });
+    delete newProj.highlights;
+    await setDoc(doc(db,'users',uid,'scurve',newId), newProj);
+
+    // 2. Copy items
+    const srcItems = D.scItems[srcProjId] || [];
+    let sortOrd = Date.now();
+    for (const item of srcItems) {
+      const newItem = Object.assign({}, item, {
+        createdAt: sortOrd,
+        sortOrder: sortOrd++
+      });
+      await setDoc(doc(db,'users',uid,'scurve',newId,'items',item.id), newItem);
+    }
+
+    // 3. Copy actuals if requested
+    if (withAct) {
+      const actsSnap = await getDocs(
+        collection(db,'users',uid,'scurve',srcProjId,'actuals'));
+      for (const d of actsSnap.docs) {
+        await setDoc(
+          doc(db,'users',uid,'scurve',newId,'actuals',d.id),
+          d.data());
+      }
+      toast('✓ Duplikat selesai — ' + srcItems.length + ' item + aktual disalin');
+    } else {
+      toast('✓ Duplikat selesai — ' + srcItems.length + ' item disalin (tanpa aktual)');
+    }
+
+    // 4. Switch to new project
+    setTimeout(function() {
+      const sel = document.getElementById('sc-project-sel');
+      if (sel) {
+        var opt = document.createElement('option');
+        opt.value = newId; opt.textContent = newName;
+        sel.appendChild(opt);
+        sel.value = newId;
+        onSCProjectChange(newId);
+      }
+    }, 1500);
+
+  } catch(e) {
+    console.error('Duplicate error:', e);
+    toast('Error: ' + e.message, true);
+  }
+};
+
 </script>
 </body>
 </html>
