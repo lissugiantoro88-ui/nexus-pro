@@ -1516,7 +1516,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
             <button id="sc-global-hl-btn" onclick="toggleGlobalHL()" style="display:none;font-size:10px;padding:4px 8px;border-radius:var(--rs);border:1px solid var(--violet);background:transparent;color:var(--violet);cursor:pointer">📌 Highlight Global</button>
           </div>
           <!-- Table header -->
-          <div style="display:grid;grid-template-columns:1fr 60px 70px 60px 60px 40px;padding:6px 14px;border-bottom:2px solid var(--line2);font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.8px;background:var(--bg3)">
+          <div id="sc-wbs-header" style="display:grid;grid-template-columns:1fr 60px 70px 60px 60px 40px;padding:6px 14px;border-bottom:2px solid var(--line2);font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.8px;background:var(--bg3)">
             <div style="padding:2px 0">Item</div>
             <div style="text-align:center;padding:2px 0;border-left:1px solid var(--line)">Bobot</div>
             <div style="text-align:center;padding:2px 0;border-left:1px solid var(--line)">Nilai</div>
@@ -7140,7 +7140,8 @@ window.switchSCTab = function(tab) {
     renderHighlightPanel(scCurrentProjectId);
   } else {
     if (wbsEl) wbsEl.style.display = '';
-    if (tblHd) tblHd.style.display = 'grid'; // must restore to 'grid', not ''
+    const _hdrT = document.getElementById('sc-wbs-header');
+    if (_hdrT) _hdrT.style.display = 'grid'; // restore grid display
     if (hlEl)  hlEl.style.display  = 'none';
     if (btn)   { btn.style.background = 'transparent'; btn.style.color = 'var(--accent2)'; btn.textContent = '📌 Highlight'; btn.onclick = function(){ switchSCTab('highlight'); }; }
   }
@@ -7636,7 +7637,7 @@ let _globalHlUnsub = null;
 
 function listenGlobalHighlights(uid, callback) {
   return onSnapshot(
-    doc(db, 'users', uid, 'scurve', '__global_hl__'),
+    doc(db, 'users', uid, 'scurve', 'sc-global-hl'),
     function(snap) {
       callback(snap.exists() ? (snap.data().highlights || []) : []);
     }
@@ -7645,7 +7646,7 @@ function listenGlobalHighlights(uid, callback) {
 
 async function saveGlobalHighlights(rows) {
   await setDoc(
-    doc(db, 'users', uid, 'scurve', '__global_hl__'),
+    doc(db, 'users', uid, 'scurve', 'sc-global-hl'),
     { highlights: rows, updatedAt: serverTimestamp() },
     { merge: true }
   );
