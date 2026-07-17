@@ -6424,36 +6424,39 @@ window.generateDashboardPDF = function(exportDate) {
       +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'+miniCharts+'</div>'
     +'</div>'
 
-    +'<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">'
-      +'<div style="background:#f3f4f6;padding:8px 14px;border-bottom:1px solid #e5e7eb">'
-        +'<div style="font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px">Status per Project</div></div>'
-      +(function(){
-        // Global Highlight section in PDF
+    +(function(){
+        // Global Highlight Umum section — BEFORE Status per Project
         var ghRows = D_globalHighlights || [];
         if (!ghRows.length) return '';
-        var _iClr2={high:'#dc2626',medium:'#d97706',low:'#16a34a'};
-        var _iBg2={high:'#fee2e2',medium:'#fef3c7',low:'#dcfce7'};
-        var ghHtml = '<div style="margin-bottom:14px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">'
-          +'<div style="padding:8px 12px;background:#f5f3ff;border-bottom:1px solid #e5e7eb">'
-          +'<div style="font-size:10px;font-weight:700;color:#6d28d9;text-transform:uppercase;letter-spacing:.5px">📌 Highlight Umum</div></div>'
+        var _gc={high:'#dc2626',medium:'#d97706',low:'#16a34a'};
+        var _gb={high:'#fee2e2',medium:'#fef3c7',low:'#dcfce7'};
+        var ghHtml2 = '<div style="margin-bottom:12px;border:1px solid #ede9fe;border-radius:8px;overflow:hidden">'
+          +'<div style="padding:8px 12px;background:#f5f3ff;border-bottom:1px solid #ede9fe">'
+          +'<div style="font-size:9px;font-weight:700;color:#6d28d9;text-transform:uppercase;letter-spacing:.5px">📌 Highlight Umum</div></div>'
           +'<table style="width:100%;border-collapse:collapse;font-size:10px">'
-          +'<thead><tr style="background:#faf9ff;border-bottom:1px solid #e5e7eb">'
+          +'<thead><tr style="background:#faf9ff;border-bottom:1px solid #ede9fe">'
           +'<th style="padding:5px 10px;text-align:left;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;width:35%">Issue</th>'
-          +'<th style="padding:5px 10px;text-align:center;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;width:12%">Impact</th>'
+          +'<th style="padding:5px 6px;text-align:center;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;width:12%">Impact</th>'
           +'<th style="padding:5px 10px;text-align:left;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;width:35%">Mitigation</th>'
           +'<th style="padding:5px 10px;text-align:left;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;width:18%">PIC</th>'
           +'</tr></thead><tbody>'
           + ghRows.map(function(r){
-              var c2=_iClr2[r.impact]||'#374151', b2=_iBg2[r.impact]||'#f9fafb';
+              var c=_gc[r.impact]||'#374151', b=_gb[r.impact]||'#f9fafb';
               return '<tr style="border-bottom:1px solid #f3f4f6">'
                 +'<td style="padding:6px 10px;vertical-align:top">'+(r.issue||'—')+'</td>'
-                +'<td style="padding:6px 10px;text-align:center;vertical-align:top"><span style="padding:2px 7px;border-radius:10px;background:'+b2+';color:'+c2+';font-size:9px;font-weight:700">'+(r.impact?r.impact.charAt(0).toUpperCase()+r.impact.slice(1):'—')+'</span></td>'
+                +'<td style="padding:6px 6px;text-align:center;vertical-align:top"><span style="padding:2px 6px;border-radius:10px;background:'+b+';color:'+c+';font-size:9px;font-weight:700">'+(r.impact?r.impact.charAt(0).toUpperCase()+r.impact.slice(1):'—')+'</span></td>'
                 +'<td style="padding:6px 10px;vertical-align:top">'+(r.mitigation||'—')+'</td>'
                 +'<td style="padding:6px 10px;vertical-align:top">'+(r.pic||'—')+'</td>'
                 +'</tr>';
             }).join('')
           +'</tbody></table></div>';
-        return ghHtml;
+        return ghHtml2;
+    })()
+    +'<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">'
+      +'<div style="background:#f3f4f6;padding:8px 14px;border-bottom:1px solid #e5e7eb">'
+        +'<div style="font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px">Status per Project</div></div>'
+      +(function(){
+        return '';
       })()
       + scoreRows
     +'</div>'
