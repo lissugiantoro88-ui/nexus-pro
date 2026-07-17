@@ -1513,7 +1513,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
             <button class="tb-btn" style="font-size:10px;padding:4px 8px;border-color:var(--rose);color:var(--rose)" onclick="deleteSCProj(scCurrentProjectId)">🗑 Hapus</button>
             <button class="tb-btn primary" style="font-size:10px;padding:4px 8px" onclick="openSCItemModal()">+ Item</button>
             <button id="sc-hl-tab-btn" onclick="switchSCTab('highlight')" style="font-size:10px;padding:4px 8px;border-radius:var(--rs);border:1px solid var(--accent2);background:transparent;color:var(--accent2);cursor:pointer">📌 Highlight</button>
-            <button id="sc-global-hl-btn" onclick="toggleGlobalHL()" style="display:none;font-size:10px;padding:4px 8px;border-radius:var(--rs);border:1px solid var(--violet);background:transparent;color:var(--violet);cursor:pointer">📌 Highlight Global</button>
+            <button id="sc-global-hl-btn" onclick="toggleGlobalHL()" style="display:none;font-size:10px;padding:4px 8px;border-radius:var(--rs);border:1px solid var(--violet);background:transparent;color:var(--violet);cursor:pointer">📌 Highlight Umum</button>
           </div>
           <!-- Table header -->
           <div id="sc-wbs-header" style="display:grid;grid-template-columns:1fr 60px 70px 60px 60px 40px;padding:6px 14px;border-bottom:2px solid var(--line2);font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.8px;background:var(--bg3)">
@@ -2203,7 +2203,9 @@ async function deleteSCurveProject(uid, id) {
 function listenSCurveProjects(uid, callback) {
   return onSnapshot(
     query(collection(db, "users", uid, "scurve"), orderBy("updatedAt", "desc")),
-    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    snap => callback(snap.docs
+      .filter(d => d.id !== 'sc-global-hl')  // exclude global highlight doc
+      .map(d => ({ id: d.id, ...d.data() })))
   );
 }
 async function saveSCurveItem(uid, projectId, itemId, data) {
@@ -6060,7 +6062,7 @@ window.generateSCurvePDF = function(exportDate) {
       var _gb={high:'#fee2e2',medium:'#fef3c7',low:'#dcfce7'};
       return '<div style="margin-top:14px;border:1px solid #ede9fe;border-radius:8px;overflow:hidden">'
         +'<div style="padding:8px 12px;background:#f5f3ff;border-bottom:1px solid #ede9fe">'
-        +'<div style="font-size:9px;font-weight:700;color:#6d28d9;text-transform:uppercase;letter-spacing:.5px">📌 Highlight Global</div></div>'
+        +'<div style="font-size:9px;font-weight:700;color:#6d28d9;text-transform:uppercase;letter-spacing:.5px">📌 Highlight Umum</div></div>'
         +'<table style="width:100%;border-collapse:collapse;font-size:10px">'
         +'<thead><tr style="background:#faf9ff;border-bottom:1px solid #ede9fe">'
         +'<th style="padding:5px 10px;text-align:left;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;width:35%">Issue</th>'
@@ -6433,7 +6435,7 @@ window.generateDashboardPDF = function(exportDate) {
         var _iBg2={high:'#fee2e2',medium:'#fef3c7',low:'#dcfce7'};
         var ghHtml = '<div style="margin-bottom:14px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">'
           +'<div style="padding:8px 12px;background:#f5f3ff;border-bottom:1px solid #e5e7eb">'
-          +'<div style="font-size:10px;font-weight:700;color:#6d28d9;text-transform:uppercase;letter-spacing:.5px">📌 Highlight Global</div></div>'
+          +'<div style="font-size:10px;font-weight:700;color:#6d28d9;text-transform:uppercase;letter-spacing:.5px">📌 Highlight Umum</div></div>'
           +'<table style="width:100%;border-collapse:collapse;font-size:10px">'
           +'<thead><tr style="background:#faf9ff;border-bottom:1px solid #e5e7eb">'
           +'<th style="padding:5px 10px;text-align:left;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;width:35%">Issue</th>'
@@ -7723,7 +7725,7 @@ function renderGlobalHighlightPanel() {
   const impactLbl = {high:'🔴 High', medium:'🟡 Medium', low:'🟢 Low'};
 
   let html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
-    + '<div style="font-size:12px;font-weight:700;color:var(--snow)">📌 Highlight Global</div>'
+    + '<div style="font-size:12px;font-weight:700;color:var(--snow)">📌 Highlight Umum</div>'
     + '<button onclick="addGlobalHighlightRow()" style="padding:4px 12px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:11px">+ Issue</button>'
     + '</div>';
 
