@@ -4736,6 +4736,18 @@ function renderSCurve() {
 
   renderWBSList(projId, items, proj);
   renderActualInputs(projId, items, actuals, periods);
+
+  // ── Restore individual view: hide global panels, show per-project ──────────
+  var _glPI = document.getElementById('sc-global-hl-panel');
+  if (_glPI) _glPI.style.display = 'none';
+  var _wbsHdrI = document.getElementById('sc-wbs-header');
+  if (_wbsHdrI) _wbsHdrI.style.display = 'grid';
+  var _tabBtnI = document.getElementById('sc-hl-tab-btn');
+  if (_tabBtnI) { _tabBtnI.style.display = ''; }
+  var _glBtnI = document.getElementById('sc-global-hl-btn');
+  if (_glBtnI) _glBtnI.style.display = 'none';
+  // Refresh per-project highlight panel
+  renderHighlightPanel(projId);
 }
 
 // ── DASHBOARD CUSTOMIZATION: select & reorder projects ───────────────────────
@@ -4874,6 +4886,26 @@ window.openDashboardConfigModal = function() {
 
 
 function renderSCurveGlobal() {
+  // ── Panel visibility for global view ──────────────────────────────────────
+  // Hide per-project panels
+  var _hlP = document.getElementById('sc-highlight-panel');
+  if (_hlP) _hlP.style.display = 'none';
+  // Hide WBS header
+  var _wbsH = document.getElementById('sc-wbs-header');
+  if (_wbsH) _wbsH.style.display = 'none';
+  // Show global HL panel (always visible in global view)
+  var _glP = document.getElementById('sc-global-hl-panel');
+  if (_glP) { _glP.style.display = 'block'; renderGlobalHighlightPanel(); }
+  // Show global HL button, hide per-project tab
+  var _tabBtn = document.getElementById('sc-hl-tab-btn');
+  if (_tabBtn) _tabBtn.style.display = 'none';
+  var _glBtn = document.getElementById('sc-global-hl-btn');
+  if (_glBtn) {
+    _glBtn.style.display = '';
+    _glBtn.style.background = 'var(--violet)';
+    _glBtn.style.color = '#fff';
+  }
+
   const dashProjects = getDashboardProjects();
   document.getElementById('sc-chart-sub').innerHTML =
     `${dashProjects.length} dari ${D.scProjects.length} project ditampilkan ` +
@@ -7655,16 +7687,9 @@ window.executeDuplicateSCProject = async function(srcProjId) {
 };
 
 window.toggleGlobalHL = function() {
+  // In global view, highlight panel is always visible — just scroll to it
   var panel = document.getElementById('sc-global-hl-panel');
-  var btn   = document.getElementById('sc-global-hl-btn');
-  if (!panel) return;
-  var isOpen = panel.style.display !== 'none';
-  panel.style.display = isOpen ? 'none' : 'block';
-  if (btn) {
-    btn.style.background = isOpen ? 'transparent' : 'var(--violet)';
-    btn.style.color      = isOpen ? 'var(--violet)' : '#fff';
-  }
-  if (!isOpen) renderGlobalHighlightPanel();
+  if (panel) panel.scrollIntoView({ behavior: 'smooth' });
 };
 
 // ── GLOBAL HIGHLIGHT (cross-project) ─────────────────────────────────────────
