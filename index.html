@@ -2420,8 +2420,17 @@ function startListeners(){
   // S-Curve listener
   // Start global highlight listener
   _globalHlUnsub = listenGlobalHighlights(uid, function(rows) {
+    var wasEmpty = !D_globalHighlights || D_globalHighlights.length === 0;
     D_globalHighlights = rows;
-    renderGlobalHighlightPanel();
+    // Re-render only if panel visible AND no input is focused (avoids cursor jump)
+    var panel = document.getElementById('sc-global-hl-panel');
+    if (panel && panel.style.display !== 'none') {
+      var focused = document.activeElement;
+      var panelHasFocus = panel.contains(focused);
+      if (!panelHasFocus) {
+        renderGlobalHighlightPanel();
+      }
+    }
   });
 
   unsubs.push(listenSCurveProjects(uid, projects => {
@@ -5965,9 +5974,9 @@ window.generateSCurvePDF = function(exportDate) {
     var trs = _hlRows.map(function(r){
       var _c=_iClr[r.impact]||'#374151', _b=_iBg[r.impact]||'#f9fafb';
       return '<tr style="border-bottom:1px solid #f3f4f6">'
-        +'<td style="padding:6px 10px;font-size:10px;color:#374151;vertical-align:top;width:35%">'+(r.issue||'—')+'</td>'
+        +'<td style="padding:6px 10px;font-size:10px;color:#374151;vertical-align:top;width:35%">'+(r.issue||'—').replace(/\n/g,'<br>')+'</td>'
         +'<td style="padding:6px 10px;text-align:center;vertical-align:top;width:12%"><span style="padding:2px 7px;border-radius:10px;background:'+_b+';color:'+_c+';font-size:9px;font-weight:700">'+(r.impact?(r.impact.charAt(0).toUpperCase()+r.impact.slice(1)):'—')+'</span></td>'
-        +'<td style="padding:6px 10px;font-size:10px;color:#374151;vertical-align:top;width:35%">'+(r.mitigation||'—')+'</td>'
+        +'<td style="padding:6px 10px;font-size:10px;color:#374151;vertical-align:top;width:35%">'+(r.mitigation||'—').replace(/\n/g,'<br>')+'</td>'
         +'<td style="padding:6px 10px;font-size:10px;color:#374151;vertical-align:top;width:18%">'+(r.pic||'—')+'</td>'
         +'</tr>';
     }).join('');
@@ -6073,9 +6082,9 @@ window.generateSCurvePDF = function(exportDate) {
         + ghRows.map(function(r){
             var c=_gc[r.impact]||'#374151', b=_gb[r.impact]||'#f9fafb';
             return '<tr style="border-bottom:1px solid #f3f4f6">'
-              +'<td style="padding:6px 10px;vertical-align:top">'+(r.issue||'—')+'</td>'
+              +'<td style="padding:6px 10px;vertical-align:top">'+(r.issue||'—').replace(/\n/g,'<br>')+'</td>'
               +'<td style="padding:6px 6px;text-align:center;vertical-align:top"><span style="padding:2px 6px;border-radius:10px;background:'+b+';color:'+c+';font-size:9px;font-weight:700">'+(r.impact?r.impact.charAt(0).toUpperCase()+r.impact.slice(1):'—')+'</span></td>'
-              +'<td style="padding:6px 10px;vertical-align:top">'+(r.mitigation||'—')+'</td>'
+              +'<td style="padding:6px 10px;vertical-align:top">'+(r.mitigation||'—').replace(/\n/g,'<br>')+'</td>'
               +'<td style="padding:6px 10px;vertical-align:top">'+(r.pic||'—')+'</td>'
               +'</tr>';
           }).join('')
@@ -6353,9 +6362,9 @@ window.generateDashboardPDF = function(exportDate) {
             +_hr.map(function(r){
               var c=_iC[r.impact]||'#374151',b=_iB[r.impact]||'#f9fafb';
               return '<tr style="border-bottom:1px solid #f9fafb">'
-                +'<td style="padding:3px 6px;color:#374151">'+(r.issue||'—')+'</td>'
+                +'<td style="padding:3px 6px;color:#374151">'+(r.issue||'—').replace(/\n/g,'<br>')+'</td>'
                 +'<td style="padding:3px 6px;text-align:center"><span style="padding:1px 5px;border-radius:8px;background:'+b+';color:'+c+';font-weight:700">'+(r.impact||'—')+'</span></td>'
-                +'<td style="padding:3px 6px;color:#374151">'+(r.mitigation||'—')+'</td>'
+                +'<td style="padding:3px 6px;color:#374151">'+(r.mitigation||'—').replace(/\n/g,'<br>')+'</td>'
                 +'<td style="padding:3px 6px;color:#374151">'+(r.pic||'—')+'</td>'
                 +'</tr>';
             }).join('')
@@ -6443,9 +6452,9 @@ window.generateDashboardPDF = function(exportDate) {
           + ghRows.map(function(r){
               var c=_gc[r.impact]||'#374151', b=_gb[r.impact]||'#f9fafb';
               return '<tr style="border-bottom:1px solid #f3f4f6">'
-                +'<td style="padding:6px 10px;vertical-align:top">'+(r.issue||'—')+'</td>'
+                +'<td style="padding:6px 10px;vertical-align:top">'+(r.issue||'—').replace(/\n/g,'<br>')+'</td>'
                 +'<td style="padding:6px 6px;text-align:center;vertical-align:top"><span style="padding:2px 6px;border-radius:10px;background:'+b+';color:'+c+';font-size:9px;font-weight:700">'+(r.impact?r.impact.charAt(0).toUpperCase()+r.impact.slice(1):'—')+'</span></td>'
-                +'<td style="padding:6px 10px;vertical-align:top">'+(r.mitigation||'—')+'</td>'
+                +'<td style="padding:6px 10px;vertical-align:top">'+(r.mitigation||'—').replace(/\n/g,'<br>')+'</td>'
                 +'<td style="padding:6px 10px;vertical-align:top">'+(r.pic||'—')+'</td>'
                 +'</tr>';
             }).join('')
