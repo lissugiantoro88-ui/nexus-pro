@@ -7541,6 +7541,15 @@ window.executeDuplicateSCProject = async function(srcProjId) {
 
     // 3. Copy actuals if requested
     if (withAct) {
+      // Copy itemActuals subcollection (per-item per-date, used by S-Curve chart)
+      const itemActSnap = await getDocs(
+        collection(db,'users',uid,'scurve',srcProjId,'itemActuals'));
+      for (const d of itemActSnap.docs) {
+        await setDoc(
+          doc(db,'users',uid,'scurve',newId,'itemActuals',d.id),
+          d.data());
+      }
+      // Also copy actuals subcollection (cumulative/weekly)
       const actsSnap = await getDocs(
         collection(db,'users',uid,'scurve',srcProjId,'actuals'));
       for (const d of actsSnap.docs) {
