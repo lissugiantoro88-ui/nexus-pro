@@ -8182,12 +8182,34 @@ window.renderMSDetail = function() {
   const colW = ms.unit === 'shift' ? 36 : 48;
 
   // ── Gantt chart ───────────────────────────────────────────────────────
-  let ganttHead = '<tr><th style="min-width:160px;max-width:200px;padding:5px 8px;text-align:left;font-size:9px;color:var(--fog);font-weight:600;position:sticky;left:0;background:var(--bg3);z-index:2;border-right:1px solid var(--line)">Item WBS</th>';
-  dates.forEach(d => {
-    const isToday = d.date === today;
-    ganttHead += `<th style="min-width:${colW}px;padding:3px 2px;text-align:center;font-size:8px;color:${isToday?'var(--amber)':'var(--fog)'};font-weight:${isToday?'700':'400'};white-space:nowrap">${d.label}</th>`;
-  });
-  ganttHead += '</tr>';
+  // Build header — for shift mode add date grouping row
+  let ganttHead = '';
+  if (ms.unit === 'shift') {
+    // Row 1: Date groups (spanning 3 cols each)
+    ganttHead += '<tr><th style="min-width:160px;padding:5px 8px;text-align:left;font-size:9px;color:var(--fog);font-weight:600;position:sticky;left:0;background:var(--bg3);z-index:2;border-right:1px solid var(--line);border-bottom:1px solid var(--line)" rowspan="2">Item WBS</th>';
+    const uniqueDates = [...new Set(dates.map(d => d.date))];
+    uniqueDates.forEach(dt => {
+      const isToday = dt === today;
+      const dObj = new Date(dt+'T00:00:00');
+      const lbl = dObj.getDate()+'/'+(dObj.getMonth()+1);
+      ganttHead += `<th colspan="3" style="padding:3px 4px;text-align:center;font-size:8px;color:${isToday?'var(--amber)':'var(--fog)'};font-weight:${isToday?'700':'500'};border-left:1px solid var(--line);border-bottom:1px solid var(--line2)">${lbl}</th>`;
+    });
+    ganttHead += '</tr>';
+    // Row 2: S1 S2 S3 per date
+    ganttHead += '<tr>';
+    dates.forEach(d => {
+      const isToday = d.date === today;
+      ganttHead += `<th style="min-width:${colW}px;padding:2px 1px;text-align:center;font-size:8px;color:${isToday?'var(--amber)':'var(--fog)'};border-left:${d.shift==='S1'?'1px solid var(--line)':'none'}">${d.shift}</th>`;
+    });
+    ganttHead += '</tr>';
+  } else {
+    ganttHead = '<tr><th style="min-width:160px;max-width:200px;padding:5px 8px;text-align:left;font-size:9px;color:var(--fog);font-weight:600;position:sticky;left:0;background:var(--bg3);z-index:2;border-right:1px solid var(--line)">Item WBS</th>';
+    dates.forEach(d => {
+      const isToday = d.date === today;
+      ganttHead += `<th style="min-width:${colW}px;padding:3px 2px;text-align:center;font-size:8px;color:${isToday?'var(--amber)':'var(--fog)'};font-weight:${isToday?'700':'400'};white-space:nowrap">${d.label}</th>`;
+    });
+    ganttHead += '</tr>';
+  }
 
   const itemsActuals = D.scItemActuals[_currentMsProjId] || {};
 
@@ -8235,13 +8257,30 @@ window.renderMSDetail = function() {
   }).join('');
 
   // ── Factor table ──────────────────────────────────────────────────────
-  let factorHead = `<tr>
-    <th style="min-width:200px;padding:5px 8px;text-align:left;font-size:9px;color:var(--fog);position:sticky;left:0;background:var(--bg3);z-index:2;border-right:1px solid var(--line)">Faktor Kritis</th>`;
-  dates.forEach(d => {
-    const isToday = d.date === today;
-    factorHead += `<th style="min-width:${colW}px;padding:3px 2px;text-align:center;font-size:8px;color:${isToday?'var(--amber)':'var(--fog)'};font-weight:${isToday?'700':'400'}">${d.label}</th>`;
-  });
-  factorHead += '</tr>';
+  let factorHead = '';
+  if (ms.unit === 'shift') {
+    factorHead = '<tr><th style="min-width:200px;padding:5px 8px;text-align:left;font-size:9px;color:var(--fog);position:sticky;left:0;background:var(--bg3);z-index:2;border-right:1px solid var(--line);border-bottom:1px solid var(--line)" rowspan="2">Faktor Kritis</th>';
+    const uDates2 = [...new Set(dates.map(d => d.date))];
+    uDates2.forEach(dt => {
+      const isToday = dt === today;
+      const dObj2 = new Date(dt+'T00:00:00');
+      const lbl2 = dObj2.getDate()+'/'+(dObj2.getMonth()+1);
+      factorHead += `<th colspan="3" style="padding:3px 4px;text-align:center;font-size:8px;color:${isToday?'var(--amber)':'var(--fog)'};font-weight:${isToday?'700':'500'};border-left:1px solid var(--line);border-bottom:1px solid var(--line2)">${lbl2}</th>`;
+    });
+    factorHead += '</tr><tr>';
+    dates.forEach(d => {
+      const isToday = d.date === today;
+      factorHead += `<th style="min-width:${colW}px;padding:2px 1px;text-align:center;font-size:8px;color:${isToday?'var(--amber)':'var(--fog)'};border-left:${d.shift==='S1'?'1px solid var(--line)':'none'}">${d.shift}</th>`;
+    });
+    factorHead += '</tr>';
+  } else {
+    factorHead = `<tr><th style="min-width:200px;padding:5px 8px;text-align:left;font-size:9px;color:var(--fog);position:sticky;left:0;background:var(--bg3);z-index:2;border-right:1px solid var(--line)">Faktor Kritis</th>`;
+    dates.forEach(d => {
+      const isToday = d.date === today;
+      factorHead += `<th style="min-width:${colW}px;padding:3px 2px;text-align:center;font-size:8px;color:${isToday?'var(--amber)':'var(--fog)'};font-weight:${isToday?'700':'400'}">${d.label}</th>`;
+    });
+    factorHead += '</tr>';
+  }
 
   let factorRows = (ms.factors||[]).map((f, fi) => {
     let cells = dates.map(d => {
@@ -8298,6 +8337,14 @@ window.renderMSDetail = function() {
     </div>` : ''}
 
     <!-- Gantt -->
+    <!-- Tab bar -->
+    <div id="ms-tab-bar" style="display:flex;gap:2px;margin-bottom:14px;background:var(--bg3);border-radius:var(--rs);padding:3px">
+      <button id="ms-tab-gantt" onclick="window.switchMSTab('gantt')" style="flex:1;padding:6px 10px;border:none;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;background:var(--accent);color:#fff">📊 Gantt & Faktor</button>
+      <button id="ms-tab-weld" onclick="window.switchMSTab('weld')" style="flex:1;padding:6px 10px;border:none;border-radius:4px;cursor:pointer;font-size:11px;background:transparent;color:var(--fog)">📝 Welding Log</button>
+    </div>
+
+    <!-- Gantt & Faktor section -->
+    <div id="ms-section-gantt">
     <div style="font-size:10px;font-weight:700;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Gantt — Item WBS</div>
     <div style="overflow-x:auto;border:1px solid var(--line);border-radius:var(--rs);margin-bottom:16px">
       <table style="border-collapse:collapse;width:100%;background:var(--bg2)">
@@ -8319,6 +8366,12 @@ window.renderMSDetail = function() {
     <div style="display:flex;gap:12px;font-size:10px;color:var(--fog)">
       ${Object.entries(MS_STATUS_ICO).map(([k,v]) => `<span>${v} ${k===''?'Belum diset':k==='green'?'Ready':k==='yellow'?'Sebagian':'Blocked'}</span>`).join('')}
       <span style="margin-left:auto;font-size:9px">Klik sel untuk toggle status</span>
+    </div>
+    </div><!-- /ms-section-gantt -->
+
+    <!-- Welding Log section -->
+    <div id="ms-section-weld" style="display:none">
+      <div id="ms-weld-content"></div>
     </div>`;
 }
 
@@ -8448,6 +8501,198 @@ window.printMSReport = function() {
   const win = window.open('','_blank');
   win.document.write(html);
   win.document.close();
+};
+
+
+// ── TAB SWITCHING ─────────────────────────────────────────────────────────────
+window.switchMSTab = function(tab) {
+  var ganttEl = document.getElementById('ms-section-gantt');
+  var weldEl  = document.getElementById('ms-section-weld');
+  var btnGantt = document.getElementById('ms-tab-gantt');
+  var btnWeld  = document.getElementById('ms-tab-weld');
+  if (!ganttEl || !weldEl) return;
+  if (tab === 'gantt') {
+    ganttEl.style.display = ''; weldEl.style.display = 'none';
+    if (btnGantt) { btnGantt.style.background='var(--accent)'; btnGantt.style.color='#fff'; }
+    if (btnWeld)  { btnWeld.style.background='transparent'; btnWeld.style.color='var(--fog)'; }
+  } else {
+    ganttEl.style.display = 'none'; weldEl.style.display = '';
+    if (btnWeld)  { btnWeld.style.background='var(--accent)'; btnWeld.style.color='#fff'; }
+    if (btnGantt) { btnGantt.style.background='transparent'; btnGantt.style.color='var(--fog)'; }
+    window.renderMSWeldLog();
+  }
+};
+
+// ── WELDING LOG ───────────────────────────────────────────────────────────────
+// ms.weldingLog = { 'YYYY-MM-DD' or 'YYYY-MM-DD-S1': { welder, layers, lengthMm, ndt, notes } }
+window.renderMSWeldLog = function() {
+  var el = document.getElementById('ms-weld-content');
+  if (!el) return;
+  var ms = (_microData[_currentMsProjId]||[]).find(function(m){ return m.id === _currentMsId; });
+  if (!ms) return;
+  var dates = window.getMSDates(ms);
+  var log = ms.weldingLog || {};
+
+  // KPI summary
+  var tL=0, tLen=0, np=0, nr=0, nrj=0;
+  Object.values(log).forEach(function(e){
+    tL+=parseInt(e.layers)||0; tLen+=parseFloat(e.lengthMm)||0;
+    if(e.ndt==='pass')np++; if(e.ndt==='repair')nr++; if(e.ndt==='reject')nrj++;
+  });
+  var nt=np+nr+nrj, pr=nt?Math.round(np/nt*100):0;
+
+  // Build using DOM
+  el.innerHTML = '';
+
+  // KPI row
+  var kpiRow = document.createElement('div');
+  kpiRow.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px';
+  kpiRow.innerHTML = _msKpi('Total Layer',tL,'#6366f1')
+    +_msKpi('Total Panjang',tLen.toFixed(0)+' mm','#0891b2')
+    +_msKpi('NDT Pass Rate',pr+'%',pr>=80?'#16a34a':'#d97706')
+    +_msKpi('NDT Repair/Reject',nr+'/'+nrj,nrj>0?'#dc2626':'#6b7280');
+  el.appendChild(kpiRow);
+
+  // Entries
+  var entriesWrap = document.createElement('div');
+  entriesWrap.style.cssText = 'display:flex;flex-direction:column;gap:8px';
+
+  dates.forEach(function(d) {
+    var entry = log[d.key] || {};
+    var ndtClr = {pass:'#16a34a',repair:'#d97706',reject:'#dc2626'}[entry.ndt]||'var(--fog)';
+    var hasData = entry.welder||entry.layers||entry.lengthMm||entry.ndt||entry.notes;
+
+    var card = document.createElement('div');
+    card.style.cssText = 'background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);overflow:hidden';
+
+    // Header (clickable)
+    var hdr = document.createElement('div');
+    hdr.style.cssText = 'padding:6px 10px;background:var(--bg2);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;cursor:pointer';
+    hdr.innerHTML = '<span style="font-size:11px;font-weight:700;color:var(--snow)">' + d.label + '</span>'
+      + (hasData ? '<span style="font-size:9px;padding:1px 7px;border-radius:10px;background:'+ndtClr+';color:#fff">' + (entry.ndt||'—').toUpperCase() + '</span>' : '')
+      + (entry.welder ? '<span style="font-size:10px;color:var(--fog)">👷 '+entry.welder+'</span>' : '')
+      + '<span class="weld-layers" style="margin-left:auto;font-size:10px;color:var(--accent2)">' + (entry.layers ? entry.layers+' layer' : '<span style="color:var(--fog);font-size:9px">Belum diisi</span>') + '</span>'
+      + '<span class="weld-arrow" style="font-size:10px;color:var(--fog);margin-left:8px">▼</span>';
+
+    // Body (hidden)
+    var body = document.createElement('div');
+    body.style.cssText = 'display:none;padding:10px';
+
+    var grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;grid-template-columns:1fr 80px 100px 100px;gap:8px;margin-bottom:8px';
+
+    // Welder input
+    var welderIn = _msInputEl('Nama Welder','text',entry.welder||'','e.g. Agus, Budi...');
+    welderIn.addEventListener('input', function(){ window.saveWeldEntry(d.key,'welder',this.value); });
+    grid.appendChild(welderIn);
+
+    // Layers input
+    var layersIn = _msInputEl('Jumlah Layer','number',entry.layers||'','0');
+    layersIn.addEventListener('input', function(){ window.saveWeldEntry(d.key,'layers',this.value); });
+    grid.appendChild(layersIn);
+
+    // Length input
+    var lenIn = _msInputEl('Panjang (mm)','number',entry.lengthMm||'','0');
+    lenIn.addEventListener('input', function(){ window.saveWeldEntry(d.key,'lengthMm',this.value); });
+    grid.appendChild(lenIn);
+
+    // NDT select
+    var ndtWrap = document.createElement('div');
+    ndtWrap.innerHTML = '<div style="font-size:9px;color:var(--fog);margin-bottom:3px">Hasil NDT</div>';
+    var ndtSel = document.createElement('select');
+    ndtSel.style.cssText = 'width:100%;padding:5px 6px;background:var(--bg2);border:1px solid var(--line);border-radius:4px;color:var(--snow);font-size:11px';
+    ['','pass','repair','reject'].forEach(function(v){
+      var opt = document.createElement('option');
+      opt.value = v; opt.textContent = v ? v.charAt(0).toUpperCase()+v.slice(1) : '—';
+      if (entry.ndt === v) opt.selected = true;
+      ndtSel.appendChild(opt);
+    });
+    ndtSel.addEventListener('change', function(){ window.saveWeldEntry(d.key,'ndt',this.value); });
+    ndtWrap.appendChild(ndtSel);
+    grid.appendChild(ndtWrap);
+    body.appendChild(grid);
+
+    // Notes textarea
+    var notesWrap = document.createElement('div');
+    notesWrap.innerHTML = '<div style="font-size:9px;color:var(--fog);margin-bottom:3px">Catatan</div>';
+    var ta = document.createElement('textarea');
+    ta.style.cssText = 'width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:5px 7px;color:var(--snow);font-size:11px;resize:vertical;min-height:50px;box-sizing:border-box;font-family:Inter,sans-serif';
+    ta.placeholder = 'Pre-heat, interpass temp, anomali, dll...';
+    ta.value = entry.notes||'';
+    ta.addEventListener('input', function(){ window.saveWeldEntry(d.key,'notes',this.value); });
+    notesWrap.appendChild(ta);
+    body.appendChild(notesWrap);
+    card.appendChild(hdr);
+    card.appendChild(body);
+
+    hdr.addEventListener('click', function() {
+      var isOpen = body.style.display !== 'none';
+      body.style.display = isOpen ? 'none' : 'block';
+      var arrow = hdr.querySelector('.weld-arrow');
+      if (arrow) arrow.textContent = isOpen ? '▼' : '▲';
+    });
+
+    entriesWrap.appendChild(card);
+  });
+
+  el.appendChild(entriesWrap);
+};
+
+function _msInputEl(label, type, value, placeholder) {
+  var wrap = document.createElement('div');
+  wrap.innerHTML = '<div style="font-size:9px;color:var(--fog);margin-bottom:3px">'+label+'</div>';
+  var inp = document.createElement('input');
+  inp.type = type; inp.value = value; inp.placeholder = placeholder;
+  inp.style.cssText = 'width:100%;padding:5px 7px;background:var(--bg2);border:1px solid var(--line);border-radius:4px;color:var(--snow);font-size:11px;box-sizing:border-box';
+  wrap.appendChild(inp);
+  return wrap;
+}
+
+
+function _msKpi(label, value, color) {
+  return '<div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);padding:10px 12px;text-align:center">'
+    + '<div style="font-size:16px;font-weight:700;color:'+color+'">'+value+'</div>'
+    + '<div style="font-size:9px;color:var(--fog);margin-top:2px">'+label+'</div>'
+    + '</div>';
+}
+
+
+window.toggleWeldEntry = function(header) {
+  var body = header.parentElement.querySelector('.weld-entry-body');
+  if (!body) return;
+  var isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  var arrow = header.querySelector('span:last-child');
+  if (arrow) arrow.textContent = isOpen ? '▼' : '▲';
+};
+
+var _weldSaveTimers = {};
+window.saveWeldEntry = function(dateKey, field, value) {
+  var ms = (_microData[_currentMsProjId]||[]).find(function(m){ return m.id === _currentMsId; });
+  if (!ms) return;
+  if (!ms.weldingLog) ms.weldingLog = {};
+  if (!ms.weldingLog[dateKey]) ms.weldingLog[dateKey] = {};
+  ms.weldingLog[dateKey][field] = value;
+  // Update KPI display immediately
+  clearTimeout(_weldSaveTimers[dateKey]);
+  _weldSaveTimers[dateKey] = setTimeout(function() {
+    saveMicroSchedule(_currentMsProjId, ms);
+    // Refresh KPI only (not full re-render to avoid cursor jump)
+    var kpiEl = document.querySelector('#ms-weld-content > div:first-child');
+    if (kpiEl) {
+      var log = ms.weldingLog || {};
+      var tL=0, tLen=0, np=0, nr=0, nrj=0;
+      Object.values(log).forEach(function(e){
+        tL+=parseInt(e.layers)||0; tLen+=parseFloat(e.lengthMm)||0;
+        if(e.ndt==='pass')np++; if(e.ndt==='repair')nr++; if(e.ndt==='reject')nrj++;
+      });
+      var nt=np+nr+nrj, pr=nt?Math.round(np/nt*100):0;
+      kpiEl.innerHTML = _msKpi('Total Layer',tL,'#6366f1')
+        +_msKpi('Total Panjang',tLen.toFixed(0)+' mm','#0891b2')
+        +_msKpi('NDT Pass Rate',pr+'%',pr>=80?'#16a34a':'#d97706')
+        +_msKpi('NDT Repair/Reject',nr+'/'+nrj,nrj>0?'#dc2626':'#6b7280');
+    }
+  }, 600);
 };
 
 </script>
