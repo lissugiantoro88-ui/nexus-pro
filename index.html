@@ -8155,7 +8155,7 @@ window.getMSDates = function(ms) {
     const end = localMidnight(ms.endDate);
     while (cur <= end) {
       const d = localDateStr(cur);
-      ['S1','S2','S3'].forEach(s => dates.push({ key: `${d}-${s}`, label: s, date: d, shift: s }));
+      ['S1','S2'].forEach(s => dates.push({ key: `${d}-${s}`, label: s==='S1'?'Pagi':'Malam', date: d, shift: s }));
       cur.setDate(cur.getDate()+1);
     }
   } else {
@@ -8192,7 +8192,7 @@ window.renderMSDetail = function() {
       const isToday = dt === today;
       const dObj = new Date(dt+'T00:00:00');
       const lbl = dObj.getDate()+'/'+(dObj.getMonth()+1);
-      ganttHead += `<th colspan="3" style="padding:3px 4px;text-align:center;font-size:8px;color:${isToday?'var(--amber)':'var(--fog)'};font-weight:${isToday?'700':'500'};border-left:1px solid var(--line);border-bottom:1px solid var(--line2)">${lbl}</th>`;
+      ganttHead += `<th colspan="2" style="padding:3px 4px;text-align:center;font-size:8px;color:${isToday?'var(--amber)':'var(--fog)'};font-weight:${isToday?'700':'500'};border-left:1px solid var(--line);border-bottom:1px solid var(--line2)">${lbl}</th>`;
     });
     ganttHead += '</tr>';
     // Row 2: S1 S2 S3 per date
@@ -8265,7 +8265,7 @@ window.renderMSDetail = function() {
       const isToday = dt === today;
       const dObj2 = new Date(dt+'T00:00:00');
       const lbl2 = dObj2.getDate()+'/'+(dObj2.getMonth()+1);
-      factorHead += `<th colspan="3" style="padding:3px 4px;text-align:center;font-size:8px;color:${isToday?'var(--amber)':'var(--fog)'};font-weight:${isToday?'700':'500'};border-left:1px solid var(--line);border-bottom:1px solid var(--line2)">${lbl2}</th>`;
+      factorHead += `<th colspan="2" style="padding:3px 4px;text-align:center;font-size:8px;color:${isToday?'var(--amber)':'var(--fog)'};font-weight:${isToday?'700':'500'};border-left:1px solid var(--line);border-bottom:1px solid var(--line2)">${lbl2}</th>`;
     });
     factorHead += '</tr><tr>';
     dates.forEach(d => {
@@ -8583,17 +8583,17 @@ window.renderMSWeldLog = function() {
 
     // Welder input
     var welderIn = _msInputEl('Nama Welder','text',entry.welder||'','e.g. Agus, Budi...');
-    welderIn.addEventListener('input', function(){ window.saveWeldEntry(d.key,'welder',this.value); });
+    welderIn.querySelector('input').addEventListener('input', function(){ window.saveWeldEntry(d.key,'welder',this.value); });
     grid.appendChild(welderIn);
 
     // Layers input
     var layersIn = _msInputEl('Jumlah Layer','number',entry.layers||'','0');
-    layersIn.addEventListener('input', function(){ window.saveWeldEntry(d.key,'layers',this.value); });
+    layersIn.querySelector('input').addEventListener('input', function(){ window.saveWeldEntry(d.key,'layers',this.value); });
     grid.appendChild(layersIn);
 
     // Length input
     var lenIn = _msInputEl('Panjang (mm)','number',entry.lengthMm||'','0');
-    lenIn.addEventListener('input', function(){ window.saveWeldEntry(d.key,'lengthMm',this.value); });
+    lenIn.querySelector('input').addEventListener('input', function(){ window.saveWeldEntry(d.key,'lengthMm',this.value); });
     grid.appendChild(lenIn);
 
     // NDT select
@@ -8672,7 +8672,7 @@ window.saveWeldEntry = function(dateKey, field, value) {
   if (!ms) return;
   if (!ms.weldingLog) ms.weldingLog = {};
   if (!ms.weldingLog[dateKey]) ms.weldingLog[dateKey] = {};
-  ms.weldingLog[dateKey][field] = value;
+  ms.weldingLog[dateKey][field] = (value === undefined || value === null) ? '' : value;
   // Update KPI display immediately
   clearTimeout(_weldSaveTimers[dateKey]);
   _weldSaveTimers[dateKey] = setTimeout(function() {
