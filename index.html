@@ -1510,6 +1510,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
             <div style="font-size:11px;font-weight:600;color:var(--mist);text-transform:uppercase;letter-spacing:1px;flex:1">WBS</div>
             <button class="tb-btn" style="font-size:10px;padding:4px 8px" onclick="openSCProjectModal(scCurrentProjectId)">✎ Edit</button>
             <button class="tb-btn" onclick="openDuplicateSCProject(scCurrentProjectId)" style="font-size:10px;padding:4px 8px" title="Duplikat project ini">⎘ Duplikat</button>
+            <button class="tb-btn" onclick="openMicroSchedule(scCurrentProjectId)" style="font-size:10px;padding:4px 8px;border-color:var(--amber);color:var(--amber)" title="Micro Schedule">⚡ Micro</button>
             <button class="tb-btn" style="font-size:10px;padding:4px 8px;border-color:var(--rose);color:var(--rose)" onclick="deleteSCProj(scCurrentProjectId)">🗑 Hapus</button>
             <button class="tb-btn primary" style="font-size:10px;padding:4px 8px" onclick="openSCItemModal()">+ Item</button>
             <button id="sc-hl-tab-btn" onclick="switchSCTab('highlight')" style="font-size:10px;padding:4px 8px;border-radius:var(--rs);border:1px solid var(--accent2);background:transparent;color:var(--accent2);cursor:pointer">📌 Highlight</button>
@@ -7809,6 +7810,538 @@ window.deleteGlobalHighlightRow = async function(idx) {
   D_globalHighlights = rows;
   await saveGlobalHighlights(rows);
   renderGlobalHighlightPanel();
+};
+
+
+// ── MICRO SCHEDULE MODULE ──────────────────────────────────────────────────────
+// Storage: users/{uid}/scurve/{projId}/microSchedules/{msId}
+// Each microSchedule: { id, name, items[], factors[], unit:'day'|'shift',
+//                       startDate, endDate, dependencies[], updatedAt }
+// items[]: { wbsItemId, wbsItemName, color, rowIdx }
+// factors[]: { id, name, statuses: { 'YYYY-MM-DD'|'YYYY-MM-DD-S1': {status,note} } }
+// dependencies[]: { fromItemId, toItemId } (visual only)
+
+let _microData = {};      // { projId: [microSchedule, ...] }
+let _microUnsubs = {};    // { projId: unsubFn }
+let _currentMsId = null;
+let _currentMsProjId = null;
+
+const MS_DEFAULT_FACTORS = [
+  { id: 'f_welder',    name: 'Welder tersedia & qualified' },
+  { id: 'f_filler',   name: 'Kawat las / filler tersedia' },
+  { id: 'f_wps',      name: 'WPS approved & diikuti' },
+  { id: 'f_preheat',  name: 'Pre-heat compliance' },
+  { id: 'f_ndt',      name: 'NDT Inspector available' },
+  { id: 'f_holdpt',   name: 'Hold point approval (BIG/BRIN)' },
+  { id: 'f_machine',  name: 'Peralatan machining siap' },
+  { id: 'f_dimcheck', name: 'Dimensional check OK' },
+];
+
+const MS_STATUS_CYCLE = ['', 'green', 'yellow', 'red'];
+const MS_STATUS_ICO   = { '':'—', green:'🟢', yellow:'🟡', red:'🔴' };
+const MS_STATUS_CLR   = { '':'#9ca3af', green:'#16a34a', yellow:'#d97706', red:'#dc2626' };
+const MS_STATUS_BG    = { '':'#f9fafb', green:'#f0fdf4', yellow:'#fef3c7', red:'#fff5f5' };
+
+// ── Firebase helpers ──────────────────────────────────────────────────────────
+async function saveMicroSchedule(projId, ms) {
+  await setDoc(doc(db,'users',uid,'scurve',projId,'microSchedules',ms.id),
+    { ...ms, updatedAt: serverTimestamp() }, { merge: true });
+}
+
+async function deleteMicroScheduleDoc(projId, msId) {
+  const { deleteDoc, doc: docFn } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+  await deleteDoc(docFn(db,'users',uid,'scurve',projId,'microSchedules',msId));
+}
+
+function listenMicroSchedules(projId) {
+  if (_microUnsubs[projId]) return;
+  const unsub = onSnapshot(
+    collection(db,'users',uid,'scurve',projId,'microSchedules'),
+    snap => {
+      _microData[projId] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Re-render if modal open for this project
+      const modal = document.getElementById('ms-modal');
+      if (modal && modal.style.display !== 'none' && _currentMsProjId === projId) {
+        renderMSList();
+      }
+    }
+  );
+  _microUnsubs[projId] = unsub;
+}
+
+// ── Open main modal ───────────────────────────────────────────────────────────
+window.openMicroSchedule = function(projId) {
+  if (!projId || projId === '__global__') {
+    toast('Pilih project individual dulu', true); return;
+  }
+  _currentMsProjId = projId;
+  listenMicroSchedules(projId);
+
+  let modal = document.getElementById('ms-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'ms-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;display:flex;align-items:stretch;justify-content:center;padding:20px';
+    document.body.appendChild(modal);
+  }
+  modal.style.display = 'flex';
+  modal.onclick = e => { if (e.target === modal) closeMSModal(); };
+  renderMSMain();
+};
+
+window.closeMSModal = function() {
+  const modal = document.getElementById('ms-modal');
+  if (modal) modal.style.display = 'none';
+  _currentMsId = null;
+};
+
+function renderMSMain() {
+  const modal = document.getElementById('ms-modal');
+  if (!modal) return;
+  const proj = D.scProjects.find(p => p.id === _currentMsProjId);
+  const projName = proj ? proj.name : _currentMsProjId;
+
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border-radius:12px;width:100%;max-width:1100px;display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:14px 20px;border-bottom:1px solid var(--line2);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--snow)">⚡ Micro Schedule</div>
+          <div style="font-size:11px;color:var(--fog);margin-top:2px">${projName}</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="openNewMS()" style="padding:7px 16px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:12px;font-weight:600">+ Buat Baru</button>
+          <button onclick="closeMSModal()" style="padding:7px 12px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:12px">✕</button>
+        </div>
+      </div>
+      <div id="ms-content" style="flex:1;overflow-y:auto;padding:16px"></div>
+    </div>`;
+  renderMSList();
+}
+
+function renderMSList() {
+  const el = document.getElementById('ms-content');
+  if (!el) return;
+  const list = (_microData[_currentMsProjId] || []).sort((a,b) => (b.updatedAt?.seconds||0)-(a.updatedAt?.seconds||0));
+
+  if (!list.length) {
+    el.innerHTML = `<div style="padding:40px;text-align:center;color:var(--fog)">
+      <div style="font-size:32px;margin-bottom:12px">⚡</div>
+      <div style="font-size:13px;margin-bottom:6px">Belum ada Micro Schedule</div>
+      <div style="font-size:11px">Klik "+ Buat Baru" untuk membuat micro schedule untuk item kritis</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = list.map(ms => {
+    const itemCount = (ms.items||[]).length;
+    const factorCount = (ms.factors||[]).length;
+    // Count red factors
+    const redCount = (ms.factors||[]).reduce((acc, f) => {
+      const statuses = Object.values(f.statuses||{});
+      return acc + statuses.filter(s => s.status === 'red').length;
+    }, 0);
+    const statusClr = redCount > 0 ? 'var(--rose)' : 'var(--lime)';
+    const statusTxt = redCount > 0 ? `🔴 ${redCount} blocked` : '🟢 On Track';
+
+    return `<div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;cursor:pointer" onclick="openMSDetail('${ms.id}')" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--line)'">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;color:var(--snow);margin-bottom:4px">${ms.name||'Tanpa Nama'}</div>
+          <div style="font-size:10px;color:var(--fog)">${ms.startDate||'?'} → ${ms.endDate||'?'} · Unit: ${ms.unit==='shift'?'Shift':'Hari'} · ${itemCount} item · ${factorCount} faktor</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:11px;font-weight:600;color:${statusClr}">${statusTxt}</div>
+          <button onclick="event.stopPropagation();deleteMSConfirm('${ms.id}')" style="margin-top:6px;padding:3px 8px;background:none;border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:10px">🗑</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── New/Edit MS form ──────────────────────────────────────────────────────────
+window.openNewMS = function() {
+  const proj = D.scProjects.find(p => p.id === _currentMsProjId);
+  const items = (D.scItems[_currentMsProjId] || []);
+
+  const modal = document.getElementById('ms-modal');
+  const content = document.getElementById('ms-content');
+  if (!content) return;
+
+  const checkboxes = items.map((it,i) => `
+    <label style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg3);border-radius:var(--rs);cursor:pointer;margin-bottom:4px">
+      <input type="checkbox" class="ms-item-cb" data-id="${it.id}" data-name="${(it.name||'').replace(/"/g,'')}" style="width:14px;height:14px">
+      <span style="font-size:11px;color:var(--mist)">${it.name}</span>
+      <span style="font-size:9px;color:var(--fog);margin-left:auto">${it.weight}%</span>
+    </label>`).join('');
+
+  content.innerHTML = `
+    <div style="max-width:600px;margin:0 auto">
+      <button onclick="renderMSList();renderMSMain()" style="background:none;border:none;color:var(--fog);cursor:pointer;font-size:12px;margin-bottom:14px">← Kembali</button>
+      <div style="font-size:13px;font-weight:700;color:var(--snow);margin-bottom:16px">Buat Micro Schedule Baru</div>
+
+      <div class="fld"><div class="fld-lbl">Nama Micro Schedule</div>
+        <input class="fld-in" id="ms-name" placeholder="e.g. Critical Path Stellite 6 FV-193"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+        <div class="fld" style="margin:0"><div class="fld-lbl">Start Date</div>
+          <input class="fld-in" type="date" id="ms-start" value="${proj?.startDate||''}"></div>
+        <div class="fld" style="margin:0"><div class="fld-lbl">End Date</div>
+          <input class="fld-in" type="date" id="ms-end" value="${proj?.finishDate||''}"></div>
+        <div class="fld" style="margin:0"><div class="fld-lbl">Unit Waktu</div>
+          <select class="fld-sel" id="ms-unit">
+            <option value="day">Harian</option>
+            <option value="shift">Per Shift</option>
+          </select></div>
+      </div>
+
+      <div class="fld"><div class="fld-lbl">Pilih Item WBS yang Dipantau</div>
+        <div style="max-height:200px;overflow-y:auto;border:1px solid var(--line);border-radius:var(--rs);padding:8px">${checkboxes||'<div style="color:var(--fog);font-size:11px;padding:8px">Tidak ada item WBS</div>'}</div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button onclick="renderMSMain()" style="flex:1;padding:9px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:12px">Batal</button>
+        <button onclick="createMSFromForm()" style="flex:2;padding:9px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:12px;font-weight:600">⚡ Buat Micro Schedule</button>
+      </div>
+    </div>`;
+};
+
+window.createMSFromForm = async function() {
+  const name = document.getElementById('ms-name')?.value.trim();
+  const start = document.getElementById('ms-start')?.value;
+  const end   = document.getElementById('ms-end')?.value;
+  const unit  = document.getElementById('ms-unit')?.value || 'day';
+
+  if (!name) { toast('Isi nama micro schedule', true); return; }
+  if (!start || !end) { toast('Isi tanggal start dan end', true); return; }
+
+  const selectedItems = [...document.querySelectorAll('.ms-item-cb:checked')].map((cb,i) => ({
+    wbsItemId: cb.dataset.id,
+    wbsItemName: cb.dataset.name,
+    rowIdx: i,
+    color: ['#6366f1','#16a34a','#d97706','#dc2626','#0891b2','#7c3aed','#ec4899','#84cc16'][i % 8]
+  }));
+
+  if (!selectedItems.length) { toast('Pilih minimal 1 item WBS', true); return; }
+
+  const msId = 'ms_' + Date.now().toString(36);
+  const ms = {
+    id: msId, name, startDate: start, endDate: end, unit,
+    items: selectedItems,
+    factors: MS_DEFAULT_FACTORS.map(f => ({ ...f, statuses: {} })),
+    dependencies: [],
+  };
+
+  await saveMicroSchedule(_currentMsProjId, ms);
+  toast('✓ Micro Schedule dibuat');
+  setTimeout(() => openMSDetail(msId), 500);
+};
+
+// ── Detail view ───────────────────────────────────────────────────────────────
+window.openMSDetail = function(msId) {
+  _currentMsId = msId;
+  renderMSDetail();
+};
+
+function getMSDates(ms) {
+  const dates = [];
+  if (!ms.startDate || !ms.endDate) return dates;
+  if (ms.unit === 'shift') {
+    let cur = localMidnight(ms.startDate);
+    const end = localMidnight(ms.endDate);
+    while (cur <= end) {
+      const d = localDateStr(cur);
+      ['S1','S2','S3'].forEach(s => dates.push({ key: `${d}-${s}`, label: s, date: d, shift: s }));
+      cur.setDate(cur.getDate()+1);
+    }
+  } else {
+    let cur = localMidnight(ms.startDate);
+    const end = localMidnight(ms.endDate);
+    while (cur <= end) {
+      const d = localDateStr(cur);
+      const label = cur.getDate()+'/'+(cur.getMonth()+1);
+      dates.push({ key: d, label, date: d });
+      cur.setDate(cur.getDate()+1);
+    }
+  }
+  return dates;
+}
+
+function renderMSDetail() {
+  const content = document.getElementById('ms-content');
+  if (!content) return;
+  const ms = (_microData[_currentMsProjId]||[]).find(m => m.id === _currentMsId);
+  if (!ms) return;
+
+  const dates = getMSDates(ms);
+  const today = TS();
+  const colW = ms.unit === 'shift' ? 36 : 48;
+
+  // ── Gantt chart ───────────────────────────────────────────────────────
+  let ganttHead = '<tr><th style="min-width:160px;max-width:200px;padding:5px 8px;text-align:left;font-size:9px;color:var(--fog);font-weight:600;position:sticky;left:0;background:var(--bg3);z-index:2;border-right:1px solid var(--line)">Item WBS</th>';
+  dates.forEach(d => {
+    const isToday = d.date === today;
+    ganttHead += `<th style="min-width:${colW}px;padding:3px 2px;text-align:center;font-size:8px;color:${isToday?'var(--amber)':'var(--fog)'};font-weight:${isToday?'700':'400'};white-space:nowrap">${d.label}</th>`;
+  });
+  ganttHead += '</tr>';
+
+  const itemsActuals = D.scItemActuals[_currentMsProjId] || {};
+
+  let ganttRows = (ms.items||[]).map(it => {
+    const wbsItem = (D.scItems[_currentMsProjId]||[]).find(i => i.id === it.wbsItemId);
+    const startD = wbsItem?.startDate || ms.startDate;
+    const endD   = wbsItem?.finishDate || ms.endDate;
+
+    // Calculate actual cumulative for this item
+    let cumAct = 0;
+    Object.values(itemsActuals).forEach(dayData => {
+      cumAct += parseFloat(dayData[it.wbsItemId] || 0);
+    });
+    const pct = Math.min(100, Math.round(cumAct / (wbsItem?.weight||1) * 100));
+
+    let cells = dates.map(d => {
+      const inPlan = d.date >= startD && d.date <= endD;
+      const isToday = d.date === today;
+      let bg = 'transparent', border = 'none', content2 = '';
+
+      if (inPlan) {
+        bg = it.color + '33'; // 20% opacity
+        border = `1px solid ${it.color}66`;
+      }
+      if (isToday) border = '2px solid var(--amber)';
+
+      // Dependency arrows - simplified: show arrow icon at start of next item
+      return `<td style="min-width:${colW}px;padding:2px;text-align:center">
+        <div style="height:18px;background:${bg};border:${border};border-radius:3px;${isToday?'box-shadow:0 0 0 1px var(--amber)':''}">${content2}</div>
+      </td>`;
+    }).join('');
+
+    return `<tr>
+      <td style="position:sticky;left:0;background:var(--bg2);z-index:1;border-right:1px solid var(--line);padding:4px 8px;min-width:160px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="width:10px;height:10px;border-radius:2px;background:${it.color};flex-shrink:0"></div>
+          <div>
+            <div style="font-size:10px;font-weight:600;color:var(--snow);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px">${it.wbsItemName}</div>
+            <div style="font-size:8px;color:var(--fog)">${startD} → ${endD}</div>
+          </div>
+        </div>
+      </td>
+      ${cells}
+    </tr>`;
+  }).join('');
+
+  // ── Factor table ──────────────────────────────────────────────────────
+  let factorHead = `<tr>
+    <th style="min-width:200px;padding:5px 8px;text-align:left;font-size:9px;color:var(--fog);position:sticky;left:0;background:var(--bg3);z-index:2;border-right:1px solid var(--line)">Faktor Kritis</th>`;
+  dates.forEach(d => {
+    const isToday = d.date === today;
+    factorHead += `<th style="min-width:${colW}px;padding:3px 2px;text-align:center;font-size:8px;color:${isToday?'var(--amber)':'var(--fog)'};font-weight:${isToday?'700':'400'}">${d.label}</th>`;
+  });
+  factorHead += '</tr>';
+
+  let factorRows = (ms.factors||[]).map((f, fi) => {
+    let cells = dates.map(d => {
+      const st = f.statuses?.[d.key] || {};
+      const status = st.status || '';
+      const note   = st.note || '';
+      const ico = MS_STATUS_ICO[status];
+      const bg  = MS_STATUS_BG[status];
+      return `<td style="min-width:${colW}px;padding:2px;text-align:center">
+        <div onclick="cycleMSFactor('${f.id}','${d.key}')" title="${note||f.name}" style="height:22px;background:${bg};border-radius:3px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;border:1px solid #e5e7eb" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='#e5e7eb'">${ico}</div>
+      </td>`;
+    }).join('');
+
+    return `<tr>
+      <td style="position:sticky;left:0;background:var(--bg2);z-index:1;border-right:1px solid var(--line);padding:4px 8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:4px">
+          <div style="font-size:10px;color:var(--snow);flex:1">${f.name}</div>
+          <div style="display:flex;gap:3px;flex-shrink:0">
+            <button onclick="editMSFactor(${fi})" style="background:none;border:none;cursor:pointer;color:var(--fog);font-size:10px;padding:1px 3px">✎</button>
+            <button onclick="deleteMSFactor(${fi})" style="background:none;border:none;cursor:pointer;color:var(--fog);font-size:10px;padding:1px 3px">✕</button>
+          </div>
+        </div>
+      </td>
+      ${cells}
+    </tr>`;
+  }).join('');
+
+  // Summary: action required
+  const blocked = (ms.factors||[]).filter(f => {
+    return Object.values(f.statuses||{}).some(s => s.status === 'red');
+  });
+
+  content.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <button onclick="renderMSMain()" style="background:none;border:none;color:var(--fog);cursor:pointer;font-size:12px">← Kembali</button>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700;color:var(--snow)">${ms.name}</div>
+        <div style="font-size:10px;color:var(--fog)">${ms.startDate} → ${ms.endDate} · ${ms.unit==='shift'?'Per Shift':'Harian'}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <select id="ms-unit-toggle" onchange="changeMSUnit(this.value)" style="padding:4px 8px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--mist);font-size:11px;cursor:pointer">
+          <option value="day" ${ms.unit!=='shift'?'selected':''}>Harian</option>
+          <option value="shift" ${ms.unit==='shift'?'selected':''}>Per Shift</option>
+        </select>
+        <button onclick="addMSFactor()" style="padding:5px 10px;background:var(--bg3);border:1px solid var(--accent2);border-radius:var(--rs);color:var(--accent2);cursor:pointer;font-size:11px">+ Faktor</button>
+        <button onclick="printMSReport()" style="padding:5px 10px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:11px">⬇ PDF</button>
+      </div>
+    </div>
+
+    ${blocked.length ? `<div style="background:var(--rosed);border:1px solid rgba(255,94,136,.3);border-radius:var(--rs);padding:8px 12px;margin-bottom:12px;font-size:11px">
+      <span style="font-weight:700;color:var(--rose)">🔴 ${blocked.length} faktor blocked:</span>
+      <span style="color:var(--mist);margin-left:6px">${blocked.map(f=>f.name).join(' · ')}</span>
+    </div>` : ''}
+
+    <!-- Gantt -->
+    <div style="font-size:10px;font-weight:700;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Gantt — Item WBS</div>
+    <div style="overflow-x:auto;border:1px solid var(--line);border-radius:var(--rs);margin-bottom:16px">
+      <table style="border-collapse:collapse;width:100%;background:var(--bg2)">
+        <thead style="background:var(--bg3)">${ganttHead}</thead>
+        <tbody>${ganttRows||'<tr><td colspan="99" style="padding:16px;text-align:center;color:var(--fog);font-size:11px">Tidak ada item WBS dipilih</td></tr>'}</tbody>
+      </table>
+    </div>
+
+    <!-- Factors -->
+    <div style="font-size:10px;font-weight:700;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Faktor Kritis — Klik sel untuk toggle status</div>
+    <div style="overflow-x:auto;border:1px solid var(--line);border-radius:var(--rs);margin-bottom:16px">
+      <table style="border-collapse:collapse;width:100%;background:var(--bg2)">
+        <thead style="background:var(--bg3)">${factorHead}</thead>
+        <tbody>${factorRows||'<tr><td colspan="99" style="padding:16px;text-align:center;color:var(--fog);font-size:11px">Belum ada faktor. Klik "+ Faktor" untuk tambah.</td></tr>'}</tbody>
+      </table>
+    </div>
+
+    <!-- Legend -->
+    <div style="display:flex;gap:12px;font-size:10px;color:var(--fog)">
+      ${Object.entries(MS_STATUS_ICO).map(([k,v]) => `<span>${v} ${k===''?'Belum diset':k==='green'?'Ready':k==='yellow'?'Sebagian':'Blocked'}</span>`).join('')}
+      <span style="margin-left:auto;font-size:9px">Klik sel untuk toggle status</span>
+    </div>`;
+}
+
+// ── Factor actions ────────────────────────────────────────────────────────────
+window.cycleMSFactor = async function(factorId, dateKey) {
+  const ms = (_microData[_currentMsProjId]||[]).find(m => m.id === _currentMsId);
+  if (!ms) return;
+  const factor = ms.factors.find(f => f.id === factorId);
+  if (!factor) return;
+  if (!factor.statuses) factor.statuses = {};
+  const cur = factor.statuses[dateKey]?.status || '';
+  const idx = MS_STATUS_CYCLE.indexOf(cur);
+  const next = MS_STATUS_CYCLE[(idx+1) % MS_STATUS_CYCLE.length];
+  factor.statuses[dateKey] = { ...factor.statuses[dateKey], status: next };
+  await saveMicroSchedule(_currentMsProjId, ms);
+  renderMSDetail();
+};
+
+window.addMSFactor = function() {
+  const name = prompt('Nama faktor baru:');
+  if (!name) return;
+  const ms = (_microData[_currentMsProjId]||[]).find(m => m.id === _currentMsId);
+  if (!ms) return;
+  ms.factors = ms.factors || [];
+  ms.factors.push({ id: 'f_'+Date.now().toString(36), name: name.trim(), statuses: {} });
+  saveMicroSchedule(_currentMsProjId, ms).then(() => renderMSDetail());
+};
+
+window.editMSFactor = function(fi) {
+  const ms = (_microData[_currentMsProjId]||[]).find(m => m.id === _currentMsId);
+  if (!ms) return;
+  const factor = ms.factors[fi];
+  const newName = prompt('Edit nama faktor:', factor.name);
+  if (!newName) return;
+  ms.factors[fi].name = newName.trim();
+  saveMicroSchedule(_currentMsProjId, ms).then(() => renderMSDetail());
+};
+
+window.deleteMSFactor = function(fi) {
+  const ms = (_microData[_currentMsProjId]||[]).find(m => m.id === _currentMsId);
+  if (!ms) return;
+  if (!confirm(`Hapus faktor "${ms.factors[fi].name}"?`)) return;
+  ms.factors.splice(fi, 1);
+  saveMicroSchedule(_currentMsProjId, ms).then(() => renderMSDetail());
+};
+
+window.changeMSUnit = async function(unit) {
+  const ms = (_microData[_currentMsProjId]||[]).find(m => m.id === _currentMsId);
+  if (!ms) return;
+  ms.unit = unit;
+  await saveMicroSchedule(_currentMsProjId, ms);
+  renderMSDetail();
+};
+
+window.deleteMSConfirm = async function(msId) {
+  if (!confirm('Hapus Micro Schedule ini?')) return;
+  await deleteMicroScheduleDoc(_currentMsProjId, msId);
+  toast('Micro Schedule dihapus');
+};
+
+// ── PDF Print ─────────────────────────────────────────────────────────────────
+window.printMSReport = function() {
+  const ms = (_microData[_currentMsProjId]||[]).find(m => m.id === _currentMsId);
+  if (!ms) return;
+  const proj = D.scProjects.find(p => p.id === _currentMsProjId);
+  const dates = getMSDates(ms);
+  const today = TS();
+  const colW = ms.unit === 'shift' ? 28 : 38;
+
+  const ganttRows = (ms.items||[]).map(it => {
+    const wbsItem = (D.scItems[_currentMsProjId]||[]).find(i => i.id === it.wbsItemId);
+    const startD = wbsItem?.startDate || ms.startDate;
+    const endD   = wbsItem?.finishDate || ms.endDate;
+    const cells = dates.map(d => {
+      const inPlan = d.date >= startD && d.date <= endD;
+      const isToday = d.date === today;
+      return `<td style="width:${colW}px;padding:1px;text-align:center"><div style="height:14px;background:${inPlan?it.color+'33':'transparent'};border:${inPlan?`1px solid ${it.color}66`:'none'};${isToday?`outline:2px solid #d97706`:''};border-radius:2px"></div></td>`;
+    }).join('');
+    return `<tr><td style="padding:3px 6px;font-size:8px;font-weight:600;white-space:nowrap;min-width:140px"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${it.color};margin-right:4px"></span>${it.wbsItemName}</td>${cells}</tr>`;
+  }).join('');
+
+  const factorRows = (ms.factors||[]).map(f => {
+    const cells = dates.map(d => {
+      const st = f.statuses?.[d.key] || {};
+      const ico = MS_STATUS_ICO[st.status||''];
+      const bg  = MS_STATUS_BG[st.status||''];
+      return `<td style="width:${colW}px;padding:1px;text-align:center"><div style="height:16px;background:${bg};border:1px solid #e5e7eb;border-radius:2px;font-size:10px;display:flex;align-items:center;justify-content:center">${ico}</div></td>`;
+    }).join('');
+    return `<tr><td style="padding:3px 6px;font-size:8px;min-width:140px">${f.name}</td>${cells}</tr>`;
+  }).join('');
+
+  const dateHeaders = `<tr><th style="min-width:140px;padding:3px 6px;text-align:left;font-size:7px;color:#6b7280">Item / Faktor</th>${dates.map(d=>`<th style="width:${colW}px;padding:2px;text-align:center;font-size:7px;color:${d.date===today?'#d97706':'#6b7280'};font-weight:${d.date===today?'700':'400'}">${d.label}</th>`).join('')}</tr>`;
+
+  const blocked = (ms.factors||[]).filter(f => Object.values(f.statuses||{}).some(s => s.status==='red'));
+  const actionSection = blocked.length ? `<div style="margin-top:12px;padding:8px 10px;background:#fff5f5;border:1px solid #fecaca;border-radius:6px">
+    <div style="font-size:9px;font-weight:700;color:#dc2626;margin-bottom:4px">🔴 Action Required:</div>
+    ${blocked.map(f=>`<div style="font-size:9px;color:#374151;margin-bottom:2px">• ${f.name}</div>`).join('')}
+  </div>` : '';
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>${today.slice(8)+today.slice(5,7)+today.slice(0,4)} Micro Schedule ${ms.name}</title>
+    <style>@page{margin:10mm;size:A4 landscape}body{font-family:-apple-system,sans-serif;color:#111;font-size:10px}table{border-collapse:collapse}th,td{border-bottom:1px solid #f3f4f6}</style>
+  </head><body>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #111">
+      <div>
+        <div style="font-size:16px;font-weight:700">⚡ Micro Schedule</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:2px">${proj?.name||''} · ${ms.name}</div>
+        <div style="font-size:10px;color:#6b7280">${ms.startDate} → ${ms.endDate} · ${ms.unit==='shift'?'Per Shift':'Harian'}</div>
+      </div>
+      <div style="text-align:right;font-size:9px;color:#6b7280">Dicetak: ${today}</div>
+    </div>
+    <div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Gantt — Item WBS</div>
+    <div style="overflow:hidden;border:1px solid #e5e7eb;border-radius:6px;margin-bottom:12px">
+      <table style="width:100%"><thead style="background:#f9fafb">${dateHeaders}</thead><tbody>${ganttRows}</tbody></table>
+    </div>
+    <div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Faktor Kritis</div>
+    <div style="overflow:hidden;border:1px solid #e5e7eb;border-radius:6px">
+      <table style="width:100%"><thead style="background:#f9fafb">${dateHeaders}</thead><tbody>${factorRows}</tbody></table>
+    </div>
+    ${actionSection}
+    <div style="margin-top:10px;display:flex;gap:16px;font-size:9px;color:#6b7280">
+      ${Object.entries(MS_STATUS_ICO).map(([k,v])=>`<span>${v} ${k===''?'Belum diset':k==='green'?'Ready':k==='yellow'?'Sebagian':'Blocked'}</span>`).join('')}
+    </div>
+    <scr`+`ipt>window.onload=function(){window.print();}</scr`+`ipt>
+  </body></html>`;
+
+  const win = window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
 };
 
 </script>
