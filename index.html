@@ -7870,7 +7870,9 @@ function listenMicroSchedules(projId) {
 // ── Open main modal ───────────────────────────────────────────────────────────
 window.openMicroSchedule = function(projId) {
   if (!projId || projId === '__global__') {
-    toast('Pilih project individual dulu', true); return;
+    // Global mode: open welder analysis
+    window.openWelderAnalysis();
+    return;
   }
   _currentMsProjId = projId;
   listenMicroSchedules(projId);
@@ -7946,6 +7948,7 @@ window.renderMSList = function() {
         <div style="flex:1;min-width:0">
           <div style="font-size:13px;font-weight:700;color:var(--snow);margin-bottom:4px">${ms.name||'Tanpa Nama'}</div>
           <div style="font-size:10px;color:var(--fog)">${ms.startDate||'?'} → ${ms.endDate||'?'} · Unit: ${ms.unit==='shift'?'Shift':'Hari'} · ${itemCount} item · ${factorCount} faktor</div>
+          ${ms.category ? '<div style="margin-top:3px"><span style="font-size:9px;padding:1px 8px;border-radius:10px;background:var(--bg2);border:1px solid var(--accent2);color:var(--accent2)">' + ms.category + '</span></div>' : ''}
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-size:11px;font-weight:600;color:${statusClr}">${statusTxt}</div>
@@ -7982,6 +7985,18 @@ window.openNewMS = function() {
 
       <div class="fld"><div class="fld-lbl">Nama Micro Schedule</div>
         <input class="fld-in" id="ms-name" placeholder="e.g. Critical Path Stellite 6 FV-193"></div>
+
+      <div class="fld"><div class="fld-lbl">Kategori Pekerjaan <span style="color:var(--fog);font-size:9px">(untuk analisa lintas project)</span></div>
+        <input class="fld-in" id="ms-category" list="ms-cat-list" placeholder="e.g. Overlay Stellite 6, SMAW Buildup, Machining...">
+        <datalist id="ms-cat-list">
+          <option value="Overlay Stellite 6">
+          <option value="SMAW Buildup">
+          <option value="GMAW Buildup">
+          <option value="HVOF Coating">
+          <option value="ArcSpray">
+          <option value="Machining Post Weld">
+          <option value="NDT Inspection">
+        </datalist></div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
         <div class="fld" style="margin:0"><div class="fld-lbl">Start Date</div>
@@ -8025,8 +8040,9 @@ window.createMSFromForm = async function() {
   if (!selectedItems.length) { toast('Pilih minimal 1 item WBS', true); return; }
 
   const msId = 'ms_' + Date.now().toString(36);
+  const category = document.getElementById('ms-category')?.value.trim() || '';
   const ms = {
-    id: msId, name, startDate: start, endDate: end, unit,
+    id: msId, name, category, startDate: start, endDate: end, unit,
     items: selectedItems,
     factors: MS_DEFAULT_FACTORS.map(f => ({ ...f, statuses: {} })),
     dependencies: [],
@@ -8061,6 +8077,18 @@ window.openEditMS = function(msId) {
 
       <div class="fld"><div class="fld-lbl">Nama Micro Schedule</div>
         <input class="fld-in" id="ms-name" value="${ms.name||''}" placeholder="Nama micro schedule"></div>
+
+      <div class="fld"><div class="fld-lbl">Kategori Pekerjaan</div>
+        <input class="fld-in" id="ms-category" list="ms-cat-list" value="${ms.category||''}" placeholder="e.g. Overlay Stellite 6, Machining...">
+        <datalist id="ms-cat-list2">
+          <option value="Overlay Stellite 6">
+          <option value="SMAW Buildup">
+          <option value="GMAW Buildup">
+          <option value="HVOF Coating">
+          <option value="ArcSpray">
+          <option value="Machining Post Weld">
+          <option value="NDT Inspection">
+        </datalist></div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
         <div class="fld" style="margin:0"><div class="fld-lbl">Start Date</div>
@@ -8110,6 +8138,7 @@ window.saveEditMS = async function(msId) {
   if (!selectedItems.length) { toast('Pilih minimal 1 item WBS', true); return; }
 
   ms.name = name;
+  ms.category = document.getElementById('ms-category')?.value.trim() || ms.category || '';
   ms.startDate = start;
   ms.endDate = end;
   ms.unit = unit;
@@ -8860,6 +8889,297 @@ window.printMSWeldLog = function() {
     +'</body></html>';
 
   var win = window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+};
+
+
+// ── WELDER ANALYSIS GLOBAL ────────────────────────────────────────────────────
+// Loads all microSchedules from all projects, aggregates by category + welder
+
+window.openWelderAnalysis = function() {
+  // Load all MS from all projects first
+  var allMS = [];
+  D.scProjects.forEach(function(proj) {
+    var msList = _microData[proj.id] || [];
+    msList.forEach(function(ms) {
+      allMS.push({ ms: ms, projId: proj.id, projName: proj.name });
+    });
+    // Start listener if not already
+    if (!_microUnsubs[proj.id]) listenMicroSchedules(proj.id);
+  });
+
+  var modal = document.getElementById('ms-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'ms-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;display:flex;align-items:stretch;justify-content:center;padding:20px';
+    document.body.appendChild(modal);
+  }
+  modal.style.display = 'flex';
+  modal.onclick = function(e){ if(e.target===modal) window.closeMSModal(); };
+
+  window._renderWelderAnalysis(allMS);
+};
+
+window._renderWelderAnalysis = function(allMS) {
+  var modal = document.getElementById('ms-modal');
+  if (!modal) return;
+
+  // Get unique categories
+  var cats = {};
+  allMS.forEach(function(entry) {
+    var cat = (entry.ms.category||'').trim();
+    if (cat) cats[cat] = true;
+  });
+  var catList = Object.keys(cats).sort();
+
+  modal.innerHTML = '<div style="background:var(--bg2);border-radius:12px;width:100%;max-width:1100px;display:flex;flex-direction:column;overflow:hidden">'
+    + '<div style="padding:14px 20px;border-bottom:1px solid var(--line2);display:flex;align-items:center;gap:12px;flex-shrink:0">'
+    + '<div style="flex:1"><div style="font-size:14px;font-weight:700;color:var(--snow)">⚡ Analisa Performa Welder</div>'
+    + '<div style="font-size:11px;color:var(--fog);margin-top:2px">Lintas semua project · Filter per kategori pekerjaan</div></div>'
+    + '<select id="wa-cat-sel" onchange="window._renderWelderTable(this.value)" style="padding:7px 12px;background:var(--bg3);border:1px solid var(--line2);border-radius:var(--rs);color:var(--snow);font-size:12px;cursor:pointer">'
+    + '<option value="">— Pilih Kategori —</option>'
+    + catList.map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join('')
+    + '</select>'
+    + '<button onclick="window.closeMSModal()" style="padding:7px 12px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:12px">✕</button>'
+    + '</div>'
+    + '<div id="wa-content" style="flex:1;overflow-y:auto;padding:20px">'
+    + (catList.length === 0
+      ? '<div style="padding:40px;text-align:center;color:var(--fog)"><div style="font-size:32px;margin-bottom:12px">👷</div><div style="font-size:13px;margin-bottom:6px">Belum ada data kategori</div><div style="font-size:11px">Tambahkan field Kategori pada setiap Micro Schedule untuk mulai analisa lintas project</div></div>'
+      : '<div style="padding:40px;text-align:center;color:var(--fog)"><div style="font-size:32px;margin-bottom:12px">📊</div><div style="font-size:13px">Pilih kategori pekerjaan di atas untuk melihat analisa performa welder</div></div>')
+    + '</div></div>';
+
+  // Store allMS in closure for table render
+  window._waAllMS = allMS;
+};
+
+window._renderWelderTable = function(cat) {
+  var el = document.getElementById('wa-content');
+  if (!el) return;
+  if (!cat) { el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--fog)">Pilih kategori di atas</div>'; return; }
+
+  var allMS = window._waAllMS || [];
+  var filtered = allMS.filter(function(e){ return (e.ms.category||'').trim() === cat; });
+
+  if (!filtered.length) {
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--fog)">Tidak ada micro schedule dengan kategori "'+cat+'"</div>';
+    return;
+  }
+
+  // Aggregate per welder across all filtered MS
+  var welderMap = {}; // welder -> { projects:[], shifts, layers, lenMm, pass, repair, reject }
+  var projectSet = {};
+
+  filtered.forEach(function(entry) {
+    var ms = entry.ms;
+    var projName = entry.projName;
+    var dates = window.getMSDates(ms);
+    var log = ms.weldingLog || {};
+
+    dates.forEach(function(d) {
+      var e = log[d.key] || {};
+      var w = (e.welder||'').trim();
+      if (!w) return;
+      if (!welderMap[w]) welderMap[w] = { projects:{}, shifts:0, layers:0, lenMm:0, pass:0, repair:0, reject:0 };
+      welderMap[w].projects[projName] = true;
+      welderMap[w].shifts++;
+      welderMap[w].layers  += parseInt(e.layers)||0;
+      welderMap[w].lenMm   += parseFloat(e.lengthMm)||0;
+      if (e.ndt==='pass')   welderMap[w].pass++;
+      if (e.ndt==='repair') welderMap[w].repair++;
+      if (e.ndt==='reject') welderMap[w].reject++;
+    });
+    projectSet[projName] = true;
+  });
+
+  var welderNames = Object.keys(welderMap).sort();
+
+  if (!welderNames.length) {
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--fog)">Belum ada data welding log untuk kategori "'+cat+'"</div>';
+    return;
+  }
+
+  // Build visual: summary cards + ranking table + bar chart
+  var html = '';
+
+  // Summary row
+  var totalShifts = 0, totalLayers = 0, totalPass = 0, totalRepair = 0, totalReject = 0;
+  welderNames.forEach(function(w){
+    var d=welderMap[w];
+    totalShifts+=d.shifts; totalLayers+=d.layers;
+    totalPass+=d.pass; totalRepair+=d.repair; totalReject+=d.reject;
+  });
+  var totalNDT = totalPass+totalRepair+totalReject;
+  var overallRate = totalNDT ? Math.round(totalPass/totalNDT*100) : 0;
+
+  html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:20px">'
+    + _msKpi('Project', Object.keys(projectSet).length, '#6366f1')
+    + _msKpi('Welder', welderNames.length, '#0891b2')
+    + _msKpi('Total Layer', totalLayers, '#7c3aed')
+    + _msKpi('Overall Pass Rate', overallRate+'%', overallRate>=80?'#16a34a':'#d97706')
+    + _msKpi('NDT Repair/Reject', totalRepair+'/'+totalReject, totalReject>0?'#dc2626':'#6b7280')
+    + '</div>';
+
+  // Bar chart — pass rate per welder
+  var maxLayers = Math.max.apply(null, welderNames.map(function(w){ return welderMap[w].layers; })) || 1;
+  html += '<div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:16px">'
+    + '<div style="font-size:10px;font-weight:700;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px">Pass Rate & Volume per Welder</div>'
+    + '<div style="display:flex;flex-direction:column;gap:10px">';
+
+  welderNames.forEach(function(w) {
+    var d = welderMap[w];
+    var ndtT = d.pass+d.repair+d.reject;
+    var pr = ndtT ? Math.round(d.pass/ndtT*100) : null;
+    var prClr = pr===null ? 'var(--fog)' : pr>=80 ? '#16a34a' : pr>=60 ? '#d97706' : '#dc2626';
+    var layerPct = Math.round(d.layers/maxLayers*100);
+    var projList = Object.keys(d.projects).join(', ');
+
+    html += '<div>'
+      // Welder name + projects + stats
+      + '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">'
+      + '<div style="font-size:12px;font-weight:700;color:var(--snow);min-width:120px">'+w+'</div>'
+      + '<div style="font-size:9px;color:var(--fog);flex:1">'+projList+'</div>'
+      + (pr!==null ? '<div style="font-size:12px;font-weight:700;color:'+prClr+'">'+pr+'%</div>' : '<div style="font-size:11px;color:var(--fog)">No NDT</div>')
+      + '<div style="font-size:10px;color:var(--accent2);min-width:60px;text-align:right">'+d.layers+' layer</div>'
+      + '</div>'
+      // Layer volume bar
+      + '<div style="height:6px;background:var(--bg2);border-radius:3px;overflow:hidden;margin-bottom:3px">'
+      + '<div style="height:100%;width:'+layerPct+'%;background:var(--accent2);border-radius:3px;transition:width .3s"></div></div>'
+      // Pass rate bar
+      + (pr!==null ? '<div style="height:6px;background:var(--bg2);border-radius:3px;overflow:hidden">'
+        + '<div style="height:100%;width:'+pr+'%;background:'+prClr+';border-radius:3px;transition:width .3s"></div></div>' : '')
+      + '</div>';
+  });
+
+  html += '</div></div>';
+
+  // Ranking table
+  // Sort by pass rate desc, then layers desc
+  var sorted = welderNames.slice().sort(function(a,b){
+    var da=welderMap[a], db=welderMap[b];
+    var ndtA=da.pass+da.repair+da.reject, ndtB=db.pass+db.repair+db.reject;
+    var prA=ndtA?da.pass/ndtA:0, prB=ndtB?db.pass/ndtB:0;
+    return prB-prA || db.layers-da.layers;
+  });
+
+  html += '<div style="border:1px solid var(--line);border-radius:var(--r);overflow:hidden">'
+    + '<div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between">'
+    + '<div style="font-size:10px;font-weight:700;color:var(--fog);text-transform:uppercase;letter-spacing:.5px">Ranking Performa Welder — '+cat+'</div>'
+    + '<button onclick="window._printWelderAnalysis(\''+cat+'\')" style="padding:4px 10px;background:var(--bg2);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:10px">⬇ PDF</button>'
+    + '</div>'
+    + '<table style="width:100%;border-collapse:collapse;font-size:11px">'
+    + '<thead><tr style="background:var(--bg3)">'
+    + '<th style="padding:8px 10px;text-align:center;font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;font-weight:700;width:36px">#</th>'
+    + '<th style="padding:8px 10px;text-align:left;font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Welder</th>'
+    + '<th style="padding:8px 8px;text-align:left;font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Project</th>'
+    + '<th style="padding:8px 8px;text-align:center;font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Shift</th>'
+    + '<th style="padding:8px 8px;text-align:center;font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Layer</th>'
+    + '<th style="padding:8px 8px;text-align:center;font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;font-weight:700">mm</th>'
+    + '<th style="padding:8px 8px;text-align:center;font-size:9px;color:var(--16a34a);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Pass</th>'
+    + '<th style="padding:8px 8px;text-align:center;font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Repair</th>'
+    + '<th style="padding:8px 8px;text-align:center;font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Reject</th>'
+    + '<th style="padding:8px 10px;text-align:center;font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Pass Rate</th>'
+    + '</tr></thead><tbody>';
+
+  sorted.forEach(function(w, i) {
+    var d = welderMap[w];
+    var ndtT = d.pass+d.repair+d.reject;
+    var pr = ndtT ? Math.round(d.pass/ndtT*100) : null;
+    var prClr = pr===null ? 'var(--fog)' : pr>=80 ? '#16a34a' : pr>=60 ? '#d97706' : '#dc2626';
+    var prBg  = pr===null ? 'transparent' : pr>=80 ? '#f0fdf4' : pr>=60 ? '#fef3c7' : '#fff5f5';
+    var medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+    var projStr = Object.keys(d.projects).join(', ');
+
+    html += '<tr style="border-top:1px solid var(--line);'+(i%2===1?'background:var(--bg3)':'')+'">'
+      + '<td style="padding:8px 10px;text-align:center;font-size:14px">'+medal+(medal?'':'<span style="color:var(--fog);font-size:11px">'+(i+1)+'</span>')+'</td>'
+      + '<td style="padding:8px 10px;font-weight:700;color:var(--snow)">'+w+'</td>'
+      + '<td style="padding:8px 8px;font-size:10px;color:var(--fog)">'+projStr+'</td>'
+      + '<td style="padding:8px 8px;text-align:center;color:var(--mist)">'+d.shifts+'</td>'
+      + '<td style="padding:8px 8px;text-align:center;font-weight:700;color:var(--accent2)">'+d.layers+'</td>'
+      + '<td style="padding:8px 8px;text-align:center;color:var(--mist)">'+d.lenMm.toFixed(0)+'</td>'
+      + '<td style="padding:8px 8px;text-align:center;font-weight:600;color:#16a34a">'+(d.pass||'—')+'</td>'
+      + '<td style="padding:8px 8px;text-align:center;font-weight:600;color:#d97706">'+(d.repair||'—')+'</td>'
+      + '<td style="padding:8px 8px;text-align:center;font-weight:600;color:#dc2626">'+(d.reject||'—')+'</td>'
+      + '<td style="padding:8px 10px;text-align:center">'
+      + (pr!==null ? '<div style="display:inline-flex;align-items:center;gap:6px">'
+        + '<div style="width:40px;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pr+'%;background:'+prClr+'"></div></div>'
+        + '<span style="font-weight:700;color:'+prClr+'">'+pr+'%</span></div>'
+        : '<span style="color:var(--fog)">—</span>')
+      + '</td></tr>';
+  });
+
+  html += '</tbody></table></div>';
+
+  el.innerHTML = html;
+};
+
+window._printWelderAnalysis = function(cat) {
+  var allMS = window._waAllMS || [];
+  var filtered = allMS.filter(function(e){ return (e.ms.category||'').trim() === cat; });
+  var welderMap = {};
+  var projectSet = {};
+  filtered.forEach(function(entry) {
+    var ms=entry.ms, projName=entry.projName;
+    var dates=window.getMSDates(ms), log=ms.weldingLog||{};
+    dates.forEach(function(d){
+      var e=log[d.key]||{}, w=(e.welder||'').trim();
+      if(!w) return;
+      if(!welderMap[w]) welderMap[w]={projects:{},shifts:0,layers:0,lenMm:0,pass:0,repair:0,reject:0};
+      welderMap[w].projects[projName]=true;
+      welderMap[w].shifts++; welderMap[w].layers+=parseInt(e.layers)||0;
+      welderMap[w].lenMm+=parseFloat(e.lengthMm)||0;
+      if(e.ndt==='pass')welderMap[w].pass++;
+      if(e.ndt==='repair')welderMap[w].repair++;
+      if(e.ndt==='reject')welderMap[w].reject++;
+      projectSet[projName]=true;
+    });
+  });
+  var sorted=Object.keys(welderMap).sort(function(a,b){
+    var da=welderMap[a],db=welderMap[b];
+    var na=da.pass+da.repair+da.reject,nb=db.pass+db.repair+db.reject;
+    return (nb?db.pass/nb:0)-(na?da.pass/na:0)||db.layers-da.layers;
+  });
+  var today=TS();
+  var rows=sorted.map(function(w,i){
+    var d=welderMap[w],nt=d.pass+d.repair+d.reject,pr=nt?Math.round(d.pass/nt*100):null;
+    var pc=pr===null?'#6b7280':pr>=80?'#16a34a':pr>=60?'#d97706':'#dc2626';
+    var medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':''+(i+1);
+    return '<tr style="border-top:1px solid #f3f4f6">'
+      +'<td style="padding:6px 8px;text-align:center">'+medal+'</td>'
+      +'<td style="padding:6px 8px;font-weight:700">'+w+'</td>'
+      +'<td style="padding:6px 8px;font-size:9px;color:#6b7280">'+Object.keys(d.projects).join(', ')+'</td>'
+      +'<td style="padding:6px 8px;text-align:center">'+d.shifts+'</td>'
+      +'<td style="padding:6px 8px;text-align:center;font-weight:700;color:#6366f1">'+d.layers+'</td>'
+      +'<td style="padding:6px 8px;text-align:center">'+d.lenMm.toFixed(0)+'</td>'
+      +'<td style="padding:6px 8px;text-align:center;color:#16a34a;font-weight:600">'+(d.pass||'—')+'</td>'
+      +'<td style="padding:6px 8px;text-align:center;color:#d97706;font-weight:600">'+(d.repair||'—')+'</td>'
+      +'<td style="padding:6px 8px;text-align:center;color:#dc2626;font-weight:600">'+(d.reject||'—')+'</td>'
+      +'<td style="padding:6px 8px;text-align:center;font-weight:700;color:'+pc+'">'+(pr!==null?pr+'%':'—')+'</td>'
+      +'</tr>';
+  }).join('');
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Welder Analysis '+cat+'</title>'
+    +'<style>@page{margin:10mm;size:A4 landscape}body{font-family:-apple-system,sans-serif;color:#111;font-size:10px}table{border-collapse:collapse;width:100%}</style>'
+    +'</head><body>'
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #111">'
+    +'<div><div style="font-size:16px;font-weight:700">👷 Analisa Performa Welder</div>'
+    +'<div style="font-size:12px;color:#6b7280;margin-top:2px">Kategori: '+cat+' · '+Object.keys(projectSet).length+' project · '+sorted.length+' welder</div></div>'
+    +'<div style="font-size:9px;color:#6b7280">Dicetak: '+today+'</div></div>'
+    +'<div style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden">'
+    +'<table><thead><tr style="background:#f9fafb">'
+    +'<th style="padding:6px 8px;text-align:center;font-size:8px;color:#6b7280">#</th>'
+    +'<th style="padding:6px 8px;text-align:left;font-size:8px;color:#6b7280">Welder</th>'
+    +'<th style="padding:6px 8px;text-align:left;font-size:8px;color:#6b7280">Project</th>'
+    +'<th style="padding:6px 8px;text-align:center;font-size:8px;color:#6b7280">Shift</th>'
+    +'<th style="padding:6px 8px;text-align:center;font-size:8px;color:#6b7280">Layer</th>'
+    +'<th style="padding:6px 8px;text-align:center;font-size:8px;color:#6b7280">mm</th>'
+    +'<th style="padding:6px 8px;text-align:center;font-size:8px;color:#6b7280">Pass</th>'
+    +'<th style="padding:6px 8px;text-align:center;font-size:8px;color:#6b7280">Repair</th>'
+    +'<th style="padding:6px 8px;text-align:center;font-size:8px;color:#6b7280">Reject</th>'
+    +'<th style="padding:6px 8px;text-align:center;font-size:8px;color:#6b7280">Pass Rate</th>'
+    +'</tr></thead><tbody>'+rows+'</tbody></table></div>'
+    +'<scr'+'ipt>window.onload=function(){window.print();}</scr'+'ipt></body></html>';
+  var win=window.open('','_blank');
   win.document.write(html);
   win.document.close();
 };
