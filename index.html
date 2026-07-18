@@ -7895,7 +7895,7 @@ window.closeMSModal = function() {
   _currentMsId = null;
 };
 
-function renderMSMain() {
+window.renderMSMain = function() {
   const modal = document.getElementById('ms-modal');
   if (!modal) return;
   const proj = D.scProjects.find(p => p.id === _currentMsProjId);
@@ -7918,7 +7918,7 @@ function renderMSMain() {
   renderMSList();
 }
 
-function renderMSList() {
+window.renderMSList = function() {
   const el = document.getElementById('ms-content');
   if (!el) return;
   const list = (_microData[_currentMsProjId] || []).sort((a,b) => (b.updatedAt?.seconds||0)-(a.updatedAt?.seconds||0));
@@ -8042,7 +8042,7 @@ window.openMSDetail = function(msId) {
   renderMSDetail();
 };
 
-function getMSDates(ms) {
+window.getMSDates = function(ms) {
   const dates = [];
   if (!ms.startDate || !ms.endDate) return dates;
   if (ms.unit === 'shift') {
@@ -8066,7 +8066,7 @@ function getMSDates(ms) {
   return dates;
 }
 
-function renderMSDetail() {
+window.renderMSDetail = function() {
   const content = document.getElementById('ms-content');
   if (!content) return;
   const ms = (_microData[_currentMsProjId]||[]).find(m => m.id === _currentMsId);
