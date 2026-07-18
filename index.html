@@ -7876,7 +7876,12 @@ function listenMicroSchedules(projId) {
       // Re-render if modal open for this project
       const modal = document.getElementById('ms-modal');
       if (modal && modal.style.display !== 'none' && _currentMsProjId === projId) {
-        window.renderMSList();
+        // Stay on current view — don't reset to list if user is in detail
+        if (_currentMsId) {
+          window.renderMSDetail();
+        } else {
+          window.renderMSList();
+        }
       }
     }
   );
@@ -7965,7 +7970,10 @@ window.renderMSList = function() {
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-size:11px;font-weight:600;color:${statusClr}">${statusTxt}</div>
-          <button onclick="event.stopPropagation();window.deleteMSConfirm('${ms.id}')" style="margin-top:6px;padding:3px 8px;background:none;border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:10px">🗑</button>
+          <div style="display:flex;gap:4px;margin-top:6px">
+            <button onclick="event.stopPropagation();window.openEditMS('${ms.id}')" style="padding:3px 8px;background:none;border:1px solid var(--line);border-radius:var(--rs);color:var(--accent2);cursor:pointer;font-size:10px">✎ Edit</button>
+            <button onclick="event.stopPropagation();window.deleteMSConfirm('${ms.id}')" style="padding:3px 8px;background:none;border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:10px">🗑</button>
+          </div>
         </div>
       </div>
     </div>`;
@@ -8048,6 +8056,89 @@ window.createMSFromForm = async function() {
   await saveMicroSchedule(_currentMsProjId, ms);
   toast('✓ Micro Schedule dibuat');
   setTimeout(() => window.openMSDetail(msId), 500);
+};
+
+// ── Edit existing MS ─────────────────────────────────────────────────────────
+window.openEditMS = function(msId) {
+  const ms = (_microData[_currentMsProjId]||[]).find(m => m.id === msId);
+  if (!ms) return;
+  const items = (D.scItems[_currentMsProjId] || []);
+  const content = document.getElementById('ms-content');
+  if (!content) return;
+
+  const checkboxes = items.map(it => {
+    const selected = (ms.items||[]).some(mi => mi.wbsItemId === it.id);
+    return `<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg3);border-radius:var(--rs);cursor:pointer;margin-bottom:4px">
+      <input type="checkbox" class="ms-item-cb" data-id="${it.id}" data-name="${(it.name||'').replace(/"/g,'')}" ${selected?'checked':''} style="width:14px;height:14px">
+      <span style="font-size:11px;color:var(--mist)">${it.name}</span>
+      <span style="font-size:9px;color:var(--fog);margin-left:auto">${it.weight}%</span>
+    </label>`;
+  }).join('');
+
+  content.innerHTML = `
+    <div style="max-width:600px;margin:0 auto">
+      <button onclick="window.renderMSMain()" style="background:none;border:none;color:var(--fog);cursor:pointer;font-size:12px;margin-bottom:14px">← Kembali</button>
+      <div style="font-size:13px;font-weight:700;color:var(--snow);margin-bottom:16px">✎ Edit Micro Schedule</div>
+
+      <div class="fld"><div class="fld-lbl">Nama Micro Schedule</div>
+        <input class="fld-in" id="ms-name" value="${ms.name||''}" placeholder="Nama micro schedule"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+        <div class="fld" style="margin:0"><div class="fld-lbl">Start Date</div>
+          <input class="fld-in" type="date" id="ms-start" value="${ms.startDate||''}"></div>
+        <div class="fld" style="margin:0"><div class="fld-lbl">End Date</div>
+          <input class="fld-in" type="date" id="ms-end" value="${ms.endDate||''}"></div>
+        <div class="fld" style="margin:0"><div class="fld-lbl">Unit Waktu</div>
+          <select class="fld-sel" id="ms-unit">
+            <option value="day" ${ms.unit!=='shift'?'selected':''}>Harian</option>
+            <option value="shift" ${ms.unit==='shift'?'selected':''}>Per Shift</option>
+          </select></div>
+      </div>
+
+      <div class="fld"><div class="fld-lbl">Item WBS yang Dipantau</div>
+        <div style="max-height:200px;overflow-y:auto;border:1px solid var(--line);border-radius:var(--rs);padding:8px">${checkboxes||'<div style="color:var(--fog);font-size:11px;padding:8px">Tidak ada item WBS</div>'}</div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button onclick="window.renderMSMain()" style="flex:1;padding:9px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:12px">Batal</button>
+        <button onclick="window.saveEditMS('${msId}')" style="flex:2;padding:9px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:12px;font-weight:600">💾 Simpan Perubahan</button>
+      </div>
+    </div>`;
+};
+
+window.saveEditMS = async function(msId) {
+  const name  = document.getElementById('ms-name')?.value.trim();
+  const start = document.getElementById('ms-start')?.value;
+  const end   = document.getElementById('ms-end')?.value;
+  const unit  = document.getElementById('ms-unit')?.value || 'day';
+
+  if (!name) { toast('Isi nama micro schedule', true); return; }
+  if (!start || !end) { toast('Isi tanggal start dan end', true); return; }
+
+  const ms = (_microData[_currentMsProjId]||[]).find(m => m.id === msId);
+  if (!ms) return;
+
+  const selectedItems = [...document.querySelectorAll('.ms-item-cb:checked')].map((cb,i) => {
+    const existing = (ms.items||[]).find(mi => mi.wbsItemId === cb.dataset.id);
+    return existing || {
+      wbsItemId: cb.dataset.id,
+      wbsItemName: cb.dataset.name,
+      rowIdx: i,
+      color: ['#6366f1','#16a34a','#d97706','#dc2626','#0891b2','#7c3aed','#ec4899','#84cc16'][i%8]
+    };
+  });
+
+  if (!selectedItems.length) { toast('Pilih minimal 1 item WBS', true); return; }
+
+  ms.name = name;
+  ms.startDate = start;
+  ms.endDate = end;
+  ms.unit = unit;
+  ms.items = selectedItems;
+
+  await saveMicroSchedule(_currentMsProjId, ms);
+  toast('✓ Micro Schedule diperbarui');
+  window.renderMSMain();
 };
 
 // ── Detail view ───────────────────────────────────────────────────────────────
@@ -8195,6 +8286,7 @@ window.renderMSDetail = function() {
           <option value="day" ${ms.unit!=='shift'?'selected':''}>Harian</option>
           <option value="shift" ${ms.unit==='shift'?'selected':''}>Per Shift</option>
         </select>
+        <button onclick="window.openEditMS('${ms.id}')" style="padding:5px 10px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:11px">✎ Edit</button>
         <button onclick="window.addMSFactor()" style="padding:5px 10px;background:var(--bg3);border:1px solid var(--accent2);border-radius:var(--rs);color:var(--accent2);cursor:pointer;font-size:11px">+ Faktor</button>
         <button onclick="window.printMSReport()" style="padding:5px 10px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:11px">⬇ PDF</button>
       </div>
