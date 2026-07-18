@@ -7815,6 +7815,21 @@ window.deleteGlobalHighlightRow = async function(idx) {
 
 // ── MICRO SCHEDULE MODULE ──────────────────────────────────────────────────────
 // Storage: users/{uid}/scurve/{projId}/microSchedules/{msId}
+// Shim: ensure all MS functions accessible globally from onclick
+window.renderMSMain = window.renderMSMain || function(){ console.warn('MS not loaded yet'); };
+window.renderMSList = window.renderMSList || function(){};
+window.renderMSDetail = window.renderMSDetail || function(){};
+window.cycleMSFactor = window.cycleMSFactor || function(){};
+window.addMSFactor = window.addMSFactor || function(){};
+window.editMSFactor = window.editMSFactor || function(){};
+window.deleteMSFactor = window.deleteMSFactor || function(){};
+window.changeMSUnit = window.changeMSUnit || function(){};
+window.deleteMSConfirm = window.deleteMSConfirm || function(){};
+window.printMSReport = window.printMSReport || function(){};
+window.openMSDetail = window.openMSDetail || function(){};
+window.openNewMS = window.openNewMS || function(){};
+window.createMSFromForm = window.createMSFromForm || function(){};
+window.closeMSModal = window.closeMSModal || function(){};
 // Each microSchedule: { id, name, items[], factors[], unit:'day'|'shift',
 //                       startDate, endDate, dependencies[], updatedAt }
 // items[]: { wbsItemId, wbsItemName, color, rowIdx }
@@ -7849,8 +7864,7 @@ async function saveMicroSchedule(projId, ms) {
 }
 
 async function deleteMicroScheduleDoc(projId, msId) {
-  const { deleteDoc, doc: docFn } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-  await deleteDoc(docFn(db,'users',uid,'scurve',projId,'microSchedules',msId));
+  await deleteDoc(doc(db,'users',uid,'scurve',projId,'microSchedules',msId));
 }
 
 function listenMicroSchedules(projId) {
@@ -7862,7 +7876,7 @@ function listenMicroSchedules(projId) {
       // Re-render if modal open for this project
       const modal = document.getElementById('ms-modal');
       if (modal && modal.style.display !== 'none' && _currentMsProjId === projId) {
-        renderMSList();
+        window.renderMSList();
       }
     }
   );
@@ -7885,8 +7899,8 @@ window.openMicroSchedule = function(projId) {
     document.body.appendChild(modal);
   }
   modal.style.display = 'flex';
-  modal.onclick = e => { if (e.target === modal) closeMSModal(); };
-  renderMSMain();
+  modal.onclick = e => { if (e.target === modal) window.closeMSModal(); };
+  window.renderMSMain();
 };
 
 window.closeMSModal = function() {
@@ -7909,13 +7923,13 @@ window.renderMSMain = function() {
           <div style="font-size:11px;color:var(--fog);margin-top:2px">${projName}</div>
         </div>
         <div style="display:flex;gap:8px">
-          <button onclick="openNewMS()" style="padding:7px 16px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:12px;font-weight:600">+ Buat Baru</button>
-          <button onclick="closeMSModal()" style="padding:7px 12px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:12px">✕</button>
+          <button onclick="window.openNewMS()" style="padding:7px 16px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:12px;font-weight:600">+ Buat Baru</button>
+          <button onclick="window.closeMSModal()" style="padding:7px 12px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:12px">✕</button>
         </div>
       </div>
       <div id="ms-content" style="flex:1;overflow-y:auto;padding:16px"></div>
     </div>`;
-  renderMSList();
+  window.renderMSList();
 }
 
 window.renderMSList = function() {
@@ -7943,7 +7957,7 @@ window.renderMSList = function() {
     const statusClr = redCount > 0 ? 'var(--rose)' : 'var(--lime)';
     const statusTxt = redCount > 0 ? `🔴 ${redCount} blocked` : '🟢 On Track';
 
-    return `<div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;cursor:pointer" onclick="openMSDetail('${ms.id}')" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--line)'">
+    return `<div style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;cursor:pointer" onclick="window.openMSDetail('${ms.id}')" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--line)'">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
         <div style="flex:1;min-width:0">
           <div style="font-size:13px;font-weight:700;color:var(--snow);margin-bottom:4px">${ms.name||'Tanpa Nama'}</div>
@@ -7951,7 +7965,7 @@ window.renderMSList = function() {
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-size:11px;font-weight:600;color:${statusClr}">${statusTxt}</div>
-          <button onclick="event.stopPropagation();deleteMSConfirm('${ms.id}')" style="margin-top:6px;padding:3px 8px;background:none;border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:10px">🗑</button>
+          <button onclick="event.stopPropagation();window.deleteMSConfirm('${ms.id}')" style="margin-top:6px;padding:3px 8px;background:none;border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:10px">🗑</button>
         </div>
       </div>
     </div>`;
@@ -7976,7 +7990,7 @@ window.openNewMS = function() {
 
   content.innerHTML = `
     <div style="max-width:600px;margin:0 auto">
-      <button onclick="renderMSList();renderMSMain()" style="background:none;border:none;color:var(--fog);cursor:pointer;font-size:12px;margin-bottom:14px">← Kembali</button>
+      <button onclick="window.renderMSList();window.renderMSMain()" style="background:none;border:none;color:var(--fog);cursor:pointer;font-size:12px;margin-bottom:14px">← Kembali</button>
       <div style="font-size:13px;font-weight:700;color:var(--snow);margin-bottom:16px">Buat Micro Schedule Baru</div>
 
       <div class="fld"><div class="fld-lbl">Nama Micro Schedule</div>
@@ -7999,8 +8013,8 @@ window.openNewMS = function() {
       </div>
 
       <div style="display:flex;gap:8px;margin-top:16px">
-        <button onclick="renderMSMain()" style="flex:1;padding:9px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:12px">Batal</button>
-        <button onclick="createMSFromForm()" style="flex:2;padding:9px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:12px;font-weight:600">⚡ Buat Micro Schedule</button>
+        <button onclick="window.renderMSMain()" style="flex:1;padding:9px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:12px">Batal</button>
+        <button onclick="window.createMSFromForm()" style="flex:2;padding:9px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:12px;font-weight:600">⚡ Buat Micro Schedule</button>
       </div>
     </div>`;
 };
@@ -8033,13 +8047,13 @@ window.createMSFromForm = async function() {
 
   await saveMicroSchedule(_currentMsProjId, ms);
   toast('✓ Micro Schedule dibuat');
-  setTimeout(() => openMSDetail(msId), 500);
+  setTimeout(() => window.openMSDetail(msId), 500);
 };
 
 // ── Detail view ───────────────────────────────────────────────────────────────
 window.openMSDetail = function(msId) {
   _currentMsId = msId;
-  renderMSDetail();
+  window.renderMSDetail();
 };
 
 window.getMSDates = function(ms) {
@@ -8146,7 +8160,7 @@ window.renderMSDetail = function() {
       const ico = MS_STATUS_ICO[status];
       const bg  = MS_STATUS_BG[status];
       return `<td style="min-width:${colW}px;padding:2px;text-align:center">
-        <div onclick="cycleMSFactor('${f.id}','${d.key}')" title="${note||f.name}" style="height:22px;background:${bg};border-radius:3px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;border:1px solid #e5e7eb" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='#e5e7eb'">${ico}</div>
+        <div onclick="window.cycleMSFactor('${f.id}','${d.key}')" title="${note||f.name}" style="height:22px;background:${bg};border-radius:3px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;border:1px solid #e5e7eb" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='#e5e7eb'">${ico}</div>
       </td>`;
     }).join('');
 
@@ -8155,8 +8169,8 @@ window.renderMSDetail = function() {
         <div style="display:flex;align-items:center;justify-content:space-between;gap:4px">
           <div style="font-size:10px;color:var(--snow);flex:1">${f.name}</div>
           <div style="display:flex;gap:3px;flex-shrink:0">
-            <button onclick="editMSFactor(${fi})" style="background:none;border:none;cursor:pointer;color:var(--fog);font-size:10px;padding:1px 3px">✎</button>
-            <button onclick="deleteMSFactor(${fi})" style="background:none;border:none;cursor:pointer;color:var(--fog);font-size:10px;padding:1px 3px">✕</button>
+            <button onclick="window.editMSFactor(${fi})" style="background:none;border:none;cursor:pointer;color:var(--fog);font-size:10px;padding:1px 3px">✎</button>
+            <button onclick="window.deleteMSFactor(${fi})" style="background:none;border:none;cursor:pointer;color:var(--fog);font-size:10px;padding:1px 3px">✕</button>
           </div>
         </div>
       </td>
@@ -8171,18 +8185,18 @@ window.renderMSDetail = function() {
 
   content.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-      <button onclick="renderMSMain()" style="background:none;border:none;color:var(--fog);cursor:pointer;font-size:12px">← Kembali</button>
+      <button onclick="window.renderMSMain()" style="background:none;border:none;color:var(--fog);cursor:pointer;font-size:12px">← Kembali</button>
       <div style="flex:1">
         <div style="font-size:13px;font-weight:700;color:var(--snow)">${ms.name}</div>
         <div style="font-size:10px;color:var(--fog)">${ms.startDate} → ${ms.endDate} · ${ms.unit==='shift'?'Per Shift':'Harian'}</div>
       </div>
       <div style="display:flex;gap:6px">
-        <select id="ms-unit-toggle" onchange="changeMSUnit(this.value)" style="padding:4px 8px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--mist);font-size:11px;cursor:pointer">
+        <select id="ms-unit-toggle" onchange="window.changeMSUnit(this.value)" style="padding:4px 8px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--mist);font-size:11px;cursor:pointer">
           <option value="day" ${ms.unit!=='shift'?'selected':''}>Harian</option>
           <option value="shift" ${ms.unit==='shift'?'selected':''}>Per Shift</option>
         </select>
-        <button onclick="addMSFactor()" style="padding:5px 10px;background:var(--bg3);border:1px solid var(--accent2);border-radius:var(--rs);color:var(--accent2);cursor:pointer;font-size:11px">+ Faktor</button>
-        <button onclick="printMSReport()" style="padding:5px 10px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:11px">⬇ PDF</button>
+        <button onclick="window.addMSFactor()" style="padding:5px 10px;background:var(--bg3);border:1px solid var(--accent2);border-radius:var(--rs);color:var(--accent2);cursor:pointer;font-size:11px">+ Faktor</button>
+        <button onclick="window.printMSReport()" style="padding:5px 10px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:11px">⬇ PDF</button>
       </div>
     </div>
 
@@ -8228,7 +8242,7 @@ window.cycleMSFactor = async function(factorId, dateKey) {
   const next = MS_STATUS_CYCLE[(idx+1) % MS_STATUS_CYCLE.length];
   factor.statuses[dateKey] = { ...factor.statuses[dateKey], status: next };
   await saveMicroSchedule(_currentMsProjId, ms);
-  renderMSDetail();
+  window.renderMSDetail();
 };
 
 window.addMSFactor = function() {
@@ -8238,7 +8252,7 @@ window.addMSFactor = function() {
   if (!ms) return;
   ms.factors = ms.factors || [];
   ms.factors.push({ id: 'f_'+Date.now().toString(36), name: name.trim(), statuses: {} });
-  saveMicroSchedule(_currentMsProjId, ms).then(() => renderMSDetail());
+  saveMicroSchedule(_currentMsProjId, ms).then(() => window.renderMSDetail());
 };
 
 window.editMSFactor = function(fi) {
@@ -8248,7 +8262,7 @@ window.editMSFactor = function(fi) {
   const newName = prompt('Edit nama faktor:', factor.name);
   if (!newName) return;
   ms.factors[fi].name = newName.trim();
-  saveMicroSchedule(_currentMsProjId, ms).then(() => renderMSDetail());
+  saveMicroSchedule(_currentMsProjId, ms).then(() => window.renderMSDetail());
 };
 
 window.deleteMSFactor = function(fi) {
@@ -8256,7 +8270,7 @@ window.deleteMSFactor = function(fi) {
   if (!ms) return;
   if (!confirm(`Hapus faktor "${ms.factors[fi].name}"?`)) return;
   ms.factors.splice(fi, 1);
-  saveMicroSchedule(_currentMsProjId, ms).then(() => renderMSDetail());
+  saveMicroSchedule(_currentMsProjId, ms).then(() => window.renderMSDetail());
 };
 
 window.changeMSUnit = async function(unit) {
@@ -8264,7 +8278,7 @@ window.changeMSUnit = async function(unit) {
   if (!ms) return;
   ms.unit = unit;
   await saveMicroSchedule(_currentMsProjId, ms);
-  renderMSDetail();
+  window.renderMSDetail();
 };
 
 window.deleteMSConfirm = async function(msId) {
