@@ -7840,6 +7840,7 @@ let _microData = {};      // { projId: [microSchedule, ...] }
 let _microUnsubs = {};    // { projId: unsubFn }
 let _currentMsId = null;
 let _currentMsProjId = null;
+let _msActiveTab = 'gantt'; // track active tab
 
 const MS_DEFAULT_FACTORS = [
   { id: 'f_welder',    name: 'Welder tersedia & qualified' },
@@ -7879,6 +7880,10 @@ function listenMicroSchedules(projId) {
         // Stay on current view — don't reset to list if user is in detail
         if (_currentMsId) {
           window.renderMSDetail();
+          // Restore tab state
+          if (_msActiveTab === 'weld') {
+            setTimeout(function(){ window.switchMSTab('weld'); }, 0);
+          }
         } else {
           window.renderMSList();
         }
@@ -8295,7 +8300,7 @@ window.renderMSDetail = function() {
     }).join('');
 
     return `<tr>
-      <td style="position:sticky;left:0;background:var(--bg2);z-index:1;border-right:1px solid var(--line);padding:4px 8px">
+      <td style="position:sticky;left:0;background:var(--bg2);z-index:1;border-right:1px solid var(--line);padding:4px 8px 6px">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:4px">
           <div style="font-size:10px;color:var(--snow);flex:1">${f.name}</div>
           <div style="display:flex;gap:3px;flex-shrink:0">
@@ -8303,6 +8308,10 @@ window.renderMSDetail = function() {
             <button onclick="window.deleteMSFactor(${fi})" style="background:none;border:none;cursor:pointer;color:var(--fog);font-size:10px;padding:1px 3px">✕</button>
           </div>
         </div>
+        <input type="text" value="${f.note||''}" placeholder="Catatan faktor..." 
+          data-fi="${fi}"
+          oninput="window.saveMSFactorNote(${fi},this.value)"
+          style="width:100%;margin-top:3px;padding:3px 6px;background:var(--bg3);border:1px solid var(--line);border-radius:3px;color:var(--fog);font-size:9px;box-sizing:border-box;font-style:italic">
       </td>
       ${cells}
     </tr>`;
@@ -8327,7 +8336,8 @@ window.renderMSDetail = function() {
         </select>
         <button onclick="window.openEditMS('${ms.id}')" style="padding:5px 10px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:11px">✎ Edit</button>
         <button onclick="window.addMSFactor()" style="padding:5px 10px;background:var(--bg3);border:1px solid var(--accent2);border-radius:var(--rs);color:var(--accent2);cursor:pointer;font-size:11px">+ Faktor</button>
-        <button onclick="window.printMSReport()" style="padding:5px 10px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:11px">⬇ PDF</button>
+        <button onclick="window.printMSReport()" style="padding:5px 10px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:11px">⬇ PDF Gantt</button>
+        <button onclick="window.printMSWeldLog()" style="padding:5px 10px;background:var(--bg3);border:1px solid var(--line2);border-radius:var(--rs);color:var(--accent2);cursor:pointer;font-size:11px">⬇ PDF Welding</button>
       </div>
     </div>
 
@@ -8376,6 +8386,16 @@ window.renderMSDetail = function() {
 }
 
 // ── Factor actions ────────────────────────────────────────────────────────────
+window.saveMSFactorNote = function(fi, value) {
+  var ms = (_microData[_currentMsProjId]||[]).find(function(m){ return m.id === _currentMsId; });
+  if (!ms || !ms.factors[fi]) return;
+  ms.factors[fi].note = value || '';
+  clearTimeout(window._msNoteSaveTimer);
+  window._msNoteSaveTimer = setTimeout(function(){
+    saveMicroSchedule(_currentMsProjId, ms);
+  }, 800);
+};
+
 window.cycleMSFactor = async function(factorId, dateKey) {
   const ms = (_microData[_currentMsProjId]||[]).find(m => m.id === _currentMsId);
   if (!ms) return;
@@ -8506,6 +8526,7 @@ window.printMSReport = function() {
 
 // ── TAB SWITCHING ─────────────────────────────────────────────────────────────
 window.switchMSTab = function(tab) {
+  _msActiveTab = tab;
   var ganttEl = document.getElementById('ms-section-gantt');
   var weldEl  = document.getElementById('ms-section-weld');
   var btnGantt = document.getElementById('ms-tab-gantt');
@@ -8552,6 +8573,66 @@ window.renderMSWeldLog = function() {
     +_msKpi('NDT Pass Rate',pr+'%',pr>=80?'#16a34a':'#d97706')
     +_msKpi('NDT Repair/Reject',nr+'/'+nrj,nrj>0?'#dc2626':'#6b7280');
   el.appendChild(kpiRow);
+
+  // ── Per-welder productivity table ─────────────────────────────────────
+  var welderMap = {};
+  dates.forEach(function(d) {
+    var e = log[d.key] || {};
+    var w = (e.welder||'').trim();
+    if (!w) return;
+    if (!welderMap[w]) welderMap[w] = { shifts:0, layers:0, lenMm:0, pass:0, repair:0, reject:0 };
+    welderMap[w].shifts++;
+    welderMap[w].layers  += parseInt(e.layers)||0;
+    welderMap[w].lenMm   += parseFloat(e.lengthMm)||0;
+    if (e.ndt==='pass')   welderMap[w].pass++;
+    if (e.ndt==='repair') welderMap[w].repair++;
+    if (e.ndt==='reject') welderMap[w].reject++;
+  });
+
+  if (Object.keys(welderMap).length > 0) {
+    var prodDiv = document.createElement('div');
+    prodDiv.style.cssText = 'margin-bottom:16px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden';
+    var prodHdr = document.createElement('div');
+    prodHdr.style.cssText = 'padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between';
+    prodHdr.innerHTML = '<div style="font-size:10px;font-weight:700;color:var(--fog);text-transform:uppercase;letter-spacing:.5px">👷 Produktivitas per Welder</div>';
+    prodDiv.appendChild(prodHdr);
+
+    var tbl = document.createElement('table');
+    tbl.style.cssText = 'width:100%;border-collapse:collapse;font-size:11px';
+    tbl.innerHTML = '<thead><tr style="background:var(--bg3)">'
+      + '<th style="padding:7px 10px;text-align:left;font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Welder</th>'
+      + '<th style="padding:7px 8px;text-align:center;font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Shift</th>'
+      + '<th style="padding:7px 8px;text-align:center;font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Layer</th>'
+      + '<th style="padding:7px 8px;text-align:center;font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Panjang (mm)</th>'
+      + '<th style="padding:7px 8px;text-align:center;font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;font-weight:700">NDT Pass</th>'
+      + '<th style="padding:7px 8px;text-align:center;font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Repair</th>'
+      + '<th style="padding:7px 8px;text-align:center;font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Reject</th>'
+      + '<th style="padding:7px 8px;text-align:center;font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Pass Rate</th>'
+      + '</tr></thead><tbody>';
+
+    var welderNames = Object.keys(welderMap).sort();
+    welderNames.forEach(function(w, wi) {
+      var d = welderMap[w];
+      var ndtTotal = d.pass + d.repair + d.reject;
+      var passRate = ndtTotal ? Math.round(d.pass/ndtTotal*100) : null;
+      var prClr = passRate===null ? 'var(--fog)' : passRate>=80 ? '#16a34a' : passRate>=60 ? '#d97706' : '#dc2626';
+      var prBg  = passRate===null ? 'transparent' : passRate>=80 ? '#f0fdf4' : passRate>=60 ? '#fef3c7' : '#fff5f5';
+      var layerPerShift = d.shifts ? (d.layers/d.shifts).toFixed(1) : '—';
+      tbl.innerHTML += '<tr style="border-top:1px solid var(--line);'+(wi%2===1?'background:var(--bg3)':'')+'">'
+        + '<td style="padding:8px 10px;font-weight:600;color:var(--snow)">' + w + '</td>'
+        + '<td style="padding:8px;text-align:center;color:var(--mist)">' + d.shifts + '</td>'
+        + '<td style="padding:8px;text-align:center"><span style="font-weight:700;color:var(--accent2)">' + d.layers + '</span><span style="font-size:9px;color:var(--fog);margin-left:3px">('+layerPerShift+'/shift)</span></td>'
+        + '<td style="padding:8px;text-align:center;color:var(--mist)">' + d.lenMm.toFixed(0) + '</td>'
+        + '<td style="padding:8px;text-align:center;color:#16a34a;font-weight:600">' + (d.pass||'—') + '</td>'
+        + '<td style="padding:8px;text-align:center;color:#d97706;font-weight:600">' + (d.repair||'—') + '</td>'
+        + '<td style="padding:8px;text-align:center;color:#dc2626;font-weight:600">' + (d.reject||'—') + '</td>'
+        + '<td style="padding:8px;text-align:center"><span style="padding:3px 10px;border-radius:20px;background:'+prBg+';color:'+prClr+';font-weight:700;font-size:11px">' + (passRate!==null ? passRate+'%' : '—') + '</span></td>'
+        + '</tr>';
+    });
+    tbl.innerHTML += '</tbody>';
+    prodDiv.appendChild(tbl);
+    el.appendChild(prodDiv);
+  }
 
   // Entries
   var entriesWrap = document.createElement('div');
@@ -8693,6 +8774,120 @@ window.saveWeldEntry = function(dateKey, field, value) {
         +_msKpi('NDT Repair/Reject',nr+'/'+nrj,nrj>0?'#dc2626':'#6b7280');
     }
   }, 600);
+};
+
+
+window.printMSWeldLog = function() {
+  var ms = (_microData[_currentMsProjId]||[]).find(function(m){ return m.id === _currentMsId; });
+  if (!ms) return;
+  var proj = D.scProjects.find(function(p){ return p.id === _currentMsProjId; });
+  var dates = window.getMSDates(ms);
+  var log = ms.weldingLog || {};
+  var today = TS();
+
+  // Per-welder stats
+  var welderMap = {};
+  dates.forEach(function(d) {
+    var e = log[d.key] || {};
+    var w = (e.welder||'').trim();
+    if (!w) return;
+    if (!welderMap[w]) welderMap[w] = { shifts:0, layers:0, lenMm:0, pass:0, repair:0, reject:0 };
+    welderMap[w].shifts++;
+    welderMap[w].layers += parseInt(e.layers)||0;
+    welderMap[w].lenMm  += parseFloat(e.lengthMm)||0;
+    if (e.ndt==='pass')   welderMap[w].pass++;
+    if (e.ndt==='repair') welderMap[w].repair++;
+    if (e.ndt==='reject') welderMap[w].reject++;
+  });
+
+  // KPI totals
+  var tL=0,tLen=0,np=0,nr=0,nrj=0;
+  Object.values(welderMap).forEach(function(d){ tL+=d.layers; tLen+=d.lenMm; np+=d.pass; nr+=d.repair; nrj+=d.reject; });
+  var nt=np+nr+nrj, pr=nt?Math.round(np/nt*100):0;
+
+  // Welder productivity table
+  var welderRows = Object.keys(welderMap).sort().map(function(w){
+    var d=welderMap[w];
+    var ndtT=d.pass+d.repair+d.reject;
+    var pRate=ndtT?Math.round(d.pass/ndtT*100):null;
+    var pClr=pRate===null?'#6b7280':pRate>=80?'#16a34a':pRate>=60?'#d97706':'#dc2626';
+    return '<tr style="border-top:1px solid #f3f4f6">'
+      +'<td style="padding:5px 8px;font-weight:600">'+w+'</td>'
+      +'<td style="padding:5px 8px;text-align:center">'+d.shifts+'</td>'
+      +'<td style="padding:5px 8px;text-align:center;font-weight:700;color:#6366f1">'+d.layers+'</td>'
+      +'<td style="padding:5px 8px;text-align:center">'+d.lenMm.toFixed(0)+'</td>'
+      +'<td style="padding:5px 8px;text-align:center;color:#16a34a;font-weight:600">'+(d.pass||'—')+'</td>'
+      +'<td style="padding:5px 8px;text-align:center;color:#d97706;font-weight:600">'+(d.repair||'—')+'</td>'
+      +'<td style="padding:5px 8px;text-align:center;color:#dc2626;font-weight:600">'+(d.reject||'—')+'</td>'
+      +'<td style="padding:5px 8px;text-align:center;font-weight:700;color:'+pClr+'">'+(pRate!==null?pRate+'%':'—')+'</td>'
+      +'</tr>';
+  }).join('');
+
+  // Log entries table
+  var logRows = dates.filter(function(d){ return log[d.key]; }).map(function(d){
+    var e=log[d.key]||{};
+    if (!e.welder&&!e.layers&&!e.ndt) return '';
+    var ndtClr={pass:'#16a34a',repair:'#d97706',reject:'#dc2626'}[e.ndt]||'#6b7280';
+    return '<tr style="border-top:1px solid #f3f4f6">'
+      +'<td style="padding:4px 8px;font-size:9px">'+d.date+'</td>'
+      +'<td style="padding:4px 8px;text-align:center;font-size:9px">'+d.label+'</td>'
+      +'<td style="padding:4px 8px;font-weight:600;font-size:10px">'+(e.welder||'—')+'</td>'
+      +'<td style="padding:4px 8px;text-align:center;font-weight:700;color:#6366f1">'+(e.layers||'—')+'</td>'
+      +'<td style="padding:4px 8px;text-align:center">'+(e.lengthMm?e.lengthMm+' mm':'—')+'</td>'
+      +'<td style="padding:4px 8px;text-align:center"><span style="padding:2px 7px;border-radius:10px;background:'+(e.ndt?{pass:'#dcfce7',repair:'#fef3c7',reject:'#fee2e2'}[e.ndt]||'#f9fafb':'#f9fafb')+';color:'+ndtClr+';font-size:9px;font-weight:700">'+(e.ndt?e.ndt.toUpperCase():'—')+'</span></td>'
+      +'<td style="padding:4px 8px;font-size:9px;color:#6b7280">'+(e.notes||'')+'</td>'
+      +'</tr>';
+  }).join('');
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+    +'<title>'+today.slice(8)+today.slice(5,7)+today.slice(0,4)+' Welding Log '+ms.name+'</title>'
+    +'<style>@page{margin:10mm;size:A4 landscape}body{font-family:-apple-system,sans-serif;color:#111;font-size:10px}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #f3f4f6}</style>'
+    +'</head><body>'
+    // Header
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #111">'
+    +'<div><div style="font-size:16px;font-weight:700">📝 Welding Log</div>'
+    +'<div style="font-size:11px;color:#6b7280;margin-top:2px">'+(proj?proj.name:'')+' · '+ms.name+'</div>'
+    +'<div style="font-size:10px;color:#6b7280">'+ms.startDate+' → '+ms.endDate+'</div></div>'
+    +'<div style="text-align:right;font-size:9px;color:#6b7280">Dicetak: '+today+'</div></div>'
+    // KPI
+    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">'
+    +[['Total Layer',tL,'#6366f1'],['Total Panjang (mm)',tLen.toFixed(0),'#0891b2'],
+      ['NDT Pass Rate',pr+'%',pr>=80?'#16a34a':'#d97706'],
+      ['NDT Repair/Reject',nr+'/'+nrj,nrj>0?'#dc2626':'#6b7280']].map(function(k){
+      return '<div style="border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;text-align:center">'
+        +'<div style="font-size:18px;font-weight:700;color:'+k[2]+'">'+k[1]+'</div>'
+        +'<div style="font-size:8px;color:#6b7280;margin-top:2px">'+k[0]+'</div></div>';
+    }).join('')+'</div>'
+    // Welder table
+    +(welderRows ? '<div style="margin-bottom:12px"><div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">👷 Produktivitas per Welder</div>'
+    +'<div style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden"><table>'
+    +'<thead><tr style="background:#f9fafb"><th style="padding:5px 8px;text-align:left;font-size:8px;color:#6b7280">Welder</th>'
+    +'<th style="padding:5px 8px;text-align:center;font-size:8px;color:#6b7280">Shift</th>'
+    +'<th style="padding:5px 8px;text-align:center;font-size:8px;color:#6b7280">Layer</th>'
+    +'<th style="padding:5px 8px;text-align:center;font-size:8px;color:#6b7280">Panjang (mm)</th>'
+    +'<th style="padding:5px 8px;text-align:center;font-size:8px;color:#6b7280">NDT Pass</th>'
+    +'<th style="padding:5px 8px;text-align:center;font-size:8px;color:#6b7280">Repair</th>'
+    +'<th style="padding:5px 8px;text-align:center;font-size:8px;color:#6b7280">Reject</th>'
+    +'<th style="padding:5px 8px;text-align:center;font-size:8px;color:#6b7280">Pass Rate</th>'
+    +'</tr></thead><tbody>'+welderRows+'</tbody></table></div></div>' : '')
+    // Log table
+    +'<div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Detail Log per Shift</div>'
+    +'<div style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden"><table>'
+    +'<thead><tr style="background:#f9fafb">'
+    +'<th style="padding:5px 8px;text-align:left;font-size:8px;color:#6b7280">Tanggal</th>'
+    +'<th style="padding:5px 8px;text-align:center;font-size:8px;color:#6b7280">Shift</th>'
+    +'<th style="padding:5px 8px;text-align:left;font-size:8px;color:#6b7280">Welder</th>'
+    +'<th style="padding:5px 8px;text-align:center;font-size:8px;color:#6b7280">Layer</th>'
+    +'<th style="padding:5px 8px;text-align:center;font-size:8px;color:#6b7280">Panjang</th>'
+    +'<th style="padding:5px 8px;text-align:center;font-size:8px;color:#6b7280">NDT</th>'
+    +'<th style="padding:5px 8px;text-align:left;font-size:8px;color:#6b7280">Catatan</th>'
+    +'</tr></thead><tbody>'+(logRows||'<tr><td colspan="7" style="padding:12px;text-align:center;color:#6b7280">Belum ada data log</td></tr>')+'</tbody></table></div>'
+    +'<scr'+'ipt>window.onload=function(){window.print();}</scr'+'ipt>'
+    +'</body></html>';
+
+  var win = window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
 };
 
 </script>
