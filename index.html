@@ -9247,7 +9247,8 @@ window.renderExecDashboard = function() {
   if (glP) glP.style.display = 'none';
 
   var dashProjects = getDashboardProjects();
-  var statuses = dashProjects.map(computeProjectStatus).filter(Boolean);
+  var refDate = getSCRefDate();
+  var statuses = dashProjects.map(function(p){ return computeProjectStatus(p, refDate); }).filter(Boolean);
 
   // ── KPI Summary ──────────────────────────────────────────────────────────
   var onTrack = 0, behind = 0, critical = 0, noData = 0;
@@ -9282,7 +9283,7 @@ window.renderExecDashboard = function() {
     + '</div>';
 
   // ── Draw S-Curve Induk on canvas ─────────────────────────────────────────
-  _drawIndukSCurve(statuses);
+  _drawIndukSCurve(statuses, refDate);
 
   // ── Status Board in wbsEl ────────────────────────────────────────────────
   var wbsEl = document.getElementById('sc-wbs-list');
@@ -9436,7 +9437,7 @@ window.editExecNarasi = function(el) {
 };
 
 // ── S-Curve Induk drawing ─────────────────────────────────────────────────────
-function _drawIndukSCurve(statuses) {
+function _drawIndukSCurve(statuses, refDate) {
   var canvas = document.getElementById('sc-canvas');
   if (!canvas || !statuses.length) return;
   var ctx = canvas.getContext('2d');
@@ -9612,7 +9613,8 @@ function _drawIndukSCurve(statuses) {
 // ── Executive PDF ─────────────────────────────────────────────────────────────
 window.printExecDashboard = function() {
   var dashProjects = getDashboardProjects();
-  var statuses = dashProjects.map(computeProjectStatus).filter(Boolean);
+  var refDate = getSCRefDate();
+  var statuses = dashProjects.map(function(p){ return computeProjectStatus(p, refDate); }).filter(Boolean);
   var today = TS();
 
   // Weighted KPI
