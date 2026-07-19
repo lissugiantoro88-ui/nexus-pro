@@ -4906,7 +4906,7 @@ window.openDashboardConfigModal = function() {
 };
 
 
-function computeProjectStatus(proj) {
+function computeProjectStatus(proj, refDate) {
   const items   = D.scItems[proj.id]   || [];
   const iActs   = D.scItemActuals[proj.id] || {};
   if (!proj.startDate || !proj.finishDate) return null;
@@ -5028,7 +5028,7 @@ function renderSCurveGlobal() {
   // ── Compute status per project (reuse logic from status bar / PDF export) ──
   // computeProjectStatus moved to module scope
 
-  const statuses = dashProjects.map(computeProjectStatus).filter(Boolean);
+  const statuses = dashProjects.map(function(p){ return computeProjectStatus(p, refDate); }).filter(Boolean);
 
   // ── Aggregate summary ──
   const behindCount = statuses.filter(s => s.dev !== null && s.dev < 0).length;
