@@ -1475,7 +1475,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
           <input type="date" id="sc-compare-date" style="background:transparent;border:none;color:var(--mist);font-size:11px;font-family:JetBrains Mono,monospace;outline:none;width:110px" onchange="onSCCompareDateChange(this.value)" placeholder="Bandingkan">
           <button onclick="clearSCCompareDate()" style="background:none;border:none;color:var(--fog);cursor:pointer;font-size:11px;padding:0" title="Hapus pembanding">✕</button>
         </div>
-        <button class="tb-btn" onclick="exportSCurvePDF()" style="white-space:nowrap" title="Export PDF">⬇ PDF</button>
+        <button class="tb-btn" id="sc-std-pdf-btn" onclick="exportSCurvePDF()" style="white-space:nowrap" title="Export PDF">⬇ PDF</button>
+      <button id="sc-exec-pdf-btn" onclick="window.printExecDashboard()" style="display:none;font-size:11px;padding:4px 10px;border:none;border-radius:var(--rs);background:var(--amber);color:#111;cursor:pointer;font-weight:600;white-space:nowrap">⬇ Executive PDF</button>
         <button class="tb-btn" onclick="openVMBoardExport(scCurrentProjectId)" style="white-space:nowrap" title="Visual Management Board">⬇ VM Board</button>
         <button class="tb-btn primary" id="sc-topbar-add-btn" onclick="handleTopbarAdd()" style="white-space:nowrap">+ Project</button>
       </div>
@@ -1515,6 +1516,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
             <button class="tb-btn primary" style="font-size:10px;padding:4px 8px" onclick="openSCItemModal()">+ Item</button>
             <button id="sc-hl-tab-btn" onclick="switchSCTab('highlight')" style="font-size:10px;padding:4px 8px;border-radius:var(--rs);border:1px solid var(--accent2);background:transparent;color:var(--accent2);cursor:pointer">📌 Highlight</button>
             <button id="sc-global-hl-btn" onclick="toggleGlobalHL()" style="display:none;font-size:10px;padding:4px 8px;border-radius:var(--rs);border:1px solid var(--violet);background:transparent;color:var(--violet);cursor:pointer">📌 Highlight Umum</button>
+            <button id="sc-exec-btn" onclick="window.toggleExecView()" style="display:none;font-size:10px;padding:4px 8px;border-radius:var(--rs);border:1px solid var(--amber);background:transparent;color:var(--amber);cursor:pointer">📋 Executive</button>
           </div>
           <!-- Table header -->
           <div id="sc-wbs-header" style="display:grid;grid-template-columns:1fr 60px 70px 60px 60px 40px;padding:6px 14px;border-bottom:2px solid var(--line2);font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.8px;background:var(--bg3)">
@@ -4762,6 +4764,9 @@ function renderSCurve() {
   if (_tabBtnI) { _tabBtnI.style.display = ''; }
   var _glBtnI = document.getElementById('sc-global-hl-btn');
   if (_glBtnI) _glBtnI.style.display = 'none';
+  var _execBtnI = document.getElementById('sc-exec-btn');
+  if (_execBtnI) _execBtnI.style.display = 'none';
+  window._execViewActive = false;
   // Refresh per-project highlight panel
   renderHighlightPanel(projId);
 }
@@ -4920,6 +4925,15 @@ function renderSCurveGlobal() {
     _glBtn.style.display = '';
     _glBtn.style.background = 'var(--violet)';
     _glBtn.style.color = '#fff';
+  }
+  var _execBtn = document.getElementById('sc-exec-btn');
+  if (_execBtn) _execBtn.style.display = '';
+  // Restore exec view if was active
+  if (window._execViewActive) {
+    var _pdfB = document.getElementById('sc-exec-pdf-btn');
+    if (_pdfB) _pdfB.style.display = '';
+    var _stdB = document.getElementById('sc-std-pdf-btn');
+    if (_stdB) _stdB.style.display = 'none';
   }
 
   const dashProjects = getDashboardProjects();
@@ -9198,6 +9212,508 @@ window._printWelderAnalysis = function(cat) {
     +'</tr></thead><tbody>'+rows+'</tbody></table></div>'
     +'<scr'+'ipt>window.onload=function(){window.print();}</scr'+'ipt></body></html>';
   var win=window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+};
+
+
+// ── EXECUTIVE DASHBOARD ───────────────────────────────────────────────────────
+let _execViewActive = false;
+
+window.toggleExecView = function() {
+  _execViewActive = !_execViewActive;
+  var btn = document.getElementById('sc-exec-btn');
+  if (btn) {
+    btn.style.background = _execViewActive ? 'var(--amber)' : 'transparent';
+    btn.style.color = _execViewActive ? '#111' : 'var(--amber)';
+    btn.textContent = _execViewActive ? '📋 Executive ✓' : '📋 Executive';
+  }
+  var pdfBtn = document.getElementById('sc-exec-pdf-btn');
+  if (pdfBtn) pdfBtn.style.display = _execViewActive ? '' : 'none';
+  var stdPdfBtn = document.getElementById('sc-std-pdf-btn');
+  if (stdPdfBtn) stdPdfBtn.style.display = _execViewActive ? 'none' : '';
+  if (_execViewActive) {
+    window.renderExecDashboard();
+  } else {
+    renderSCurveGlobal();
+  }
+};
+
+window.renderExecDashboard = function() {
+  // Hide global HL panel in exec mode (cleaner)
+  var glP = document.getElementById('sc-global-hl-panel');
+  if (glP) glP.style.display = 'none';
+
+  var dashProjects = getDashboardProjects();
+  var statuses = dashProjects.map(computeProjectStatus).filter(Boolean);
+
+  // ── KPI Summary ──────────────────────────────────────────────────────────
+  var onTrack = 0, behind = 0, critical = 0, noData = 0;
+  statuses.forEach(function(s) {
+    if (s.dev === null) { noData++; return; }
+    if (s.dev >= -5) onTrack++;
+    else if (s.dev >= -15) behind++;
+    else critical++;
+  });
+
+  // Weighted avg (by item count)
+  var totalItems = statuses.reduce(function(sum, s){ return sum + s.items.length; }, 0);
+  var wPlan = 0, wActual = 0, wActualCount = 0;
+  statuses.forEach(function(s) {
+    var w = totalItems > 0 ? s.items.length / totalItems : 1/statuses.length;
+    wPlan += s.planCum * w;
+    if (s.actualCum !== null) { wActual += s.actualCum * w; wActualCount++; }
+  });
+  wPlan   = Math.round(wPlan * 10) / 10;
+  wActual = wActualCount > 0 ? Math.round(wActual * 10) / 10 : null;
+  var wDev = wActual !== null ? Math.round((wActual - wPlan) * 10) / 10 : null;
+  var devClr = wDev === null ? 'var(--fog)' : wDev >= 0 ? '#16a34a' : wDev >= -10 ? '#d97706' : '#dc2626';
+
+  var statusBar = document.getElementById('sc-status-bar');
+  statusBar.innerHTML = '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:4px">'
+    + _execKpi(statuses.length, 'Project', 'var(--accent2)', 'var(--ag)')
+    + _execKpi(onTrack, '🟢 On Track', '#16a34a', 'rgba(22,163,74,.1)')
+    + _execKpi(behind, '🟡 Behind', '#d97706', 'rgba(217,119,6,.1)')
+    + _execKpi(critical, '🔴 Critical', '#dc2626', 'rgba(225,29,72,.1)')
+    + _execKpi((wActual !== null ? wActual : '—') + '%', 'Aktual Induk', 'var(--snow)', 'var(--bg3)')
+    + _execKpi((wDev !== null ? (wDev >= 0 ? '+' : '') + wDev : '—') + '%', 'Deviasi Induk', devClr, 'var(--bg3)')
+    + '</div>';
+
+  // ── Draw S-Curve Induk on canvas ─────────────────────────────────────────
+  _drawIndukSCurve(statuses);
+
+  // ── Status Board in wbsEl ────────────────────────────────────────────────
+  var wbsEl = document.getElementById('sc-wbs-list');
+  if (!wbsEl) return;
+
+  if (!statuses.length) {
+    wbsEl.innerHTML = '<div style="padding:30px;text-align:center;color:var(--fog)">Belum ada project di dashboard</div>';
+    return;
+  }
+
+  // Sort: critical first, then behind, then on track
+  var sorted = statuses.slice().sort(function(a, b) {
+    function rank(s) {
+      if (s.dev === null) return 3;
+      if (s.dev < -15) return 0;
+      if (s.dev < -5)  return 1;
+      return 2;
+    }
+    return rank(a) - rank(b);
+  });
+
+  wbsEl.innerHTML = '';
+  sorted.forEach(function(s) {
+    var card = _buildExecCard(s);
+    wbsEl.appendChild(card);
+  });
+};
+
+function _execKpi(value, label, color, bg) {
+  return '<div style="background:'+bg+';border:1px solid var(--line);border-radius:var(--rs);padding:10px 12px;text-align:center">'
+    + '<div style="font-size:20px;font-weight:700;color:'+color+';font-family:\'JetBrains Mono\',monospace">'+value+'</div>'
+    + '<div style="font-size:9px;color:var(--fog);text-transform:uppercase;letter-spacing:.8px;margin-top:2px">'+label+'</div>'
+    + '</div>';
+}
+
+function _execStatusBadge(dev) {
+  if (dev === null) return { ico:'⚪', txt:'No Data', bg:'var(--bg3)', clr:'var(--fog)' };
+  if (dev >= -5)   return { ico:'🟢', txt:'On Track', bg:'rgba(22,163,74,.12)', clr:'#16a34a' };
+  if (dev >= -15)  return { ico:'🟡', txt:'Behind',   bg:'rgba(217,119,6,.12)', clr:'#d97706' };
+  return               { ico:'🔴', txt:'Critical', bg:'rgba(225,29,72,.12)', clr:'#dc2626' };
+}
+
+function _buildExecCard(s) {
+  var badge = _execStatusBadge(s.dev);
+  var proj = s.proj;
+  var planPct   = Math.min(100, s.planCum);
+  var actualPct = s.actualCum !== null ? Math.min(100, s.actualCum) : null;
+  var devStr = s.dev !== null ? (s.dev >= 0 ? '+' : '') + s.dev + '%' : '—';
+  var devClr = s.dev === null ? 'var(--fog)' : s.dev >= 0 ? '#16a34a' : s.dev < -15 ? '#dc2626' : '#d97706';
+
+  // Date info
+  var fd = new Date(s.proj.finishDate);
+  var today = new Date(TS());
+  var daysLeft = Math.round((fd - today) / 86400000);
+  var dateStr = fd.getDate()+'/'+(fd.getMonth()+1)+'/'+fd.getFullYear();
+  var dateClr = daysLeft < 0 ? '#dc2626' : daysLeft <= 7 ? '#d97706' : 'var(--fog)';
+  var dateSub = daysLeft < 0 ? '('+Math.abs(daysLeft)+' hari terlambat)' : 'Sisa '+daysLeft+' hari';
+
+  // Narasi (stored in proj.execNarasi)
+  var narasi = proj.execNarasi || '';
+
+  var card = document.createElement('div');
+  card.style.cssText = 'background:var(--bg3);border:1px solid var(--line);border-left:4px solid '+badge.clr+';border-radius:var(--rs);padding:12px 14px;margin-bottom:8px';
+
+  card.innerHTML =
+    // Row 1: status badge + name + deviasi + date
+    '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">'
+    + '<div style="flex-shrink:0;margin-top:1px">'
+    + '<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:'+badge.bg+';color:'+badge.clr+';font-weight:700">'+badge.ico+' '+badge.txt+'</span>'
+    + '</div>'
+    + '<div style="flex:1;min-width:0">'
+    + '<div style="font-size:12px;font-weight:700;color:var(--snow);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+proj.name+'</div>'
+    + '<div style="font-size:9px;color:var(--fog);margin-top:1px">'+s.items.length+' item WBS</div>'
+    + '</div>'
+    + '<div style="text-align:right;flex-shrink:0">'
+    + '<div style="font-size:18px;font-weight:700;color:'+devClr+';font-family:\'JetBrains Mono\',monospace">'+devStr+'</div>'
+    + '<div style="font-size:9px;color:var(--fog)">Deviasi</div>'
+    + '</div>'
+    + '<div style="text-align:right;flex-shrink:0;min-width:90px">'
+    + '<div style="font-size:12px;font-weight:600;color:'+dateClr+'">'+dateStr+'</div>'
+    + '<div style="font-size:9px;color:'+dateClr+'">'+dateSub+'</div>'
+    + '</div>'
+    + '</div>'
+
+    // Row 2: dual progress bar
+    + '<div style="margin-bottom:10px">'
+    + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+    + '<div style="font-size:9px;color:var(--fog);width:36px">Plan</div>'
+    + '<div style="flex:1;height:8px;background:var(--bg2);border-radius:4px;overflow:hidden">'
+    + '<div style="height:100%;width:'+planPct+'%;background:var(--fog);border-radius:4px"></div></div>'
+    + '<div style="font-size:10px;font-weight:600;color:var(--fog);width:36px;text-align:right">'+planPct+'%</div>'
+    + '</div>'
+    + '<div style="display:flex;align-items:center;gap:8px">'
+    + '<div style="font-size:9px;color:var(--snow);width:36px">Aktual</div>'
+    + '<div style="flex:1;height:8px;background:var(--bg2);border-radius:4px;overflow:hidden">'
+    + (actualPct !== null ? '<div style="height:100%;width:'+actualPct+'%;background:'+badge.clr+';border-radius:4px"></div>' : '')
+    + '</div>'
+    + '<div style="font-size:10px;font-weight:700;color:'+badge.clr+';width:36px;text-align:right">'+(actualPct !== null ? actualPct+'%' : '—')+'</div>'
+    + '</div>'
+    + '</div>'
+
+    // Row 3: narasi editable
+    + '<div style="display:flex;align-items:flex-start;gap:8px">'
+    + '<div style="font-size:9px;color:var(--fog);padding-top:3px;flex-shrink:0">📝</div>'
+    + '<div class="exec-narasi-wrap" style="flex:1" data-projid="'+proj.id+'">'
+    + (narasi
+      ? '<div class="exec-narasi-text" onclick="window.editExecNarasi(this)" style="font-size:11px;color:var(--mist);cursor:pointer;line-height:1.5" title="Klik untuk edit">'+narasi+'</div>'
+      : '<div class="exec-narasi-text" onclick="window.editExecNarasi(this)" style="font-size:11px;color:var(--fog);cursor:pointer;font-style:italic" title="Klik untuk tambah narasi">+ Tambah narasi status...</div>'
+    )
+    + '</div>'
+    + '</div>';
+
+  return card;
+}
+
+window.editExecNarasi = function(el) {
+  var wrap = el.closest('.exec-narasi-wrap');
+  var projId = wrap.dataset.projid;
+  var proj = D.scProjects.find(function(p){ return p.id === projId; });
+  var current = proj ? (proj.execNarasi || '') : '';
+
+  // Replace text div with input
+  var ta = document.createElement('textarea');
+  ta.value = current;
+  ta.style.cssText = 'width:100%;background:var(--bg2);border:1px solid var(--accent);border-radius:4px;padding:5px 8px;color:var(--snow);font-size:11px;resize:none;min-height:44px;box-sizing:border-box;font-family:Inter,sans-serif;line-height:1.5;outline:none';
+  ta.rows = 2;
+  ta.placeholder = 'Tulis narasi status project...';
+  wrap.innerHTML = '';
+  wrap.appendChild(ta);
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+
+  function saveNarasi() {
+    var val = ta.value.trim();
+    if (proj) {
+      proj.execNarasi = val;
+      // Save to Firebase
+      setDoc(doc(db,'users',uid,'scurve',projId), { execNarasi: val }, { merge: true });
+    }
+    // Restore display
+    wrap.innerHTML = val
+      ? '<div class="exec-narasi-text" onclick="window.editExecNarasi(this)" style="font-size:11px;color:var(--mist);cursor:pointer;line-height:1.5">'+val+'</div>'
+      : '<div class="exec-narasi-text" onclick="window.editExecNarasi(this)" style="font-size:11px;color:var(--fog);cursor:pointer;font-style:italic">+ Tambah narasi status...</div>';
+  }
+
+  ta.addEventListener('blur', saveNarasi);
+  ta.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ta.blur(); }
+    if (e.key === 'Escape') { ta.value = current; ta.blur(); }
+  });
+};
+
+// ── S-Curve Induk drawing ─────────────────────────────────────────────────────
+function _drawIndukSCurve(statuses) {
+  var canvas = document.getElementById('sc-canvas');
+  if (!canvas || !statuses.length) return;
+  var ctx = canvas.getContext('2d');
+  var W = canvas.clientWidth || canvas.width;
+  var H = canvas.clientHeight || canvas.height;
+  canvas.width = W; canvas.height = H;
+
+  var isDark = !document.documentElement.classList.contains('light');
+  var gridColor = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.07)';
+  var textColor = isDark ? 'rgba(255,255,255,.4)' : 'rgba(0,0,0,.4)';
+  var PAD = { top:28, right:20, bottom:32, left:38 };
+  var chartW = W - PAD.left - PAD.right;
+  var chartH = H - PAD.top - PAD.bottom;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Determine global date range
+  var minDate = null, maxDate = null;
+  statuses.forEach(function(s) {
+    var sD = localMidnight(s.proj.startDate);
+    var eD = localMidnight(s.proj.finishDate);
+    if (!minDate || sD < minDate) minDate = sD;
+    if (!maxDate || eD > maxDate) maxDate = eD;
+  });
+  if (!minDate || !maxDate) return;
+
+  var totalSpan = Math.max(1, Math.round((maxDate - minDate) / 86400000));
+
+  function xFor(dateStr) {
+    var d = localMidnight(dateStr);
+    var offset = Math.round((d - minDate) / 86400000);
+    return PAD.left + (offset / totalSpan) * chartW;
+  }
+  function yFor(v) { return PAD.top + chartH - (v / 100) * chartH; }
+
+  // Grid
+  ctx.setLineDash([3,4]); ctx.lineWidth = 1;
+  [0, 25, 50, 75, 100].forEach(function(pct) {
+    var y = yFor(pct);
+    ctx.strokeStyle = gridColor;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left+chartW, y); ctx.stroke();
+    ctx.fillStyle = textColor; ctx.font = '10px JetBrains Mono, monospace';
+    ctx.textAlign = 'right'; ctx.fillText(pct+'%', PAD.left-6, y+4);
+  });
+  ctx.setLineDash([]);
+
+  // X axis labels
+  ctx.fillStyle = textColor; ctx.font = '9px JetBrains Mono, monospace'; ctx.textAlign = 'center';
+  [0, 0.25, 0.5, 0.75, 1].forEach(function(frac) {
+    var d = new Date(minDate); d.setDate(d.getDate() + Math.round(totalSpan * frac));
+    var x = PAD.left + frac * chartW;
+    ctx.fillText(d.getDate()+'/'+(d.getMonth()+1), x, PAD.top+chartH+14);
+  });
+
+  // Ref date line
+  var refX = xFor(refDate);
+  if (refX >= PAD.left && refX <= PAD.left+chartW) {
+    ctx.strokeStyle = '#d97706'; ctx.lineWidth = 1.5; ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.moveTo(refX, PAD.top); ctx.lineTo(refX, PAD.top+chartH); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#d97706'; ctx.font = '9px Inter, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(refDate.slice(8)+'/'+refDate.slice(5,7), refX, PAD.top-8);
+  }
+
+  // Compute total item count for weighting
+  var totalItems = statuses.reduce(function(sum, s){ return sum + s.items.length; }, 0);
+  if (totalItems === 0) totalItems = statuses.length; // fallback
+
+  // Build plan curve (weighted)
+  // For each date from minDate to maxDate, compute weighted plan %
+  var planPts = [], actualPts = [];
+  var cur = new Date(minDate);
+  var cumActualByDate = {}; // date -> weighted cumActual (only for dates with data)
+
+  // Pre-compute per project cumulative actuals per date
+  var projActuals = statuses.map(function(s) {
+    var iActs = D.scItemActuals[s.proj.id] || {};
+    var cum = 0;
+    var byDate = {};
+    var sDate = s.proj.startDate;
+    var eDate = s.proj.finishDate;
+    // Build daily actuals
+    var dateList = [];
+    var dc = new Date(localMidnight(sDate));
+    var de = new Date(localMidnight(eDate));
+    while (dc <= de) { dateList.push(localDateStr(dc)); dc.setDate(dc.getDate()+1); }
+    dateList.forEach(function(d) {
+      var dayAct = iActs[d] || {};
+      s.items.forEach(function(it) {
+        if (dayAct[it.id] !== undefined) cum += parseFloat(dayAct[it.id])||0;
+      });
+      byDate[d] = cum;
+    });
+    return { s: s, byDate: byDate, w: s.items.length / totalItems };
+  });
+
+  // Walk from minDate to maxDate
+  cur = new Date(minDate);
+  while (cur <= maxDate) {
+    var dStr = localDateStr(cur);
+    var x = xFor(dStr);
+
+    // Weighted plan at this date
+    var wPlan = 0;
+    statuses.forEach(function(s, i) {
+      var w = projActuals[i].w;
+      // Plan cumulative at this date for this project
+      var planHere = 0;
+      var itemsS = s.items;
+      var projS = s.proj;
+      itemsS.forEach(function(it) {
+        if (!it.startDate || !it.finishDate) return;
+        var iS = localMidnight(it.startDate);
+        var iE = localMidnight(it.finishDate);
+        var dur = Math.max(1, Math.round((iE-iS)/86400000)+1);
+        var dD = cur;
+        if (dD >= iS) {
+          var daysIn = Math.min(Math.round((dD-iS)/86400000)+1, dur);
+          planHere += (parseFloat(it.weight)||0) * (daysIn/dur);
+        }
+      });
+      planHere = Math.min(100, Math.round(planHere*10)/10);
+      wPlan += planHere * w;
+    });
+    planPts.push({ x: x, y: yFor(Math.min(100, wPlan)) });
+
+    // Weighted actual at this date (only if date <= refDate)
+    if (dStr <= refDate) {
+      var wAct = 0, hasAny = false;
+      projActuals.forEach(function(pa) {
+        var actHere = pa.byDate[dStr];
+        if (actHere !== undefined) { wAct += actHere * pa.w; hasAny = true; }
+      });
+      if (hasAny || dStr <= refDate) {
+        actualPts.push({ x: x, y: yFor(Math.min(100, wAct)), hasData: hasAny });
+      }
+    }
+
+    cur.setDate(cur.getDate()+1);
+  }
+
+  // Draw plan line
+  if (planPts.length > 1) {
+    ctx.strokeStyle = isDark ? 'rgba(200,200,220,.5)' : 'rgba(100,100,140,.4)';
+    ctx.lineWidth = 2; ctx.setLineDash([6,3]);
+    ctx.beginPath(); ctx.moveTo(planPts[0].x, planPts[0].y);
+    planPts.forEach(function(p){ ctx.lineTo(p.x, p.y); });
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // Draw actual line (weighted S-Curve Induk)
+  var actualWithData = actualPts.filter(function(p){ return p.hasData; });
+  if (actualWithData.length > 1) {
+    ctx.strokeStyle = '#7c6fff'; ctx.lineWidth = 2.5; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(actualWithData[0].x, actualWithData[0].y);
+    actualWithData.forEach(function(p){ ctx.lineTo(p.x, p.y); });
+    ctx.stroke();
+  }
+
+  // Legend
+  var legY = PAD.top - 14;
+  ctx.font = '9px Inter, sans-serif'; ctx.textAlign = 'left';
+  ctx.strokeStyle = isDark ? 'rgba(200,200,220,.5)' : 'rgba(100,100,140,.4)';
+  ctx.lineWidth = 2; ctx.setLineDash([6,3]);
+  ctx.beginPath(); ctx.moveTo(PAD.left+10, legY); ctx.lineTo(PAD.left+30, legY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = textColor; ctx.fillText('Plan Induk', PAD.left+34, legY+3);
+  ctx.strokeStyle = '#7c6fff'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(PAD.left+95, legY); ctx.lineTo(PAD.left+115, legY); ctx.stroke();
+  ctx.fillStyle = '#7c6fff'; ctx.fillText('Aktual Induk', PAD.left+119, legY+3);
+}
+
+// ── Executive PDF ─────────────────────────────────────────────────────────────
+window.printExecDashboard = function() {
+  var dashProjects = getDashboardProjects();
+  var statuses = dashProjects.map(computeProjectStatus).filter(Boolean);
+  var today = TS();
+
+  // Weighted KPI
+  var totalItems = statuses.reduce(function(sum, s){ return sum + s.items.length; }, 0) || 1;
+  var wPlan=0, wActual=0, wActCnt=0;
+  var onTrack=0, behind=0, critical=0;
+  statuses.forEach(function(s) {
+    var w = s.items.length / totalItems;
+    wPlan += s.planCum * w;
+    if (s.actualCum !== null) { wActual += s.actualCum * w; wActCnt++; }
+    if (s.dev === null) return;
+    if (s.dev >= -5) onTrack++;
+    else if (s.dev >= -15) behind++;
+    else critical++;
+  });
+  wPlan = Math.round(wPlan*10)/10;
+  wActual = wActCnt > 0 ? Math.round(wActual*10)/10 : null;
+  var wDev = wActual !== null ? Math.round((wActual-wPlan)*10)/10 : null;
+  var devClrPdf = wDev===null?'#6b7280':wDev>=0?'#16a34a':wDev<-10?'#dc2626':'#d97706';
+
+  // Sorted statuses
+  var sorted = statuses.slice().sort(function(a,b){
+    function rank(s){ return s.dev===null?3:s.dev<-15?0:s.dev<-5?1:2; }
+    return rank(a)-rank(b);
+  });
+
+  var projectRows = sorted.map(function(s) {
+    var badge = _execStatusBadge(s.dev);
+    var fd = new Date(s.proj.finishDate);
+    var daysLeft = Math.round((fd-new Date(today))/86400000);
+    var dateStr = fd.getDate()+'/'+(fd.getMonth()+1)+'/'+fd.getFullYear();
+    var dateSub = daysLeft<0?'('+Math.abs(daysLeft)+' hari terlambat)':'Sisa '+daysLeft+' hari';
+    var devStr = s.dev!==null?(s.dev>=0?'+':'')+s.dev+'%':'—';
+    var devClrR = s.dev===null?'#6b7280':s.dev>=0?'#16a34a':s.dev<-15?'#dc2626':'#d97706';
+    var planPct = Math.min(100,s.planCum);
+    var actPct  = s.actualCum!==null?Math.min(100,s.actualCum):null;
+    var borderClr = badge.clr === '#16a34a'?'#16a34a':badge.clr==="#d97706"?'#d97706':'#dc2626';
+
+    return '<tr style="border-bottom:1px solid #e5e7eb">'
+      +'<td style="padding:8px 10px;border-left:4px solid '+borderClr+'">'
+      +'<div style="font-weight:700;font-size:11px">'+s.proj.name+'</div>'
+      +'<div style="font-size:9px;color:#6b7280;margin-top:1px">'+s.items.length+' item WBS</div>'
+      +'</td>'
+      +'<td style="padding:8px;text-align:center"><span style="padding:2px 8px;border-radius:10px;background:'+(badge.bg.replace('var(--','#').replace(')',''))+';color:'+badge.clr+';font-size:9px;font-weight:700">'+badge.ico+' '+badge.txt+'</span></td>'
+      // Dual progress bar
+      +'<td style="padding:8px 10px;min-width:160px">'
+      +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'
+      +'<span style="font-size:8px;color:#6b7280;width:32px">Plan</span>'
+      +'<div style="flex:1;height:6px;background:#f3f4f6;border-radius:3px"><div style="height:100%;width:'+planPct+'%;background:#9ca3af;border-radius:3px"></div></div>'
+      +'<span style="font-size:9px;color:#374151;font-weight:600;width:28px;text-align:right">'+planPct+'%</span>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:6px">'
+      +'<span style="font-size:8px;color:#374151;width:32px">Aktual</span>'
+      +'<div style="flex:1;height:6px;background:#f3f4f6;border-radius:3px"><div style="height:100%;width:'+(actPct||0)+'%;background:'+borderClr+';border-radius:3px"></div></div>'
+      +'<span style="font-size:9px;font-weight:700;color:'+borderClr+';width:28px;text-align:right">'+(actPct!==null?actPct+'%':'—')+'</span>'
+      +'</div>'
+      +'</td>'
+      +'<td style="padding:8px;text-align:center;font-weight:700;font-size:14px;color:'+devClrR+'">'+devStr+'</td>'
+      +'<td style="padding:8px 10px"><div style="font-size:10px;font-weight:600">'+dateStr+'</div><div style="font-size:8px;color:#6b7280">'+dateSub+'</div></td>'
+      +'<td style="padding:8px 10px;font-size:10px;color:#374151;font-style:italic">'+(s.proj.execNarasi||'—')+'</td>'
+      +'</tr>';
+  }).join('');
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+    +'<title>Executive Dashboard '+today+'</title>'
+    +'<style>@page{margin:12mm 10mm;size:A4 landscape}body{font-family:-apple-system,sans-serif;color:#111;font-size:10px}table{border-collapse:collapse;width:100%}</style>'
+    +'</head><body>'
+    // Header
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid #111">'
+    +'<div><div style="font-size:20px;font-weight:700;letter-spacing:-0.5px">EXECUTIVE DASHBOARD</div>'
+    +'<div style="font-size:11px;color:#6b7280;margin-top:2px">PT. Kilang Pertamina Balikpapan — Status per '+today.slice(8)+'/'+today.slice(5,7)+'/'+today.slice(0,4)+'</div></div>'
+    +'<div style="text-align:right"><div style="font-size:9px;color:#6b7280">Dicetak: '+today+'</div></div>'
+    +'</div>'
+    // KPI Row
+    +'<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px">'
+    +[
+      [statuses.length,'Total Project','#374151','#f9fafb'],
+      [onTrack,'🟢 On Track','#16a34a','#f0fdf4'],
+      [behind,'🟡 Behind','#d97706','#fef3c7'],
+      [critical,'🔴 Critical','#dc2626','#fff5f5'],
+      [(wActual!==null?wActual:0)+'%','Aktual Induk','#6366f1','#f0f0ff'],
+      [(wDev!==null?(wDev>=0?'+':'')+wDev:0)+'%','Deviasi Induk',devClrPdf,'#f9fafb'],
+    ].map(function(k){
+      return '<div style="border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;text-align:center;background:'+k[3]+'">'
+        +'<div style="font-size:20px;font-weight:700;color:'+k[2]+'">'+k[0]+'</div>'
+        +'<div style="font-size:8px;color:#6b7280;margin-top:2px;text-transform:uppercase;letter-spacing:.5px">'+k[1]+'</div>'
+        +'</div>';
+    }).join('')
+    +'</div>'
+    // Project table
+    +'<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">'
+    +'<table><thead><tr style="background:#f9fafb">'
+    +'<th style="padding:8px 10px;text-align:left;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px">Project</th>'
+    +'<th style="padding:8px;text-align:center;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px">Status</th>'
+    +'<th style="padding:8px 10px;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;min-width:160px">Progress</th>'
+    +'<th style="padding:8px;text-align:center;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px">Deviasi</th>'
+    +'<th style="padding:8px 10px;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px">Target Selesai</th>'
+    +'<th style="padding:8px 10px;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px">Narasi Status</th>'
+    +'</tr></thead><tbody>'+projectRows+'</tbody></table></div>'
+    +'<scr'+'ipt>window.onload=function(){window.print();}</scr'+'ipt>'
+    +'</body></html>';
+
+  var win = window.open('','_blank');
   win.document.write(html);
   win.document.close();
 };
