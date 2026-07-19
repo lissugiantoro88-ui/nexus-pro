@@ -8483,7 +8483,10 @@ window.printMSReport = function() {
       const bg  = MS_STATUS_BG[st.status||''];
       return `<td style="width:${colW}px;padding:1px;text-align:center"><div style="height:16px;background:${bg};border:1px solid #e5e7eb;border-radius:2px;font-size:10px;display:flex;align-items:center;justify-content:center">${ico}</div></td>`;
     }).join('');
-    return `<tr><td style="padding:3px 6px;font-size:8px;min-width:140px">${f.name}</td>${cells}</tr>`;
+    return `<tr><td style="padding:3px 6px;font-size:8px;min-width:140px">
+        <div style="font-weight:600">${f.name}</div>
+        ${f.note ? `<div style="font-size:7px;color:#6b7280;font-style:italic;margin-top:1px">${f.note}</div>` : ''}
+      </td>${cells}</tr>`;
   }).join('');
 
   const dateHeaders = `<tr><th style="min-width:140px;padding:3px 6px;text-align:left;font-size:7px;color:#6b7280">Item / Faktor</th>${dates.map(d=>`<th style="width:${colW}px;padding:2px;text-align:center;font-size:7px;color:${d.date===today?'#d97706':'#6b7280'};font-weight:${d.date===today?'700':'400'}">${d.label}</th>`).join('')}</tr>`;
@@ -8543,12 +8546,19 @@ window.switchMSTab = function(tab) {
     ganttEl.style.display = 'none'; weldEl.style.display = '';
     if (btnWeld)  { btnWeld.style.background='var(--accent)'; btnWeld.style.color='#fff'; }
     if (btnGantt) { btnGantt.style.background='transparent'; btnGantt.style.color='var(--fog)'; }
-    window.renderMSWeldLog();
+    // Only full rebuild if content is empty (first open)
+    var weldContent = document.getElementById('ms-weld-content');
+    if (!weldContent || !weldContent.children.length) {
+      window.renderMSWeldLog();
+    }
   }
 };
 
 // ── WELDING LOG ───────────────────────────────────────────────────────────────
 // ms.weldingLog = { 'YYYY-MM-DD' or 'YYYY-MM-DD-S1': { welder, layers, lengthMm, ndt, notes } }
+// Track which weld log accordion cards are open
+if (typeof window._weldOpenKeys === 'undefined') window._weldOpenKeys = new Set();
+
 window.renderMSWeldLog = function() {
   var el = document.getElementById('ms-weld-content');
   if (!el) return;
@@ -8709,11 +8719,19 @@ window.renderMSWeldLog = function() {
     card.appendChild(hdr);
     card.appendChild(body);
 
+    // Restore open state
+    if (window._weldOpenKeys.has(d.key)) {
+      body.style.display = 'block';
+      var initArrow = hdr.querySelector('.weld-arrow');
+      if (initArrow) initArrow.textContent = '▲';
+    }
     hdr.addEventListener('click', function() {
       var isOpen = body.style.display !== 'none';
       body.style.display = isOpen ? 'none' : 'block';
       var arrow = hdr.querySelector('.weld-arrow');
       if (arrow) arrow.textContent = isOpen ? '▼' : '▲';
+      if (isOpen) window._weldOpenKeys.delete(d.key);
+      else window._weldOpenKeys.add(d.key);
     });
 
     entriesWrap.appendChild(card);
