@@ -4906,6 +4906,56 @@ window.openDashboardConfigModal = function() {
 };
 
 
+function computeProjectStatus(proj) {
+  const items   = D.scItems[proj.id]   || [];
+  const iActs   = D.scItemActuals[proj.id] || {};
+  if (!proj.startDate || !proj.finishDate) return null;
+
+  const dailyDates = [];
+  let cur = localMidnight(proj.startDate);
+  const end = localMidnight(proj.finishDate);
+  while (cur <= end) { dailyDates.push(localDateStr(cur)); cur.setDate(cur.getDate()+1); }
+
+  function planDailyForDate(d) {
+    return items.reduce((s, it) => {
+      if (!it.startDate || !it.finishDate) return s;
+      const iS = localMidnight(it.startDate), iE = localMidnight(it.finishDate);
+      const dur = Math.round((iE - iS) / 86400000) + 1;
+      const dD = localMidnight(d);
+      if (dD >= iS && dD <= iE) return s + (parseFloat(it.weight)||0) / dur;
+      return s;
+    }, 0);
+  }
+
+  let planCum = 0;
+  dailyDates.forEach(d => { if (d <= refDate) planCum += planDailyForDate(d); });
+  planCum = Math.round(planCum * 100) / 100;
+
+  let actualCum = 0, hasActual = false;
+  dailyDates.forEach(d => {
+    if (d > refDate) return;
+    items.forEach(it => {
+      const dd = iActs[d];
+      if (dd && dd[it.id] !== undefined) { actualCum += parseFloat(dd[it.id])||0; hasActual = true; }
+    });
+  });
+  actualCum = Math.round(actualCum * 100) / 100;
+
+  // Treat past/today with no input as 0 (auto-deviasi logic)
+  const isPastOrToday = true; // refDate is always "now or past" relative to itself
+  const effectiveActual = hasActual ? actualCum : (planCum > 0 ? 0 : null);
+  const dev = effectiveActual !== null ? Math.round((effectiveActual - planCum) * 10) / 10 : null;
+
+  const totalDays = Math.round((end - localMidnight(proj.startDate)) / 86400000) + 1;
+  const refDay = Math.round((localMidnight(refDate) - localMidnight(proj.startDate)) / 86400000) + 1;
+  const remDays = Math.max(0, totalDays - refDay);
+
+  return {
+    proj, planCum, actualCum: effectiveActual, dev, hasActual,
+    totalDays, refDay, remDays, dailyDates, items
+  };
+  }
+
 function renderSCurveGlobal() {
   // ── Panel visibility for global view ──────────────────────────────────────
   // Hide per-project panels
@@ -4976,55 +5026,7 @@ function renderSCurveGlobal() {
   const refDate = getSCRefDate();
 
   // ── Compute status per project (reuse logic from status bar / PDF export) ──
-  function computeProjectStatus(proj) {
-    const items   = D.scItems[proj.id]   || [];
-    const iActs   = D.scItemActuals[proj.id] || {};
-    if (!proj.startDate || !proj.finishDate) return null;
-
-    const dailyDates = [];
-    let cur = localMidnight(proj.startDate);
-    const end = localMidnight(proj.finishDate);
-    while (cur <= end) { dailyDates.push(localDateStr(cur)); cur.setDate(cur.getDate()+1); }
-
-    function planDailyForDate(d) {
-      return items.reduce((s, it) => {
-        if (!it.startDate || !it.finishDate) return s;
-        const iS = localMidnight(it.startDate), iE = localMidnight(it.finishDate);
-        const dur = Math.round((iE - iS) / 86400000) + 1;
-        const dD = localMidnight(d);
-        if (dD >= iS && dD <= iE) return s + (parseFloat(it.weight)||0) / dur;
-        return s;
-      }, 0);
-    }
-
-    let planCum = 0;
-    dailyDates.forEach(d => { if (d <= refDate) planCum += planDailyForDate(d); });
-    planCum = Math.round(planCum * 100) / 100;
-
-    let actualCum = 0, hasActual = false;
-    dailyDates.forEach(d => {
-      if (d > refDate) return;
-      items.forEach(it => {
-        const dd = iActs[d];
-        if (dd && dd[it.id] !== undefined) { actualCum += parseFloat(dd[it.id])||0; hasActual = true; }
-      });
-    });
-    actualCum = Math.round(actualCum * 100) / 100;
-
-    // Treat past/today with no input as 0 (auto-deviasi logic)
-    const isPastOrToday = true; // refDate is always "now or past" relative to itself
-    const effectiveActual = hasActual ? actualCum : (planCum > 0 ? 0 : null);
-    const dev = effectiveActual !== null ? Math.round((effectiveActual - planCum) * 10) / 10 : null;
-
-    const totalDays = Math.round((end - localMidnight(proj.startDate)) / 86400000) + 1;
-    const refDay = Math.round((localMidnight(refDate) - localMidnight(proj.startDate)) / 86400000) + 1;
-    const remDays = Math.max(0, totalDays - refDay);
-
-    return {
-      proj, planCum, actualCum: effectiveActual, dev, hasActual,
-      totalDays, refDay, remDays, dailyDates, items
-    };
-  }
+  // computeProjectStatus moved to module scope
 
   const statuses = dashProjects.map(computeProjectStatus).filter(Boolean);
 
