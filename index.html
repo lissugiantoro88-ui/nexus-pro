@@ -1476,7 +1476,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
           <button onclick="clearSCCompareDate()" style="background:none;border:none;color:var(--fog);cursor:pointer;font-size:11px;padding:0" title="Hapus pembanding">✕</button>
         </div>
         <button class="tb-btn" id="sc-std-pdf-btn" onclick="exportSCurvePDF()" style="white-space:nowrap" title="Export PDF">⬇ PDF</button>
-      <button id="sc-exec-pdf-btn" onclick="window.printExecDashboard()" style="display:none;font-size:11px;padding:4px 10px;border:none;border-radius:var(--rs);background:var(--amber);color:#111;cursor:pointer;font-weight:600;white-space:nowrap">⬇ Executive PDF</button>
+      <button id="sc-exec-pdf-btn" onclick="window.openExecExportModal()" style="display:none;font-size:11px;padding:4px 10px;border:none;border-radius:var(--rs);background:var(--amber);color:#111;cursor:pointer;font-weight:600;white-space:nowrap">⬇ Executive PDF</button>
         <button class="tb-btn" onclick="openVMBoardExport(scCurrentProjectId)" style="white-space:nowrap" title="Visual Management Board">⬇ VM Board</button>
         <button class="tb-btn primary" id="sc-topbar-add-btn" onclick="handleTopbarAdd()" style="white-space:nowrap">+ Project</button>
       </div>
@@ -6065,6 +6065,10 @@ window.generateSCurvePDF = function(exportDate) {
       +'<span><svg width="16" height="8" style="vertical-align:middle;margin-right:4px"><line x1="0" y1="4" x2="16" y2="4" stroke="#16a34a" stroke-width="2"/></svg>Actual</span>'
       +'<span><svg width="8" height="10" style="vertical-align:middle;margin-right:4px"><line x1="4" y1="0" x2="4" y2="10" stroke="#d97706" stroke-width="1.5" stroke-dasharray="2,2"/></svg>Ref date</span>'
       +'</div></div>'
+    +(chartImgSrc ? '<div style="margin-bottom:14px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;padding:10px 14px">'
+    +'<div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">S-Curve Induk — Plan vs Aktual (weighted by item count)</div>'
+    +'<img src="'+chartImgSrc+'" style="width:100%;height:auto;display:block">'
+    +'</div>' : '')
     +'<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">'
       +'<div style="background:#f3f4f6;padding:7px 10px;border-bottom:1px solid #e5e7eb"><div style="font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px">Rincian item pekerjaan (WBS)</div></div>'
       +'<table style="width:100%;border-collapse:collapse">'
@@ -8876,6 +8880,13 @@ window.printMSWeldLog = function() {
       +'</tr>';
   }).join('');
 
+  // Capture S-Curve Induk from canvas
+  var chartImgSrc = '';
+  try {
+    var cvs = document.getElementById('sc-canvas');
+    if (cvs) chartImgSrc = cvs.toDataURL('image/png');
+  } catch(e) {}
+
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
     +'<title>'+today.slice(8)+today.slice(5,7)+today.slice(0,4)+' Welding Log '+ms.name+'</title>'
     +'<style>@page{margin:10mm;size:A4 landscape}body{font-family:-apple-system,sans-serif;color:#111;font-size:10px}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #f3f4f6}</style>'
@@ -9611,11 +9622,11 @@ function _drawIndukSCurve(statuses, refDate) {
 }
 
 // ── Executive PDF ─────────────────────────────────────────────────────────────
-window.printExecDashboard = function() {
+window.printExecDashboard = function(exportDate) {
   var dashProjects = getDashboardProjects();
-  var refDate = getSCRefDate();
+  var refDate = exportDate || getSCRefDate();
   var statuses = dashProjects.map(function(p){ return computeProjectStatus(p, refDate); }).filter(Boolean);
-  var today = TS();
+  var today = refDate;
 
   // Weighted KPI
   var totalItems = statuses.reduce(function(sum, s){ return sum + s.items.length; }, 0) || 1;
@@ -9678,15 +9689,22 @@ window.printExecDashboard = function() {
       +'</tr>';
   }).join('');
 
-  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+  // Capture S-Curve Induk chart
+  var _chartImg = '';
+  try {
+    var _cvs = document.getElementById('sc-canvas');
+    if (_cvs) _chartImg = _cvs.toDataURL('image/png');
+  } catch(_e) {}
+
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
     +'<title>Executive Dashboard '+today+'</title>'
     +'<style>@page{margin:12mm 10mm;size:A4 landscape}body{font-family:-apple-system,sans-serif;color:#111;font-size:10px}table{border-collapse:collapse;width:100%}</style>'
     +'</head><body>'
     // Header
     +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid #111">'
-    +'<div><div style="font-size:20px;font-weight:700;letter-spacing:-0.5px">EXECUTIVE DASHBOARD</div>'
+    +'<div><div style="font-size:20px;font-weight:700;letter-spacing:-0.5px">DASHBOARD</div>'
     +'<div style="font-size:11px;color:#6b7280;margin-top:2px">PT. Kilang Pertamina Balikpapan — Status per '+today.slice(8)+'/'+today.slice(5,7)+'/'+today.slice(0,4)+'</div></div>'
-    +'<div style="text-align:right"><div style="font-size:9px;color:#6b7280">Dicetak: '+today+'</div></div>'
+    +'<div style="text-align:right"><div style="font-size:10px;font-weight:600;color:#6b7280">Per tanggal: '+refDate.slice(8)+'/'+refDate.slice(5,7)+'/'+refDate.slice(0,4)+'</div></div>'
     +'</div>'
     // KPI Row
     +'<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px">'
@@ -9705,6 +9723,10 @@ window.printExecDashboard = function() {
     }).join('')
     +'</div>'
     // Project table
+    +(  _chartImg ? '<div style="margin-bottom:14px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;padding:10px 14px">'
+      +'<div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">S-Curve Induk — Plan vs Aktual (weighted by item count)</div>'
+      +'<img src="'+_chartImg+'" style="width:100%;height:auto;display:block">'
+      +'</div>' : '')
     +'<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">'
     +'<table><thead><tr style="background:#f9fafb">'
     +'<th style="padding:8px 10px;text-align:left;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px">Project</th>'
@@ -9712,7 +9734,7 @@ window.printExecDashboard = function() {
     +'<th style="padding:8px 10px;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;min-width:160px">Progress</th>'
     +'<th style="padding:8px;text-align:center;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px">Deviasi</th>'
     +'<th style="padding:8px 10px;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px">Target Selesai</th>'
-    +'<th style="padding:8px 10px;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px">Narasi Status</th>'
+    +'<th style="padding:8px 10px;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px">Note</th>'
     +'</tr></thead><tbody>'+projectRows+'</tbody></table></div>'
     +'<scr'+'ipt>window.onload=function(){window.print();}</scr'+'ipt>'
     +'</body></html>';
@@ -9720,6 +9742,53 @@ window.printExecDashboard = function() {
   var win = window.open('','_blank');
   win.document.write(html);
   win.document.close();
+};
+
+
+window.openExecExportModal = function() {
+  var existing = document.getElementById('exec-export-modal');
+  if (existing) existing.remove();
+  var modal = document.createElement('div');
+  modal.id = 'exec-export-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center';
+
+  var box = document.createElement('div');
+  box.style.cssText = 'background:var(--bg2);border:1px solid var(--line2);border-radius:12px;padding:22px;width:320px;max-width:95vw';
+
+  var today = getSCRefDate() || TS();
+  box.innerHTML = '<div style="font-size:14px;font-weight:700;color:var(--snow);margin-bottom:4px">Export Dashboard PDF</div>'
+    + '<div style="font-size:11px;color:var(--fog);margin-bottom:16px">Pilih tanggal referensi dashboard</div>'
+    + '<div class="fld"><div class="fld-lbl">Tanggal Referensi</div>'
+    + '<input class="fld-in" type="date" id="exec-export-date" value="'+today+'">'
+    + '<div style="font-size:10px;color:var(--fog);margin-top:4px">Progress dihitung s/d tanggal ini</div></div>';
+
+  var btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:8px;margin-top:16px';
+
+  var cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Batal';
+  cancelBtn.style.cssText = 'flex:1;padding:9px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:12px';
+  cancelBtn.onclick = function(){ modal.remove(); };
+
+  var exportBtn = document.createElement('button');
+  exportBtn.textContent = '⬇ Export PDF';
+  exportBtn.style.cssText = 'flex:2;padding:9px;background:var(--amber);border:none;border-radius:var(--rs);color:#111;cursor:pointer;font-size:12px;font-weight:700';
+  exportBtn.onclick = function() {
+    var d = document.getElementById('exec-export-date')?.value;
+    if (!d) { toast('Pilih tanggal dulu', true); return; }
+    modal.remove();
+    // Redraw S-Curve Induk with selected date then print
+    var statuses2 = getDashboardProjects().map(function(p){ return computeProjectStatus(p, d); }).filter(Boolean);
+    _drawIndukSCurve(statuses2, d);
+    setTimeout(function(){ window.printExecDashboard(d); }, 200);
+  };
+
+  btnRow.appendChild(cancelBtn);
+  btnRow.appendChild(exportBtn);
+  box.appendChild(btnRow);
+  modal.appendChild(box);
+  document.body.appendChild(modal);
+  modal.onclick = function(e){ if(e.target===modal) modal.remove(); };
 };
 
 </script>
