@@ -6066,7 +6066,7 @@ window.generateSCurvePDF = function(exportDate) {
       +'<span><svg width="8" height="10" style="vertical-align:middle;margin-right:4px"><line x1="4" y1="0" x2="4" y2="10" stroke="#d97706" stroke-width="1.5" stroke-dasharray="2,2"/></svg>Ref date</span>'
       +'</div></div>'
     +(chartImgSrc ? '<div style="margin-bottom:14px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;padding:10px 14px">'
-    +'<div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">S-Curve Induk — Plan vs Aktual (weighted by item count)</div>'
+    +'<div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">S-Curve Gabungan — Plan vs Aktual (weighted by item count)</div>'
     +'<img src="'+chartImgSrc+'" style="width:100%;height:auto;display:block">'
     +'</div>' : '')
     +'<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">'
@@ -8880,7 +8880,7 @@ window.printMSWeldLog = function() {
       +'</tr>';
   }).join('');
 
-  // Capture S-Curve Induk from canvas
+  // Capture S-Curve Gabungan from canvas
   var chartImgSrc = '';
   try {
     var cvs = document.getElementById('sc-canvas');
@@ -9289,11 +9289,11 @@ window.renderExecDashboard = function() {
     + _execKpi(onTrack, '🟢 On Track', '#16a34a', 'rgba(22,163,74,.1)')
     + _execKpi(behind, '🟡 Behind', '#d97706', 'rgba(217,119,6,.1)')
     + _execKpi(critical, '🔴 Critical', '#dc2626', 'rgba(225,29,72,.1)')
-    + _execKpi((wActual !== null ? wActual : '—') + '%', 'Aktual Induk', 'var(--snow)', 'var(--bg3)')
-    + _execKpi((wDev !== null ? (wDev >= 0 ? '+' : '') + wDev : '—') + '%', 'Deviasi Induk', devClr, 'var(--bg3)')
+    + _execKpi((wActual !== null ? wActual : '—') + '%', 'Aktual Gabungan', 'var(--snow)', 'var(--bg3)')
+    + _execKpi((wDev !== null ? (wDev >= 0 ? '+' : '') + wDev : '—') + '%', 'Deviasi Gabungan', devClr, 'var(--bg3)')
     + '</div>';
 
-  // ── Draw S-Curve Induk on canvas ─────────────────────────────────────────
+  // ── Draw S-Curve Gabungan on canvas ─────────────────────────────────────────
   _drawIndukSCurve(statuses, refDate);
 
   // ── Status Board in wbsEl ────────────────────────────────────────────────
@@ -9447,7 +9447,7 @@ window.editExecNarasi = function(el) {
   });
 };
 
-// ── S-Curve Induk drawing ─────────────────────────────────────────────────────
+// ── S-Curve Gabungan drawing ─────────────────────────────────────────────────────
 function _drawIndukSCurve(statuses, refDate) {
   var canvas = document.getElementById('sc-canvas');
   if (!canvas || !statuses.length) return;
@@ -9599,7 +9599,7 @@ function _drawIndukSCurve(statuses, refDate) {
     ctx.stroke(); ctx.setLineDash([]);
   }
 
-  // Draw actual line (weighted S-Curve Induk)
+  // Draw actual line (weighted S-Curve Gabungan)
   var actualWithData = actualPts.filter(function(p){ return p.hasData; });
   if (actualWithData.length > 1) {
     ctx.strokeStyle = '#7c6fff'; ctx.lineWidth = 2.5; ctx.setLineDash([]);
@@ -9615,10 +9615,10 @@ function _drawIndukSCurve(statuses, refDate) {
   ctx.lineWidth = 2; ctx.setLineDash([6,3]);
   ctx.beginPath(); ctx.moveTo(PAD.left+10, legY); ctx.lineTo(PAD.left+30, legY); ctx.stroke();
   ctx.setLineDash([]);
-  ctx.fillStyle = textColor; ctx.fillText('Plan Induk', PAD.left+34, legY+3);
+  ctx.fillStyle = textColor; ctx.fillText('Plan Gabungan', PAD.left+34, legY+3);
   ctx.strokeStyle = '#7c6fff'; ctx.lineWidth = 2.5;
   ctx.beginPath(); ctx.moveTo(PAD.left+95, legY); ctx.lineTo(PAD.left+115, legY); ctx.stroke();
-  ctx.fillStyle = '#7c6fff'; ctx.fillText('Aktual Induk', PAD.left+119, legY+3);
+  ctx.fillStyle = '#7c6fff'; ctx.fillText('Aktual Gabungan', PAD.left+119, legY+3);
 }
 
 // ── Executive PDF ─────────────────────────────────────────────────────────────
@@ -9689,7 +9689,7 @@ window.printExecDashboard = function(exportDate) {
       +'</tr>';
   }).join('');
 
-  // Capture S-Curve Induk chart
+  // Capture S-Curve Gabungan chart
   var _chartImg = '';
   try {
     var _cvs = document.getElementById('sc-canvas');
@@ -9713,8 +9713,8 @@ window.printExecDashboard = function(exportDate) {
       [onTrack,'🟢 On Track','#16a34a','#f0fdf4'],
       [behind,'🟡 Behind','#d97706','#fef3c7'],
       [critical,'🔴 Critical','#dc2626','#fff5f5'],
-      [(wActual!==null?wActual:0)+'%','Aktual Induk','#6366f1','#f0f0ff'],
-      [(wDev!==null?(wDev>=0?'+':'')+wDev:0)+'%','Deviasi Induk',devClrPdf,'#f9fafb'],
+      [(wActual!==null?wActual:0)+'%','Aktual Gabungan','#6366f1','#f0f0ff'],
+      [(wDev!==null?(wDev>=0?'+':'')+wDev:0)+'%','Deviasi Gabungan',devClrPdf,'#f9fafb'],
     ].map(function(k){
       return '<div style="border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;text-align:center;background:'+k[3]+'">'
         +'<div style="font-size:20px;font-weight:700;color:'+k[2]+'">'+k[0]+'</div>'
@@ -9724,7 +9724,7 @@ window.printExecDashboard = function(exportDate) {
     +'</div>'
     // Project table
     +(  _chartImg ? '<div style="margin-bottom:14px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;padding:10px 14px">'
-      +'<div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">S-Curve Induk — Plan vs Aktual (weighted by item count)</div>'
+      +'<div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">S-Curve Gabungan — Plan vs Aktual (weighted by item count)</div>'
       +'<img src="'+_chartImg+'" style="width:100%;height:auto;display:block">'
       +'</div>' : '')
     +'<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">'
@@ -9777,7 +9777,7 @@ window.openExecExportModal = function() {
     var d = document.getElementById('exec-export-date')?.value;
     if (!d) { toast('Pilih tanggal dulu', true); return; }
     modal.remove();
-    // Redraw S-Curve Induk with selected date then print
+    // Redraw S-Curve Gabungan with selected date then print
     var statuses2 = getDashboardProjects().map(function(p){ return computeProjectStatus(p, d); }).filter(Boolean);
     _drawIndukSCurve(statuses2, d);
     setTimeout(function(){ window.printExecDashboard(d); }, 200);
