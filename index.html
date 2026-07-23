@@ -1477,6 +1477,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
         </div>
         <button class="tb-btn" id="sc-std-pdf-btn" onclick="exportSCurvePDF()" style="white-space:nowrap" title="Export PDF">⬇ PDF</button>
       <button id="sc-exec-pdf-btn" onclick="window.openExecExportModal()" style="display:none;font-size:11px;padding:4px 10px;border:none;border-radius:var(--rs);background:var(--amber);color:#111;cursor:pointer;font-weight:600;white-space:nowrap">⬇ Executive PDF</button>
+            <button id="sc-combined-btn" onclick="window.openCombinedReportModal()" style="display:none;font-size:11px;padding:4px 10px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;cursor:pointer;font-weight:600;white-space:nowrap">📄 Combined PDF</button>
         <button class="tb-btn" onclick="openVMBoardExport(scCurrentProjectId)" style="white-space:nowrap" title="Visual Management Board">⬇ VM Board</button>
         <button class="tb-btn primary" id="sc-topbar-add-btn" onclick="handleTopbarAdd()" style="white-space:nowrap">+ Project</button>
       </div>
@@ -4766,6 +4767,8 @@ function renderSCurve() {
   if (_glBtnI) _glBtnI.style.display = 'none';
   var _execBtnI = document.getElementById('sc-exec-btn');
   if (_execBtnI) _execBtnI.style.display = 'none';
+  var _cmbBtnI = document.getElementById('sc-combined-btn');
+  if (_cmbBtnI) _cmbBtnI.style.display = 'none';
   window._execViewActive = false;
   // Refresh per-project highlight panel
   renderHighlightPanel(projId);
@@ -4984,6 +4987,8 @@ function renderSCurveGlobal() {
     if (_pdfB) _pdfB.style.display = '';
     var _stdB = document.getElementById('sc-std-pdf-btn');
     if (_stdB) _stdB.style.display = 'none';
+    var _cmbB = document.getElementById('sc-combined-btn');
+    if (_cmbB) _cmbB.style.display = '';
   }
 
   const dashProjects = getDashboardProjects();
@@ -6095,6 +6100,11 @@ window.generateSCurvePDF = function(exportDate) {
     +'<scr'+'ipt>window.onload=function(){window.print();}<\/scr'+'ipt>'
     +'</body></html>';
 
+  if (window._captureHtmlMode) {
+    window._capturedHtmlParts = window._capturedHtmlParts || [];
+    window._capturedHtmlParts.push(html);
+    return;
+  }
   var win = window.open('','_blank');
   win.document.write(html);
   win.document.close();
@@ -6902,7 +6912,12 @@ window.generateVMBoard = function(exportDate, projectsOverride) {
     +'<scr'+'ipt>window.onload=function(){window.print();}<\/scr'+'ipt>'
     +'</body></html>';
 
-  const win = window.open('', '_blank');
+  if (window._captureHtmlMode) {
+    window._capturedHtmlParts = window._capturedHtmlParts || [];
+    window._capturedHtmlParts.push(html);
+    return;
+  }
+  var win = window.open('','_blank');
   win.document.write(html);
   win.document.close();
 };
@@ -8933,6 +8948,11 @@ window.printMSWeldLog = function() {
     +'<scr'+'ipt>window.onload=function(){window.print();}</scr'+'ipt>'
     +'</body></html>';
 
+  if (window._captureHtmlMode) {
+    window._capturedHtmlParts = window._capturedHtmlParts || [];
+    window._capturedHtmlParts.push(html);
+    return;
+  }
   var win = window.open('','_blank');
   win.document.write(html);
   win.document.close();
@@ -9245,6 +9265,8 @@ window.toggleExecView = function() {
   if (pdfBtn) pdfBtn.style.display = _execViewActive ? '' : 'none';
   var stdPdfBtn = document.getElementById('sc-std-pdf-btn');
   if (stdPdfBtn) stdPdfBtn.style.display = _execViewActive ? 'none' : '';
+  var combBtn = document.getElementById('sc-combined-btn');
+  if (combBtn) combBtn.style.display = _execViewActive ? '' : 'none';
   if (_execViewActive) {
     window.renderExecDashboard();
   } else {
@@ -9739,6 +9761,11 @@ window.printExecDashboard = function(exportDate) {
     +'<scr'+'ipt>window.onload=function(){window.print();}</scr'+'ipt>'
     +'</body></html>';
 
+  if (window._captureHtmlMode) {
+    window._capturedHtmlParts = window._capturedHtmlParts || [];
+    window._capturedHtmlParts.push(html);
+    return;
+  }
   var win = window.open('','_blank');
   win.document.write(html);
   win.document.close();
@@ -9789,6 +9816,185 @@ window.openExecExportModal = function() {
   modal.appendChild(box);
   document.body.appendChild(modal);
   modal.onclick = function(e){ if(e.target===modal) modal.remove(); };
+};
+
+
+// ── COMBINED REPORT ───────────────────────────────────────────────────────────
+window.openCombinedReportModal = function() {
+  var existing = document.getElementById('combined-report-modal');
+  if (existing) existing.remove();
+
+  var modal = document.createElement('div');
+  modal.id = 'combined-report-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center';
+
+  var box = document.createElement('div');
+  box.style.cssText = 'background:var(--bg2);border:1px solid var(--line2);border-radius:12px;padding:22px;width:400px;max-width:95vw';
+
+  var today = getSCRefDate() || TS();
+
+  box.innerHTML = '<div style="font-size:14px;font-weight:700;color:var(--snow);margin-bottom:4px">📄 Combined Report PDF</div>'
+    + '<div style="font-size:11px;color:var(--fog);margin-bottom:16px">Gabungkan semua laporan dalam satu PDF</div>'
+
+    + '<div class="fld"><div class="fld-lbl">Tanggal Referensi</div>'
+    + '<input class="fld-in" type="date" id="cr-date" value="'+today+'"></div>'
+
+    + '<div style="margin-bottom:14px">'
+    + '<div class="fld-lbl" style="margin-bottom:8px">Pilih Laporan</div>'
+    + '<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border-radius:var(--rs);margin-bottom:6px;cursor:pointer">'
+    + '<input type="checkbox" id="cr-exec" checked style="width:14px;height:14px">'
+    + '<div><div style="font-size:12px;color:var(--snow);font-weight:600">Executive Dashboard</div>'
+    + '<div style="font-size:10px;color:var(--fog)">Summary BOD — KPI, status, S-Curve Gabungan</div></div></label>'
+
+    + '<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border-radius:var(--rs);margin-bottom:6px;cursor:pointer">'
+    + '<input type="checkbox" id="cr-scurve" checked style="width:14px;height:14px">'
+    + '<div><div style="font-size:12px;color:var(--snow);font-weight:600">S-Curve Gabungan</div>'
+    + '<div style="font-size:10px;color:var(--fog)">Dashboard gabungan semua project</div></div></label>'
+
+    + '<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border-radius:var(--rs);margin-bottom:6px;cursor:pointer">'
+    + '<input type="checkbox" id="cr-vmboard" checked style="width:14px;height:14px">'
+    + '<div><div style="font-size:12px;color:var(--snow);font-weight:600">Visual Management Board</div>'
+    + '<div style="font-size:10px;color:var(--fog)">VM Board semua project</div></div></label>'
+    + '</div>'
+
+    + '<div style="background:var(--ag);border:1px solid rgba(124,111,255,.2);border-radius:var(--rs);padding:8px 12px;margin-bottom:16px;font-size:10px;color:var(--mist)">'
+    + '💡 Semua laporan terpilih akan digabung dalam 1 PDF dengan footer halaman otomatis'
+    + '</div>';
+
+  var btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:8px';
+
+  var cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Batal';
+  cancelBtn.style.cssText = 'flex:1;padding:9px;background:var(--bg3);border:1px solid var(--line);border-radius:var(--rs);color:var(--fog);cursor:pointer;font-size:12px';
+  cancelBtn.onclick = function(){ modal.remove(); };
+
+  var genBtn = document.createElement('button');
+  genBtn.textContent = '📄 Generate Combined PDF';
+  genBtn.style.cssText = 'flex:2;padding:9px;background:var(--accent);border:none;border-radius:var(--rs);color:#fff;cursor:pointer;font-size:12px;font-weight:700';
+  genBtn.onclick = function() {
+    var d = document.getElementById('cr-date')?.value;
+    if (!d) { toast('Pilih tanggal dulu', true); return; }
+    var useExec    = document.getElementById('cr-exec')?.checked;
+    var useScurve  = document.getElementById('cr-scurve')?.checked;
+    var useVmboard = document.getElementById('cr-vmboard')?.checked;
+    if (!useExec && !useScurve && !useVmboard) {
+      toast('Pilih minimal 1 laporan', true); return;
+    }
+    modal.remove();
+    window.generateCombinedReport(d, useExec, useScurve, useVmboard);
+  };
+
+  btnRow.appendChild(cancelBtn);
+  btnRow.appendChild(genBtn);
+  box.appendChild(btnRow);
+  modal.appendChild(box);
+  document.body.appendChild(modal);
+  modal.onclick = function(e){ if(e.target===modal) modal.remove(); };
+};
+
+window.generateCombinedReport = function(exportDate, useExec, useScurve, useVmboard) {
+  toast('Menyiapkan combined report...');
+
+  // Capture mode ON
+  window._captureHtmlMode = true;
+  window._capturedHtmlParts = [];
+
+  // Step 1: Executive Dashboard
+  if (useExec) {
+    // Redraw S-Curve Gabungan with exportDate
+    var statExec = getDashboardProjects().map(function(p){ return computeProjectStatus(p, exportDate); }).filter(Boolean);
+    _drawIndukSCurve(statExec, exportDate);
+    window.printExecDashboard(exportDate);
+  }
+
+  // Step 2: S-Curve Dashboard Gabungan
+  if (useScurve) {
+    window.generateDashboardPDF(exportDate);
+  }
+
+  // Step 3: VM Board
+  if (useVmboard) {
+    window.generateVMBoard(exportDate);
+  }
+
+  // Capture mode OFF
+  window._captureHtmlMode = false;
+
+  var parts = window._capturedHtmlParts || [];
+  window._capturedHtmlParts = [];
+
+  if (!parts.length) {
+    toast('Tidak ada konten untuk digabung', true);
+    return;
+  }
+
+  // Extract <body> content from each part
+  var bodySections = parts.map(function(html, i) {
+    var bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+    var bodyContent = bodyMatch ? bodyMatch[1] : html;
+    // Remove any embedded print scripts
+    bodyContent = bodyContent.replace(/<scr[^>]*>[\s\S]*?<\/scr[^>]*>/gi, '');
+    return bodyContent;
+  });
+
+  // Section labels
+  var labels = [];
+  if (useExec)    labels.push('Executive Dashboard');
+  if (useScurve)  labels.push('S-Curve Gabungan');
+  if (useVmboard) labels.push('Visual Management Board');
+
+  var today = exportDate || TS();
+  var todayFmt = today.slice(8)+'/'+today.slice(5,7)+'/'+today.slice(0,4);
+  var org = 'PT. Kilang Pertamina Balikpapan';
+
+  // Build combined HTML
+  var combinedBody = bodySections.map(function(body, i) {
+    var isLast = i === bodySections.length - 1;
+    return '<div class="report-section">'
+      + '<div class="section-label">'+labels[i]+'</div>'
+      + body
+      + (isLast ? '' : '<div style="page-break-after:always"></div>')
+      + '</div>';
+  }).join('\n');
+
+  var combinedHtml = '<!DOCTYPE html>\n<html lang="id"><head>'
+    + '<meta charset="UTF-8">'
+    + '<title>Combined Report — ' + todayFmt + '</title>'
+    + '<style>'
+    // Page setup
+    + '@page {'
+    + '  margin: 12mm 10mm 18mm 10mm;'
+    + '  size: A4 landscape;'
+    + '  @bottom-center {'
+    + '    content: "Halaman " counter(page) " dari " counter(pages) '
+    + '             "  ·  ' + org + '  ·  Per tanggal ' + todayFmt + '";'
+    + '    font-family: -apple-system, sans-serif;'
+    + '    font-size: 8pt;'
+    + '    color: #9ca3af;'
+    + '    border-top: 1px solid #e5e7eb;'
+    + '    padding-top: 4px;'
+    + '  }'
+    + '}'
+    + 'body { font-family: -apple-system, Segoe UI, sans-serif; color: #111; font-size: 10px; margin: 0; }'
+    + 'table { border-collapse: collapse; }'
+    + '.report-section { position: relative; }'
+    + '.section-label { display: none; }'
+    + 'img { max-width: 100%; }'
+    // Prevent tables from breaking across pages
+    + 'tr { page-break-inside: avoid; }'
+    + '</style>'
+    + '</head><body>'
+    + combinedBody
+    + '</body></html>';
+
+  setTimeout(function() {
+    var win = window.open('', '_blank');
+    if (!win) { toast('Pop-up diblokir browser — izinkan pop-up untuk nexus-pro.pages.dev', true); return; }
+    win.document.write(combinedHtml);
+    win.document.close();
+    toast('✓ Combined report siap — pilih Print (Ctrl+P) untuk simpan sebagai PDF');
+  }, 300);
 };
 
 </script>
