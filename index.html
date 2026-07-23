@@ -6486,6 +6486,11 @@ window.generateDashboardPDF = function(exportDate) {
     +'<scr'+'ipt>window.onload=function(){window.print();}<\/scr'+'ipt>'
     +'</body></html>';
 
+  if (window._captureHtmlMode) {
+    window._capturedHtmlParts = window._capturedHtmlParts || [];
+    window._capturedHtmlParts.push(html);
+    return;
+  }
   const win = window.open('','_blank');
   win.document.write(html);
   win.document.close();
@@ -9925,14 +9930,21 @@ window.generateCombinedReport = function(exportDate, useExec, useScurve, useVmbo
   window._capturedHtmlParts = [];
 
   if (!parts.length) {
-    toast('Tidak ada konten untuk digabung', true);
+    toast('Tidak ada konten untuk digabung — pastikan ada project di dashboard', true);
     return;
   }
+  // Debug: show how many sections captured
+  console.log('[Combined Report] Sections captured:', parts.length, '/', [useExec,useScurve,useVmboard].filter(Boolean).length);
 
   // Extract <body> content from each part
   var bodySections = parts.map(function(html, i) {
-    var bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-    var bodyContent = bodyMatch ? bodyMatch[1] : html;
+    // Extract body content - use greedy match for large HTML
+    var bodyStart = html.indexOf('<body');
+    var bodyTagEnd = html.indexOf('>', bodyStart) + 1;
+    var bodyEnd = html.lastIndexOf('</body>');
+    var bodyContent = (bodyStart >= 0 && bodyEnd > bodyStart)
+      ? html.substring(bodyTagEnd, bodyEnd)
+      : html;
     // Remove any embedded print scripts
     bodyContent = bodyContent.replace(/<scr[^>]*>[\s\S]*?<\/scr[^>]*>/gi, '');
     return bodyContent;
