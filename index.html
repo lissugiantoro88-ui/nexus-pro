@@ -1358,6 +1358,18 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--snow);heigh
             <div style="width:1px;height:16px;background:var(--line);margin:0 4px"></div>
             <button onclick="togglePinNote()" id="note-pin-btn" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--fog)" title="Pin catatan">📌</button>
           </div>
+          <!-- Formatting toolbar -->
+          <div id="note-fmt-bar" style="display:flex;gap:2px;padding:4px 8px;border-bottom:1px solid var(--line);background:var(--bg3);flex-wrap:wrap">
+            <button onclick="window.fmtNote('bold')" title="Bold (Ctrl+B)" style="min-width:28px;padding:3px 7px;background:none;border:1px solid transparent;border-radius:4px;color:var(--mist);cursor:pointer;font-size:12px;font-weight:700;line-height:1" onmouseenter="this.style.background='var(--bg2)'" onmouseleave="this.style.background='none'"><b>B</b></button>
+            <button onclick="window.fmtNote('italic')" title="Italic (Ctrl+I)" style="min-width:28px;padding:3px 7px;background:none;border:1px solid transparent;border-radius:4px;color:var(--mist);cursor:pointer;font-size:12px;line-height:1" onmouseenter="this.style.background='var(--bg2)'" onmouseleave="this.style.background='none'"><i>I</i></button>
+            <button onclick="window.fmtNote('underline')" title="Underline (Ctrl+U)" style="min-width:28px;padding:3px 7px;background:none;border:1px solid transparent;border-radius:4px;color:var(--mist);cursor:pointer;font-size:12px;line-height:1" onmouseenter="this.style.background='var(--bg2)'" onmouseleave="this.style.background='none'"><u>U</u></button>
+            <button onclick="window.fmtNote('strikeThrough')" title="Strikethrough" style="min-width:28px;padding:3px 7px;background:none;border:1px solid transparent;border-radius:4px;color:var(--mist);cursor:pointer;font-size:12px;line-height:1" onmouseenter="this.style.background='var(--bg2)'" onmouseleave="this.style.background='none'"><s>S</s></button>
+            <div style="width:1px;background:var(--line);margin:2px 4px"></div>
+            <button onclick="window.fmtNote('insertUnorderedList')" title="Bullet list" style="min-width:28px;padding:3px 7px;background:none;border:1px solid transparent;border-radius:4px;color:var(--mist);cursor:pointer;font-size:12px;line-height:1" onmouseenter="this.style.background='var(--bg2)'" onmouseleave="this.style.background='none'">• ≡</button>
+            <button onclick="window.fmtNote('insertOrderedList')" title="Numbered list" style="min-width:28px;padding:3px 7px;background:none;border:1px solid transparent;border-radius:4px;color:var(--mist);cursor:pointer;font-size:12px;line-height:1" onmouseenter="this.style.background='var(--bg2)'" onmouseleave="this.style.background='none'">1. ≡</button>
+            <div style="width:1px;background:var(--line);margin:2px 4px"></div>
+            <button onclick="window.fmtNote('removeFormat')" title="Hapus format" style="min-width:28px;padding:3px 7px;background:none;border:1px solid transparent;border-radius:4px;color:var(--fog);cursor:pointer;font-size:10px;line-height:1" onmouseenter="this.style.background='var(--bg2)'" onmouseleave="this.style.background='none'">✕ fmt</button>
+          </div>
           <div class="note-body-in" id="note-body" contenteditable="true" spellcheck="false"
             data-placeholder="Tulis ide atau catatan di sini..."
             oninput="onNoteInput()"
@@ -10008,6 +10020,28 @@ window.generateCombinedReport = function(exportDate, useExec, useScurve, useVmbo
     toast('✓ Combined report siap — pilih Print (Ctrl+P) untuk simpan sebagai PDF');
   }, 300);
 };
+
+
+window.fmtNote = function(cmd) {
+  // Focus editor first
+  var ed = document.getElementById('note-body');
+  if (!ed) return;
+  ed.focus();
+  // execCommand applies to current selection in contenteditable
+  document.execCommand(cmd, false, null);
+  // Trigger save
+  if (typeof onNoteInput === 'function') onNoteInput();
+};
+
+// Keyboard shortcuts for formatting
+document.addEventListener('keydown', function(e) {
+  var ed = document.getElementById('note-body');
+  if (!ed || document.activeElement !== ed) return;
+  if (!e.ctrlKey && !e.metaKey) return;
+  if (e.key === 'b' || e.key === 'B') { e.preventDefault(); window.fmtNote('bold'); }
+  if (e.key === 'i' || e.key === 'I') { e.preventDefault(); window.fmtNote('italic'); }
+  if (e.key === 'u' || e.key === 'U') { e.preventDefault(); window.fmtNote('underline'); }
+});
 
 </script>
 </body>
