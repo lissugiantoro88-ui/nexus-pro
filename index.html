@@ -2310,7 +2310,19 @@ const TSFull = () => {
   return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')
     +' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0');
 };
-const FMT = d => { if(!d) return '—'; return new Date(d+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short'}); };
+const FMT = d => {
+  if (!d) return '—';
+  try {
+    // Handle Firestore Timestamp objects
+    if (typeof d === 'object' && d.toDate) d = d.toDate().toISOString().slice(0,10);
+    else if (d instanceof Date) d = d.toISOString().slice(0,10);
+    else if (typeof d === 'string') d = d.slice(0,10); // extract YYYY-MM-DD from any string
+    if (!d || d.length < 10) return '—';
+    const [y,mo,day] = d.split('-').map(Number);
+    if (!y || !mo || !day) return '—';
+    return new Date(y, mo-1, day).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
+  } catch(e) { return '—'; }
+};
 // ── DATE HELPERS — timezone-safe (WIB/UTC+7 friendly) ──
 function localMidnight(dateStr) {
   const [y,m,d] = dateStr.split('-').map(Number);
