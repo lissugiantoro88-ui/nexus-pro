@@ -3023,8 +3023,20 @@ function tlCardHTML(a, zone){
 window.setTF = (f,el) => { taskF=f;document.querySelectorAll('#task-filters .chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderTasks(); };
 window.setTV = (v,el) => { taskV=v;document.querySelectorAll('.vtbtn').forEach(b=>b.classList.remove('active'));el.classList.add('active');document.getElementById('tasks-list-view').classList.toggle('hidden',v==='kanban');document.getElementById('tasks-kanban-view').classList.toggle('hidden',v==='list'); };
 
+
+// Sort by due date: closest first, no-due at end
+function sortByDue(arr) {
+  return arr.slice().sort(function(a, b) {
+    var da = a.due || '', db = b.due || '';
+    if (!da && !db) return 0;
+    if (!da) return 1;   // no due → goes to bottom
+    if (!db) return -1;  // other has due → stays above
+    return da.localeCompare(db); // ascending: soonest first
+  });
+}
+
 function renderTasks(){
-  let tasks=[...D.tasks].reverse(); // terbaru di atas
+  let tasks = sortByDue([...D.tasks]); // sort by due date ascending
   if(taskF==='todo')tasks=tasks.filter(t=>t.status==='todo');
   else if(taskF==='inprogress')tasks=tasks.filter(t=>t.status==='inprogress');
   else if(taskF==='done')tasks=tasks.filter(t=>t.status==='done');
@@ -3907,7 +3919,7 @@ window.collapseAllST = () => {
 function renderSubtaskPanel() {
   const taskId = subtaskModalTaskId;
   if (!taskId) return;
-  const subs = D.subtasks[taskId] || [];
+  const subs = sortByDue(D.subtasks[taskId] || []);
 
   // Progress
   const total  = subs.length;
@@ -3937,7 +3949,7 @@ function renderSubtaskPanel() {
 }
 
 function renderSTBlock(taskId, st) {
-  const sst      = D.subsubtasks[st.id] || [];
+  const sst      = sortByDue(D.subsubtasks[st.id] || []);
   const sstTotal = sst.length;
   const sstDone  = sst.filter(s => s.done).length;
   const sstPct   = sstTotal > 0 ? Math.round(sstDone / sstTotal * 100) : null;
