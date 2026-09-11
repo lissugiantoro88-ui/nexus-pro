@@ -6087,6 +6087,13 @@ window.generateSCurvePDF = function(exportDate) {
     return '<div style="background:#f9fafb;border-radius:6px;padding:9px 11px;border:1px solid #e5e7eb"><div style="font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">'+arr[0]+'</div><div style="font-size:19px;font-weight:700;color:'+arr[2]+';font-family:monospace;line-height:1">'+arr[1]+'</div></div>';
   }).join('');
 
+    // Capture S-Curve chart image for PDF
+  var chartImgSrc = '';
+  try {
+    var _cvs2 = document.getElementById('sc-canvas');
+    if (_cvs2) chartImgSrc = _cvs2.toDataURL('image/png');
+  } catch(_e2) {}
+
   var html = '<!DOCTYPE html>\n<html lang="id"><head><meta charset="UTF-8">'
     +'<title>'+(exportDate||TS()).slice(8)+(exportDate||TS()).slice(5,7)+(exportDate||TS()).slice(0,4)+' S-Curve '+proj.name+'</title>'
     +'<style>@page{margin:12mm 10mm}body{font-family:-apple-system,Segoe UI,sans-serif;color:#111;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>'
